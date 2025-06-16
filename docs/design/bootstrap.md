@@ -41,8 +41,6 @@ Conceptually `rdd start` (with the default `RDD_INSTANCE=2`) will trigger these 
 
 * It checks that the `app` controller has been configured.
 
-* It create the app-namespace (`rancher-desktop` by default) because it does not exist yet.
-
 * It creates the `rancher-desktop` namespace because it does not yet exist.
 
 * It attempts to fetch the `App` object in the `rancher-desktop` namespace. This fails because the object does not exist yet.

@@ -2,7 +2,7 @@
 
 The application commands use short option names for usability. Unlike the `rdctl` tool from "Rancher Desktop 1" they will use e.g. `--cpus` instead of `--virtual-machine.number-cpus`.
 
-## `rdd create` [rdd-create]
+## `rdd create`
 
 
 ## `rdd start`
@@ -38,7 +38,7 @@ Set `App.status` to `stopped` and delete the `LimaVM`, but keep the `App` object
 rdd lima shell rd "$@"
 ```
 
-## `rdd run` [rdd-run]
+## `rdd run`
 
 Set up `PATH` to start with `~/.rd$RDD_INSTANCE` and set the docker and kube contexts to `rancher-desktop` before running the command.
 
@@ -53,9 +53,9 @@ export KUBECONFIG="$HOME/.rd2/kube.config"
 docker images
 ```
 
-## `rdd shell-profile` [rdd-shell-profile]
+## `rdd shell-profile`
 
-It prints a list of shell commands to STDOUT to put the `$DOTDATA/bin` directory on the `PATH` and load completions for `rdd` and any bundled utilities (`docker`, `helm`, ...).
+It prints a list of shell commands to STDOUT to put the `~/.rd2/bin` directory on the `PATH` and load completions for `rdd` and any bundled utilities (`docker`, `helm`, ...).
 
 ```console
 $ rdd shell-profile bash --path --completions

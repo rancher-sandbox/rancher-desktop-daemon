@@ -28,7 +28,6 @@ Always use default RDD instance: "The `~/.rd2/bin` directory". **Not** "The `~/.
 
 ## Formatting
 
-* No backquotes in hyperlinks. Use "[rdd run]\(…) command". **Not** "[`rdd run`]\(…) command".
-* Anchors are specified explicitly on headings and are lowercase using dashes, e.g. "[rdd-run]".
+* No backquotes in hyperlinks. Use "[rdd run]\(…) command". **Not** "[\`rdd run\`]\(…) command".
 * Always put quotes around "Rancher Desktop 2".
 * Lowercase (and using backquotes) \`rdd\` is the binary executable. RDD (no quotes) is application name.

@@ -16,7 +16,7 @@ Unless otherwise specified, all objects mentioned here will be created in the `r
 
 * It starts any additional controllers configured via the `config` ConfigMap.
 
-## Service shutdown [service-shutdown]
+## Service shutdown
 
 The control plane will be notified to shut down, either by receiving a SIGTERM signal from the user (via `rdd service stop`), or by the OS preparing to shut down the host.
 

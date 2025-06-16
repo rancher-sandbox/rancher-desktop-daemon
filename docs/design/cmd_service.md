@@ -4,12 +4,13 @@ Service commands are for working with the control plane. The [Service API](api_s
 
 ## Directories
 
-### Service Directory [service-directory]
+### Service Directory
 
 In this document all filenames are relative to the service directory `$APPDATA/rancher-desktop-$RDD_INSTANCE`.
 
 This service directory contains the following files:
 
+| File | Description |
 | --- | --- |
 | `config.json` | service config settings (written by `rdd service create` or `rdd service start`) 
 | `rdd.pid`     | pid of the control plane process (normally a background daemon) |
@@ -17,10 +18,11 @@ This service directory contains the following files:
 
 "Runs `rdd service ...`" means that the command performs the functionality in-progress, with the exception of `rdd service serve`, which will launch a background process.
 
-### Path Directory [path-directory]
+### Path Directory
 
 The path directory contains the following files and directories:
 
+| File | Description |
 | --- | --- |
 | `bin`         | contains utilities like `docker`, `helm`, etc. May be symlinks | 
 | `kube.config` | Kubernetes config only containing the `rancher-desktop-2` context |
@@ -113,7 +115,7 @@ Prints a kube config with context and service account[^sa] setup to give access 
 
 Runs `rdd service start` to ensure the `apiserver` is ready to accept requests.
 
-## `rdd ctl` [rdd-ctl]
+## `rdd ctl`
 
 Calls the RDD apiserver using the builtin `kubectl` code. It automatically starts the daemon and sets up the correct kubeconfig. It will ignore the `KUBECONFIG` environment variable:
 
