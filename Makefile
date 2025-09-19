@@ -3,11 +3,12 @@
 # SPDX-FileCopyrightText: The Rancher Desktop Authors
 # SPDX-FileCopyrightText: The KCP Authors
 
-KUBE_MAJOR_VERSION := $(shell go mod edit -json | jq '.Require[] | select(.Path == "k8s.io/kubernetes") | .Version' --raw-output | sed 's/v\([0-9]*\).*/\1/')
-KUBE_MINOR_VERSION := $(shell go mod edit -json | jq '.Require[] | select(.Path == "k8s.io/kubernetes") | .Version' --raw-output | sed "s/v[0-9]*\.\([0-9]*\).*/\1/")
+KUBE_VERSION := $(shell go list -m -f '{{.Version}}' 'k8s.io/kubernetes')
+KUBE_MAJOR_VERSION := $(shell echo $(KUBE_VERSION) | sed 's/v\([0-9]*\).*/\1/')
+KUBE_MINOR_VERSION := $(shell echo $(KUBE_VERSION) | sed "s/v[0-9]*\.\([0-9]*\).*/\1/")
 GIT_COMMIT := $(shell git rev-parse --short HEAD || echo 'local')
 GIT_DIRTY := $(shell git diff --quiet && echo 'clean' || echo 'dirty')
-GIT_VERSION := $(shell go mod edit -json | jq '.Require[] | select(.Path == "k8s.io/kubernetes") | .Version' --raw-output)+rdd-$(shell git describe --tags --match='v*' --abbrev=14 "$(GIT_COMMIT)^{commit}" 2>/dev/null || echo v0.0.0-$(GIT_COMMIT))
+GIT_VERSION := $(KUBE_VERSION)+rdd-$(shell git describe --tags --match='v*' --abbrev=14 "$(GIT_COMMIT)^{commit}" 2>/dev/null || echo v0.0.0-$(GIT_COMMIT))
 RDD_VERSION := $(shell git describe --match 'v[0-9]*' --dirty='.m' --always --tags)
 RDD_VERSION_TRIMMED := $(RDD_VERSION:v%=%)
 BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -50,8 +51,7 @@ build-rdd:
 .PHONY: build-rdd
 
 # API Group Controller management - Auto-discovery of API groups
-API_GROUP_DIRS := $(shell find pkg/controllers -type d -mindepth 1 -maxdepth 1)
-API_GROUPS := $(filter-out base,$(foreach dir,$(API_GROUP_DIRS),$(shell basename $(dir))))
+API_GROUPS := $(notdir $(shell find pkg/controllers -type d -mindepth 1 -maxdepth 1 -not -name base))
 
 # Generate build targets for API group controllers
 define API_GROUP_CONTROLLER_TARGETS
@@ -91,14 +91,13 @@ lint:
 .PHONY: lint
 
 ltag:
-	go install github.com/containerd/ltag@latest
 	# exclude bats/lib, but --excludes only takes a dir name, not a path name
-	$$(go env GOPATH)/bin/ltag -v -t .ltag -path . --excludes=lib
+	go tool ltag -v -t .ltag -path . --excludes=lib
 .PHONY: ltag
 
 imports:
-	go install github.com/openshift-eng/openshift-goimports@latest
-	$$(go env GOPATH)/bin/openshift-goimports
+	go run openshift-goimports
+.PHONY: imports
 
 # BATS integration testing targets
 BATS_CORE := ./bats/lib/bats-core/bin/bats
@@ -113,22 +112,22 @@ check-bats:
 
 # Run CLI tests
 bats-cli: check-bats build-rdd
-	PATH="$(PWD)/bin:$$PATH" $(BATS_CORE) bats/tests/10-cli/
+	PATH="$(PWD)/bin:$$PATH" RDD_INSTANCE=bats-cli $(BATS_CORE) bats/tests/10-cli/
 .PHONY: bats-cli
 
 # Run service tests
 bats-service: check-bats build-rdd
-	PATH="$(PWD)/bin:$$PATH" $(BATS_CORE) bats/tests/20-service/
+	PATH="$(PWD)/bin:$$PATH" RDD_INSTANCE=bats-service $(BATS_CORE) bats/tests/20-service/
 .PHONY: bats-service
 
 # Run RDD API group controller tests
 bats-rdd: check-bats build-rdd build-rdd-controller
-	PATH="$(PWD)/bin:$$PATH" $(BATS_CORE) bats/tests/31-rdd-controllers/
+	PATH="$(PWD)/bin:$$PATH" RDD_INSTANCE=bats-rdd-controller $(BATS_CORE) bats/tests/31-rdd-controllers/
 .PHONY: bats-rdd
 
 # Run app API group controller tests
 bats-app: check-bats build-rdd
-	PATH="$(PWD)/bin:$$PATH" $(BATS_CORE) bats/tests/32-app-controllers/
+	PATH="$(PWD)/bin:$$PATH" RDD_INSTANCE=bats-app-controller $(BATS_CORE) bats/tests/32-app-controllers/
 .PHONY: bats-app
 
 # Run all controller tests
@@ -163,4 +162,7 @@ bats-trace: check-bats build-rdd build-all-controllers
 	fi
 	PATH="$(PWD)/bin:$$PATH" RDD_TRACE=true $(BATS_CORE) "$(FILE)"
 .PHONY: bats-trace
-.PHONY: imports
+
+clean:
+	-rm -r bin
+.PHONY: clean
