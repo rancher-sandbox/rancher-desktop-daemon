@@ -26,6 +26,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+
 	// Justify blank import.
 	_ "k8s.io/apiserver/pkg/admission"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
@@ -39,6 +40,7 @@ import (
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/logs"
 	logsapi "k8s.io/component-base/logs/api/v1"
+
 	// Justify blank import.
 	_ "k8s.io/component-base/metrics/prometheus/workqueue"
 	"k8s.io/component-base/term"
@@ -47,11 +49,13 @@ import (
 	"k8s.io/klog/v2"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	controlplaneapiserver "k8s.io/kubernetes/pkg/controlplane/apiserver"
+
 	// Justify blank import.
 	_ "k8s.io/kubernetes/pkg/features"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/cli/help"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+
 	// Import controller packages to trigger init() functions for embedded mode.
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/demo"
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/rdd/configmapreplicaset"
@@ -148,7 +152,7 @@ func Running() bool {
 	return PID() != PIDNotFound
 }
 
-func Create(args []string) error {
+func Create(ctx context.Context, args []string) error {
 	if Exists() {
 		return fmt.Errorf("%q control plane already exists", instance.Name())
 	}
@@ -156,7 +160,7 @@ func Create(args []string) error {
 		return err
 	}
 	desiredSecurePort := 6443 + instance.Index()
-	securePort, err := controllers.GetAvailablePort(desiredSecurePort)
+	securePort, err := controllers.GetAvailablePort(ctx, desiredSecurePort)
 	if err != nil {
 		return fmt.Errorf("failed to get available secure port: %w", err)
 	}
@@ -175,13 +179,13 @@ func getRuntimeControllersFromCluster(ctx context.Context) ([]string, error) {
 	config, err := GetKubeRestConfig()
 	if err != nil {
 		klog.V(2).Infof("getRuntimeControllersFromCluster: kubeconfig error: %v", err)
-		return nil, fmt.Errorf("Could not get kubeconfig to read running controllers: %w", err)
+		return nil, fmt.Errorf("could not get kubeconfig to read running controllers: %w", err)
 	}
 
 	discovery, err := controllers.NewControllerManagerDiscovery(config)
 	if err != nil {
 		klog.V(2).Infof("getRuntimeControllersFromCluster: discovery creation error: %v", err)
-		return nil, fmt.Errorf("Could not create discovery client: %w", err)
+		return nil, fmt.Errorf("could not create discovery client: %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -190,7 +194,7 @@ func getRuntimeControllersFromCluster(ctx context.Context) ([]string, error) {
 	info, err := discovery.DiscoverControllerManager(ctx)
 	if err != nil {
 		klog.V(2).Infof("getRuntimeControllersFromCluster: discovery error: %v", err)
-		return nil, fmt.Errorf("Could not discover running controllers: %w", err)
+		return nil, fmt.Errorf("could not discover running controllers: %w", err)
 	}
 
 	if info == nil {
@@ -242,6 +246,9 @@ func Start(ctx context.Context, args []string) error {
 	}
 
 	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
 	cmd := exec.CommandContext(ctx, executable, cmdArgs...)
 	// TODO This will not work on Windows
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -533,7 +540,7 @@ func NewServeCommand() *cobra.Command {
 				return fmt.Errorf("control plane %q is already running", instance.Name())
 			}
 			if !Exists() {
-				if err := Create(nil); err != nil {
+				if err := Create(cmd.Context(), nil); err != nil {
 					return err
 				}
 			}
@@ -692,13 +699,13 @@ func Run(ctx context.Context, opts options.CompletedOptions) error {
 
 			// Get available ports for metrics and health endpoints with instance offset
 			instanceOffset := 2 * instance.Index()
-			metricsPort, err := controllers.GetAvailablePort(8082 + instanceOffset)
+			metricsPort, err := controllers.GetAvailablePort(ctx, 8082+instanceOffset)
 			if err != nil {
 				klog.Error(err, "Failed to get available metrics port")
 				return
 			}
 
-			healthPort, err := controllers.GetAvailablePort(8083 + instanceOffset)
+			healthPort, err := controllers.GetAvailablePort(ctx, 8083+instanceOffset)
 			if err != nil {
 				klog.Error(err, "Failed to get available health port")
 				return
@@ -706,6 +713,7 @@ func Run(ctx context.Context, opts options.CompletedOptions) error {
 
 			// Create shared controller manager with dynamic ports
 			sharedManager := controllers.NewSharedControllerManager(
+				ctx,
 				completed.ControlPlane.Generic.LoopbackClientConfig,
 				metricsPort,
 				healthPort,

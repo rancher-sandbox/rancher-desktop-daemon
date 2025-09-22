@@ -5,51 +5,53 @@
 package controllers
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
+	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // GetAvailablePort tries to use the desired port, but picks a random available port if it's not available.
 // Returns the port number that was successfully bound.
-func GetAvailablePort(desiredPort int) (int, error) {
-	// If desired port is 0, let the system pick a random available port
-	if desiredPort == 0 {
-		listener, err := net.Listen("tcp", ":0")
-		if err != nil {
-			return 0, fmt.Errorf("failed to find available port: %w", err)
-		}
-		defer listener.Close()
-
-		// Extract the port from the listener's address
-		addr := listener.Addr().(*net.TCPAddr)
-		return addr.Port, nil
-	}
-
+func GetAvailablePort(ctx context.Context, desiredPort int) (int, error) {
 	// First, try the desired port
-	if isPortAvailable(desiredPort) {
-		return desiredPort, nil
+	if desiredPort != 0 {
+		if port, err := isPortAvailable(ctx, desiredPort); err == nil {
+			return port, nil
+		}
 	}
 
 	// If desired port is not available, let the system pick a random available port
-	listener, err := net.Listen("tcp", ":0")
+	port, err := isPortAvailable(ctx, 0)
 	if err != nil {
 		return 0, fmt.Errorf("failed to find available port: %w", err)
 	}
-	defer listener.Close()
-
-	// Extract the port from the listener's address
-	addr := listener.Addr().(*net.TCPAddr)
-	return addr.Port, nil
+	return port, nil
 }
 
-// isPortAvailable checks if a port is available by trying to bind to it.
-func isPortAvailable(port int) bool {
+// isPortAvailable checks if a port is available by trying to bind to it, and
+// returns the port bound.  The listener is closed before returning.  If it
+// fails, returns zero.  The returned port is never zero on success.
+func isPortAvailable(ctx context.Context, port int) (int, error) {
 	address := ":" + strconv.Itoa(port)
-	listener, err := net.Listen("tcp", address)
+	listenConfig := net.ListenConfig{
+		Control: func(_network, _address string, c syscall.RawConn) error {
+			return c.Control(func(fd uintptr) {
+				_ = unix.SetsockoptLinger(int(fd), unix.SOL_SOCKET, unix.SO_LINGER, &unix.Linger{Linger: 0})
+			})
+		},
+	}
+	listener, err := listenConfig.Listen(ctx, "tcp", address)
 	if err != nil {
-		return false
+		return 0, err
 	}
 	defer listener.Close()
-	return true
+	if addr, ok := listener.Addr().(*net.TCPAddr); ok && addr.Port != 0 {
+		return addr.Port, nil
+	}
+	return 0, errors.New("failed to get listener port")
 }

@@ -66,7 +66,7 @@ func NewOptions(rootDir string) *Options {
 	o := &Options{
 		ControlPlane:        *controlplaneapiserveroptions.NewOptions(),
 		Datastore:           *datastore.NewOptions(),
-		AdminAuthentication: *NewAdminAuthentication(rootDir),
+		AdminAuthentication: *NewAdminAuthentication(),
 		Controllers:         *controllers.NewOptions(),
 		Extra: ExtraOptions{
 			RootDir: rootDir,

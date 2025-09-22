@@ -46,13 +46,13 @@ type SharedControllerManager struct {
 }
 
 // NewSharedControllerManager creates a new shared controller manager.
-func NewSharedControllerManager(kubeConfig *rest.Config, metricsPort, healthPort int) *SharedControllerManager {
+func NewSharedControllerManager(ctx context.Context, kubeConfig *rest.Config, metricsPort, healthPort int) *SharedControllerManager {
 	// Create discovery service (errors handled in Start method)
 	discovery, _ := NewControllerManagerDiscovery(kubeConfig)
 
 	// Calculate webhook port with instance offset
 	desiredWebhookPort := 9443 + instance.Index()
-	webhookPort, err := GetAvailablePort(desiredWebhookPort)
+	webhookPort, err := GetAvailablePort(ctx, desiredWebhookPort)
 	if err != nil {
 		// Fallback to original port if GetAvailablePort fails
 		webhookPort = desiredWebhookPort

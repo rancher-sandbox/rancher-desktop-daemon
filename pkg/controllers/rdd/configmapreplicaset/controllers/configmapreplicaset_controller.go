@@ -108,7 +108,11 @@ func (r *ConfigMapReplicaSetReconciler) Reconcile(ctx context.Context, req ctrl.
 	// Scale up if needed
 	if currentReplicas < replicas {
 		for i := currentReplicas; i < replicas; i++ {
-			configMap := r.configMapForController(&configMapReplicaSet, i)
+			configMap, err := r.configMapForController(&configMapReplicaSet, i)
+			if err != nil {
+				logger.Error(err, "Failed to get config map for controller", "ConfigMapReplicaSet.Namespace", configMapReplicaSet.Namespace, "ConfigMapReplicaSet.Name", configMapReplicaSet.Name)
+				return ctrl.Result{}, err
+			}
 			logger.Info("Creating ConfigMap", "ConfigMap.Namespace", configMap.Namespace, "ConfigMap.Name", configMap.Name)
 			if err := r.Create(ctx, configMap); err != nil {
 				logger.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", configMap.Namespace, "ConfigMap.Name", configMap.Name)
@@ -183,7 +187,7 @@ func (r *ConfigMapReplicaSetReconciler) handleDeletion(ctx context.Context, conf
 // - Labels for identification and selection
 // - Data from the controller spec plus an index field
 // - Controller reference for garbage collection.
-func (r *ConfigMapReplicaSetReconciler) configMapForController(m *v1alpha1.ConfigMapReplicaSet, index int32) *corev1.ConfigMap {
+func (r *ConfigMapReplicaSetReconciler) configMapForController(m *v1alpha1.ConfigMapReplicaSet, index int32) (*corev1.ConfigMap, error) {
 	labels := labelsForConfigMap(m.Name)
 	configMapName := fmt.Sprintf("%s-%d", m.Name, index)
 
@@ -204,8 +208,10 @@ func (r *ConfigMapReplicaSetReconciler) configMapForController(m *v1alpha1.Confi
 		Data: data,
 	}
 
-	ctrl.SetControllerReference(m, configMap, r.Scheme)
-	return configMap
+	if err := ctrl.SetControllerReference(m, configMap, r.Scheme); err != nil {
+		return nil, err
+	}
+	return configMap, nil
 }
 
 // labelsForConfigMap returns the labels for selecting the resources.

@@ -71,7 +71,7 @@ func newVersionCommand() *cobra.Command {
 		Use:   "version",
 		Short: "Print RDD version information",
 		Long:  help.Doc(`Print RDD version information and exit.`),
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, _args []string) {
 			fmt.Fprintln(cmd.OutOrStdout(), version.Get().String())
 		},
 	}

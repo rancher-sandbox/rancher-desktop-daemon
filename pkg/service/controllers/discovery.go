@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -139,18 +140,12 @@ func (d *ControllerManagerDiscovery) IsControllerRunning(ctx context.Context, co
 	}
 
 	// Check if the controller manager is actually accessible
-	if !d.isControllerManagerHealthy(info) {
+	if !d.isControllerManagerHealthy(ctx, info) {
 		return false, info, nil
 	}
 
 	// Check if the specific controller is enabled
-	for _, controller := range info.EnabledControllers {
-		if controller == controllerName {
-			return true, info, nil
-		}
-	}
-
-	return false, info, nil
+	return slices.Contains(info.EnabledControllers, controllerName), info, nil
 }
 
 // ControllerManagerInfo contains discovered information about a running controller manager.
@@ -196,9 +191,13 @@ func (d *ControllerManagerDiscovery) parseControllerManagerInfo(cm *corev1.Confi
 }
 
 // isControllerManagerHealthy checks if the controller manager is responding to health checks.
-func (d *ControllerManagerDiscovery) isControllerManagerHealthy(info *ControllerManagerInfo) bool {
+func (d *ControllerManagerDiscovery) isControllerManagerHealthy(ctx context.Context, info *ControllerManagerInfo) bool {
 	client := &http.Client{Timeout: 2 * time.Second}
-	resp, err := client.Get(info.HealthEndpoint)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, info.HealthEndpoint, http.NoBody)
+	if err != nil {
+		return false
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}

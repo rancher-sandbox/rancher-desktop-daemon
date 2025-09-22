@@ -5,6 +5,7 @@
 package base
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -89,9 +90,9 @@ func GetAllControllers() []Controller {
 
 // GetKubeConfigFromRDD returns the Kubernetes configuration by running `rdd svc config`.
 // This function is used by external controllers to retrieve kubeconfig dynamically.
-func GetKubeConfigFromRDD() (*rest.Config, error) {
+func GetKubeConfigFromRDD(ctx context.Context) (*rest.Config, error) {
 	// Get kubeconfig from rdd svc config command
-	kubeconfigYAML, err := getRDDKubeConfig()
+	kubeconfigYAML, err := getRDDKubeConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ func GetKubeConfigFromRDD() (*rest.Config, error) {
 
 // getRDDKubeConfig executes `rdd svc config` and returns the kubeconfig YAML.
 // It first tries to find rdd on PATH, then looks in the same directory as the current executable.
-func getRDDKubeConfig() ([]byte, error) {
+func getRDDKubeConfig(ctx context.Context) ([]byte, error) {
 	// First try to find rdd on PATH
 	rddPath, err := exec.LookPath("rdd")
 	if err != nil {
@@ -125,7 +126,7 @@ func getRDDKubeConfig() ([]byte, error) {
 	}
 
 	// Execute rdd svc config command
-	cmd := exec.Command(rddPath, "svc", "config")
+	cmd := exec.CommandContext(ctx, rddPath, "svc", "config")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err

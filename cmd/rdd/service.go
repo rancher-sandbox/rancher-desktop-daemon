@@ -47,7 +47,7 @@ func newServiceConfigCommand() *cobra.Command {
 
 func serviceConfigAction(cmd *cobra.Command, _ []string) error {
 	if !service.Exists() {
-		if err := service.Create(nil); err != nil {
+		if err := service.Create(cmd.Context(), nil); err != nil {
 			return err
 		}
 	}
@@ -91,7 +91,7 @@ func serviceCreateAction(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	args = append(args, "--controllers", controllers)
-	if err := service.Create(args); err != nil {
+	if err := service.Create(cmd.Context(), args); err != nil {
 		return err
 	}
 	logrus.Infof("successfully created %q control plane", instance.Name())
@@ -116,7 +116,7 @@ func newServiceStartCommand() *cobra.Command {
 
 func serviceStartAction(cmd *cobra.Command, args []string) error {
 	if !service.Exists() {
-		if err := service.Create(args); err != nil {
+		if err := service.Create(cmd.Context(), args); err != nil {
 			return err
 		}
 		logrus.Infof("successfully created %q control plane", instance.Name())

@@ -183,7 +183,7 @@ func extractListItems(list client.ObjectList) ([]client.Object, error) {
 
 	// Extract items
 	items := make([]client.Object, itemsField.Len())
-	for i := 0; i < itemsField.Len(); i++ {
+	for i := range itemsField.Len() {
 		item := itemsField.Index(i)
 		// Get address of the item to make it a pointer
 		if item.CanAddr() {

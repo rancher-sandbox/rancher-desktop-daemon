@@ -109,6 +109,8 @@ linters:
       - name: unexported-return
       - name: unreachable-code
       - name: unused-parameter
+        arguments:
+          - allowRegex: ^_
       - name: use-any
       - name: var-declaration
       - name: var-naming

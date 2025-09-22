@@ -38,7 +38,7 @@ type AdminAuthentication struct {
 
 // NewAdminAuthentication returns a new AdminAuthentication for the given root directory
 // where the token hash file should be written.
-func NewAdminAuthentication(rootDir string) *AdminAuthentication {
+func NewAdminAuthentication() *AdminAuthentication {
 	return &AdminAuthentication{
 		ShardAdminTokenHashFilePath: filepath.Join(instance.TLSDir(), ".admin-token-store"),
 	}

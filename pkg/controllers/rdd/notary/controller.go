@@ -266,7 +266,7 @@ func (v *NotaryValidator) ValidateCreate(ctx context.Context, obj runtime.Object
 }
 
 // ValidateUpdate implements ctrlwebhookadmission.CustomValidator.
-func (v *NotaryValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
+func (v *NotaryValidator) ValidateUpdate(ctx context.Context, _oldObj, newObj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
 	notary, ok := newObj.(*v1alpha1.Notary)
 	if !ok {
 		return nil, fmt.Errorf("expected a Notary object but got %T", newObj)
@@ -289,7 +289,7 @@ func (v *NotaryValidator) validateNotary(ctx context.Context, notary *v1alpha1.N
 			// For dry run requests, we still perform validation but can skip side effects
 			// In this case, we don't have side effects, so we proceed with normal validation
 			// but log that this is a dry run
-			fmt.Printf("[DryRun] Webhook validating Notary %s/%s\n", req.Namespace, req.Name)
+			fmt.Fprintf(os.Stdout, "[DryRun] Webhook validating Notary %s/%s\n", req.Namespace, req.Name)
 		}
 	}
 
