@@ -23,7 +23,8 @@ import (
 
 // RunControllers is the main function for external API group controllers.
 // It handles command line parsing, kubeconfig retrieval, discovery checking, and shared manager setup.
-func RunControllers(apiGroupName string, controllersFunc func() []base.Controller) error {
+// It returns the command's exit code.
+func RunControllers(apiGroupName string) int {
 	var desiredMetricsPort int
 	var desiredHealthPort int
 
@@ -45,16 +46,13 @@ func RunControllers(apiGroupName string, controllersFunc func() []base.Controlle
 	config, err := base.GetKubeConfigFromRDD(ctx)
 	if err != nil {
 		setupLog.Error(err, "Failed to get kubeconfig")
-		return err
+		return 1
 	}
-
-	// Get the list of controllers for this API group
-	apiControllers := controllersFunc()
 
 	// Check which controllers should start and filter the list
 	var controllersToStart []base.Controller
 
-	for _, controller := range apiControllers {
+	for _, controller := range base.GetAllControllers() {
 		shouldStart, err := shouldStartController(ctx, config, controller.GetName(), setupLog)
 		if err != nil {
 			setupLog.Error(err, "Failed to check for running controller, starting anyway", "controller", controller.GetName())
@@ -69,7 +67,7 @@ func RunControllers(apiGroupName string, controllersFunc func() []base.Controlle
 	// If no controllers need to start, exit
 	if len(controllersToStart) == 0 {
 		setupLog.Info("All controllers are already running in RDD controller manager, exiting")
-		return nil
+		return 0
 	}
 
 	// Create a cancellable context for control plane monitoring
@@ -88,13 +86,13 @@ func RunControllers(apiGroupName string, controllersFunc func() []base.Controlle
 	metricsPort, err := controllers.GetAvailablePort(ctx, desiredMetricsPort)
 	if err != nil {
 		setupLog.Error(err, "Failed to get available metrics port")
-		return err
+		return 1
 	}
 
 	healthPort, err := controllers.GetAvailablePort(ctx, desiredHealthPort)
 	if err != nil {
 		setupLog.Error(err, "Failed to get available health port")
-		return err
+		return 1
 	}
 
 	// Create shared controller manager for this API group
@@ -104,7 +102,7 @@ func RunControllers(apiGroupName string, controllersFunc func() []base.Controlle
 	for _, controller := range controllersToStart {
 		if err := sharedManager.RegisterController(controller); err != nil {
 			setupLog.Error(err, "Failed to register controller", "controller", controller.GetName())
-			return err
+			return 1
 		}
 	}
 
@@ -113,14 +111,14 @@ func RunControllers(apiGroupName string, controllersFunc func() []base.Controlle
 	// Start the shared manager (this blocks until context is cancelled)
 	if err := sharedManager.Start(monitorCtx); err != nil {
 		setupLog.Error(err, fmt.Sprintf("Problem running %s controller manager", apiGroupName))
-		return err
+		return 1
 	}
 
 	// Wait for monitoring goroutine to finish
 	wg.Wait()
 	setupLog.Info("External controller manager shutting down")
 
-	return nil
+	return 0
 }
 
 // monitorControlPlane monitors the control plane lifecycle and cancels the context when it's no longer available.
