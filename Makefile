@@ -90,14 +90,14 @@ lint:
 	golangci-lint run
 .PHONY: lint
 
+format:
+	golangci-lint fmt
+.PHONY: format
+
 ltag:
 	# exclude bats/lib, but --excludes only takes a dir name, not a path name
 	go tool ltag -v -t .ltag -path . --excludes=lib
 .PHONY: ltag
-
-imports:
-	go run openshift-goimports
-.PHONY: imports
 
 # BATS integration testing targets
 BATS_CORE := ./bats/lib/bats-core/bin/bats

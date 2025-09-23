@@ -5,11 +5,13 @@
 package main
 
 import (
+	"os"
+
 	// Import rdd controller packages to trigger init() functions.
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/lima/limavm"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/external"
 )
 
 func main() {
-	external.RunControllers("lima")
+	os.Exit(external.RunControllers("lima"))
 }

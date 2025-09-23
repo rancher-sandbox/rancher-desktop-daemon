@@ -7,13 +7,13 @@ package controllers
 import (
 	"context"
 
-	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 )
 
 const (

@@ -147,5 +147,13 @@ issues:
   max-same-issues: 0
 formatters:
   enable:
+  - gci
   - gofmt
   - gofumpt
+  settings:
+    gci:
+      sections:
+      - standard
+      - default
+      - prefix(k8s.io,sigs.k8s.io)
+      - localmodule

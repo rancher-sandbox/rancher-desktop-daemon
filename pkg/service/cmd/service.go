@@ -26,7 +26,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-
 	// Justify blank import.
 	_ "k8s.io/apiserver/pkg/admission"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
@@ -40,7 +39,6 @@ import (
 	"k8s.io/component-base/cli/globalflag"
 	"k8s.io/component-base/logs"
 	logsapi "k8s.io/component-base/logs/api/v1"
-
 	// Justify blank import.
 	_ "k8s.io/component-base/metrics/prometheus/workqueue"
 	"k8s.io/component-base/term"
@@ -49,15 +47,14 @@ import (
 	"k8s.io/klog/v2"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	controlplaneapiserver "k8s.io/kubernetes/pkg/controlplane/apiserver"
-
 	// Justify blank import.
 	_ "k8s.io/kubernetes/pkg/features"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/cli/help"
-	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
-
 	// Import controller packages to trigger init() functions for embedded mode.
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/demo"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+	// Import controller packages to trigger init() functions for embedded mode.
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/lima/limavm"
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/rdd/configmapreplicaset"
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/rdd/notary"

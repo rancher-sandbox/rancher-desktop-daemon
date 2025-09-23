@@ -12,8 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/pflag"
 
-	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
-
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
@@ -21,6 +19,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
 const (

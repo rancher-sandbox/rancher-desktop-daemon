@@ -13,9 +13,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/cmp"
+
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
 func TestCreateWithSecurePortAllocation(t *testing.T) {
