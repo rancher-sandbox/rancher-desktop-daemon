@@ -33,11 +33,11 @@ func GetAvailablePort(ctx context.Context, desiredPort int) (int, error) {
 	return port, nil
 }
 
-// isPortAvailable checks if a port is available by trying to bind to it, and
-// returns the port bound.  The listener is closed before returning.  If it
+// isPortAvailable checks if a port is available by trying to bind to it on localhost,
+// and returns the port bound.  The listener is closed before returning.  If it
 // fails, returns zero.  The returned port is never zero on success.
 func isPortAvailable(ctx context.Context, port int) (int, error) {
-	address := ":" + strconv.Itoa(port)
+	address := "127.0.0.1:" + strconv.Itoa(port)
 	listenConfig := net.ListenConfig{
 		Control: func(_, _ string, c syscall.RawConn) error {
 			return c.Control(func(fd uintptr) {
