@@ -251,8 +251,7 @@ func Start(ctx context.Context, args []string) error {
 		return err
 	}
 	cmd := exec.CommandContext(ctx, executable, cmdArgs...)
-	// TODO This will not work on Windows
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	setCommandGroup(cmd)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	return cmd.Start()
@@ -367,7 +366,7 @@ func StopWithWait(wait bool) error {
 	_ = cleanupDiscoveryConfigMap() // Clean up discovery configmap to prevent stale controller info
 
 	pid := PID()
-	if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+	if err := killProcess(pid); err != nil {
 		return fmt.Errorf("failed to stop %q control plane with pid %d: %w", instance.Name(), pid, err)
 	}
 

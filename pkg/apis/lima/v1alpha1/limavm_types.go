@@ -11,7 +11,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// LimaVMSpec defines the desired state of LimaVM
+// LimaVMSpec defines the desired state of LimaVM.
 type LimaVMSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
@@ -49,7 +49,7 @@ type LimaVMStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// LimaVM is the Schema for the limavms API
+// LimaVM is the Schema for the limavms API.
 type LimaVM struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -68,7 +68,7 @@ type LimaVM struct {
 
 // +kubebuilder:object:root=true
 
-// LimaVMList contains a list of LimaVM
+// LimaVMList contains a list of LimaVM.
 type LimaVMList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

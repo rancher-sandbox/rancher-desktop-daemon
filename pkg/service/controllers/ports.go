@@ -10,9 +10,6 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 // GetAvailablePort tries to use the desired port, but picks a random available port if it's not available.
@@ -38,13 +35,7 @@ func GetAvailablePort(ctx context.Context, desiredPort int) (int, error) {
 // fails, returns zero.  The returned port is never zero on success.
 func isPortAvailable(ctx context.Context, port int) (int, error) {
 	address := ":" + strconv.Itoa(port)
-	listenConfig := net.ListenConfig{
-		Control: func(_, _ string, c syscall.RawConn) error {
-			return c.Control(func(fd uintptr) {
-				_ = unix.SetsockoptLinger(int(fd), unix.SOL_SOCKET, unix.SO_LINGER, &unix.Linger{Linger: 0})
-			})
-		},
-	}
+	listenConfig := net.ListenConfig{}
 	listener, err := listenConfig.Listen(ctx, "tcp", address)
 	if err != nil {
 		return 0, err

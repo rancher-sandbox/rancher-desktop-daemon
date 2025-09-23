@@ -21,7 +21,7 @@ const (
 	FinalizerName = "rdd.rancherdesktop.io/limavm-cleanup"
 )
 
-// LimaVMReconciler reconciles a LimaVM object
+// LimaVMReconciler reconciles a LimaVM object.
 type LimaVMReconciler struct {
 	client.Client
 	Scheme          *runtime.Scheme
@@ -41,7 +41,7 @@ type LimaVMReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/reconcile
-func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *LimaVMReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	_ = logf.FromContext(ctx)
 
 	// TODO(user): your logic here
