@@ -53,6 +53,18 @@ fails() {
 
 ########################################################################
 
+errexit() {
+    false
+    true
+}
+
+@test 'run() calls functions with errexit enabled' {
+    run errexit
+    assert_failure
+}
+
+########################################################################
+
 @test 'to_lower Upper and Lower' {
     is "upper and lower"
 }

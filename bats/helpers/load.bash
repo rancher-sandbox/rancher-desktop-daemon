@@ -1,5 +1,8 @@
 set -o errexit -o nounset -o pipefail
 
+# Make sure run() will execute all functions with errexit enabled
+export BATS_RUN_ERREXIT=1
+
 bats_require_minimum_version 1.10.0
 
 absolute_path() {
