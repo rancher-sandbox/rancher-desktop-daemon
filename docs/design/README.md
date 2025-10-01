@@ -14,9 +14,9 @@ The control plane has both a [service directory](cmd_service.md#service-director
 
 [^lima]: RDD will set `LIMA_HOME` to `~/.rd2/lima` instead of `$APPDATA/rancher-desktop-2/lima` because of socket name length constraints.
 
-It is currently not a goal to support RDD running as a system service; it is always tied to a user session[^wsl2]. Design decisions should still attempt to not make that harder, in case this ever becomes a goal.
+It is currently not a goal to support RDD running as a system service; it is always tied to a user session[^WSL2]. Design decisions should still attempt to not make that harder, in case this ever becomes a goal.
 
-[^wsl2]: On Windows WSL2 also depends on the user being logged in. It would require a Hyper-V Lima driver before it could run as a system service.
+[^WSL2]: On Windows WSL2 also depends on the user being logged in. It would require a Hyper-V Lima driver before it could run as a system service.
 
 ### Side-by-Side Operation
 
@@ -30,7 +30,7 @@ Supporting multiple RDD instances in parallel allows developers to run BATS inte
 
 It also makes it possible to compare 2 different configurations running concurrently without having to switch back and forth using snapshots. This makes it easy to test a new release without affecting the current "production" version.
 
-This is controlled by the `RDD_INSTANCE` environment variable (defaults to `2`) or the global `--instance` flag. With `RDD_INSTANCE=bats` or `rdd --instance=bats` the service directory becomes `$APPDATA/rancher-desktop-bats` and the path directory becomes `~/.rdbats`.
+This is controlled by the `RDD_INSTANCE` environment variable (defaults to `2`) or the global `--instance` flag. With `RDD_INSTANCE=bats` or `rdd --instance=bats` the service directory becomes `$APPDATA/rancher-desktop-bats` and the path directory becomes `~/.rdbats`. <!-- spellchecker:ignore -->
 
 Similarly the docker and kube contexts (normally `rancher-desktop-2`) become `rancher-desktop-bats`.
 
@@ -56,7 +56,7 @@ RDD includes controllers for multiple API groups. Each group can be separately v
 Provides basic infrastructure services. Examples include:
 
 * [resource APIs](api_resource.md) for downloading, caching and locating files
-* [url monitoring APIs](api_urlmon.md) periodically check for new versions
+* [url monitoring APIs](api_url_monitor.md) periodically check for new versions
 * [diagnostics APIs](api_diagnostic.md) can raise warnings and errors from any component
 * [service lifecycle](api_service.md) explains how the control plane start up and shuts down
 * [snapshot APIs](api_snapshot.md) can save and restore all or part of the state of the RDD service

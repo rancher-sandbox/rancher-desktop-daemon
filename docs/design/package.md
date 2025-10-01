@@ -24,7 +24,7 @@ Snapshots come in different variants: VM snapshots, namespace snapshots, and RDD
 
 All of them can be store in an RDD package. One package may include multiple snapshots.
 
-### Airgap installation bundles
+### Airgap installation bundles <!-- spellchecker:ignore -->
 
 It is possible to bundle all
 

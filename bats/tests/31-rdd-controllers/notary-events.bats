@@ -139,43 +139,43 @@ get_latest_event_timestamp() {
 }
 
 @test 'test no-change events with annotation updates' {
-    create_notary "dedup" "constant-value" "dedup-history"
+    create_notary "dupe" "constant-value" "dupe-history"
 
     # Wait for initial ConfigMap creation and events
-    wait_for_resource_count "configmaps" "$NOTARY_CONTROLLER_NAME" "dedup" 1
-    wait_for_events "dedup" "SpecUpdate"
-    wait_for_events "dedup" "ValueRecorded"
+    wait_for_resource_count "configmaps" "$NOTARY_CONTROLLER_NAME" "dupe" 1
+    wait_for_events "dupe" "SpecUpdate"
+    wait_for_events "dupe" "ValueRecorded"
 
     # Get the timestamp before triggering multiple identical reconciles
-    run -0 get_latest_event_timestamp "dedup"
+    run -0 get_latest_event_timestamp "dupe"
     timestamp=$output
 
     # Trigger multiple reconciles with identical spec.value by changing annotations
     # Each will generate identical SpecUpdate and NoChange events that Kubernetes should deduplicate
-    run -0 rdd ctl annotate notary dedup test-annotation-1=value1
-    run -0 rdd ctl annotate notary dedup test-annotation-2=value2
-    run -0 rdd ctl annotate notary dedup test-annotation-3=value3
-    run -0 rdd ctl annotate notary dedup test-annotation-4=value4
+    run -0 rdd ctl annotate notary dupe test-annotation-1=value1
+    run -0 rdd ctl annotate notary dupe test-annotation-2=value2
+    run -0 rdd ctl annotate notary dupe test-annotation-3=value3
+    run -0 rdd ctl annotate notary dupe test-annotation-4=value4
 
     # Wait for events to be processed
-    wait_for_events "dedup" "SpecUpdate"
-    wait_for_events "dedup" "NoChange"
+    wait_for_events "dupe" "SpecUpdate"
+    wait_for_events "dupe" "NoChange"
 
     # Count events after the timestamp - should be deduplicated by Kubernetes
     # It is not clear if Kubernetes will always catch all duplicates, but it should get at least 1
-    run -0 get_events_after_timestamp "dedup" "$timestamp" "SpecUpdate"
+    run -0 get_events_after_timestamp "dupe" "$timestamp" "SpecUpdate"
     assert_output --partial "constant-value"
 
     run -0 jq 'length' <<<"$output"
     assert_output_lt 4
 
-    run -0 get_events_after_timestamp "dedup" "$timestamp" "NoChange"
+    run -0 get_events_after_timestamp "dupe" "$timestamp" "NoChange"
     assert_output --partial "value unchanged"
 
     run -0 jq 'length' <<<"$output"
     assert_output_lt 4
 
-    run -0 get_events_after_timestamp "dedup" "$timestamp" "ValueRecorded"
+    run -0 get_events_after_timestamp "dupe" "$timestamp" "ValueRecorded"
     run -0 jq 'length' <<<"$output"
     assert_output 0
 }

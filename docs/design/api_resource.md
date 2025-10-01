@@ -46,7 +46,7 @@ spec:
   readonly: true
 status:
   progress: "Downloading xxx 28%"
-  localPath: "/Users/xxx/Libary/Caches/..."
+  localPath: "/Users/xxx/Library/Caches/..."
 ```
 
 To avoid additional local copies the `Checkout` object may suggest a destination for the checkout.

@@ -1,6 +1,6 @@
 # URL Monitor API
 
-The `urlmonitor` API periodically downloads a URL, records when the content has last changed, and caches the content.
+The `URLMonitor` API periodically downloads a URL, records when the content has last changed, and caches the content.
 
 It will be used to watch the `k3s-version.json` file and the upgrade responder information.
 

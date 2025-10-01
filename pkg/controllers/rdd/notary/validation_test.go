@@ -100,7 +100,7 @@ func TestValidateNotary(t *testing.T) {
 			name: "exactly 24 characters - no warning",
 			notary: &v1alpha1.Notary{
 				Spec: v1alpha1.NotarySpec{
-					Value: "exactly24characterslong", // exactly 24 chars
+					Value: "exactly24characters-long", // exactly 24 chars
 				},
 			},
 			expectError:    false,
@@ -110,7 +110,7 @@ func TestValidateNotary(t *testing.T) {
 			name: "25 characters - should warn",
 			notary: &v1alpha1.Notary{
 				Spec: v1alpha1.NotarySpec{
-					Value: "exactly25characterslong!!", // exactly 25 chars
+					Value: "exactly25characters-long!", // exactly 25 chars
 				},
 			},
 			expectError:     false,

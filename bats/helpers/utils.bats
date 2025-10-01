@@ -515,7 +515,7 @@ get_json_test_data() {
     trace "output=$output"
     trace "stderr=${stderr:-}"
     assert_success
-    assert_output $'foo\nbaz'
+    assert_output foo$'\n'baz
     output=$stderr assert_output bar
 }
 
@@ -678,7 +678,7 @@ get_json_test_data() {
 
 @test 'load_var mix of existing and non-existing variables' {
     DOES_NOT_EXIST=false
-    # Can't use `run` because variable would be sourced in a subshell
+    # Can't use `run` because variable would be loaded in a subshell
     load_var FOO DOES_NOT_EXIST BAR || DOES_NOT_EXIST=true
     [[ $DOES_NOT_EXIST == true ]]
     # shellcheck disable=SC2031

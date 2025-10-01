@@ -49,6 +49,9 @@ RSTART
 # bash
 neq
 
+# bats
+batslib
+
 # C & compilers
 ALLOCA
 ldflags

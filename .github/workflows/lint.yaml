@@ -35,5 +35,5 @@ jobs:
       with:
         go-version-file: go.mod
     - name: Install shfmt
-      run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
+      run: go install mvdan.cc/sh/v3/cmd/shfmt@latest # spellchecker:ignore
     - run: make -C bats lint

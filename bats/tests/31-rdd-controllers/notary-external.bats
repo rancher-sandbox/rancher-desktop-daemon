@@ -44,18 +44,18 @@ assert_process_exited() {
 
 @test "webhook configuration is created" {
     # Wait for webhook configuration to be created by external controller
-    try --max 20 --delay 1 -- rdd ctl get validatingwebhookconfiguration notary-validator
+    try --max 20 --delay 1 -- rdd ctl get ValidatingWebhookConfiguration notary-validator
 
     # Verify webhook configuration structure
-    run -0 rdd ctl get validatingwebhookconfiguration notary-validator -o jsonpath='{.webhooks[0].name}'
+    run -0 rdd ctl get ValidatingWebhookConfiguration notary-validator -o jsonpath='{.webhooks[0].name}'
     assert_output "notary.rdd.rancherdesktop.io"
 
-    run -0 rdd ctl get validatingwebhookconfiguration notary-validator -o json
+    run -0 rdd ctl get ValidatingWebhookConfiguration notary-validator -o json
     run -0 jq -r '.webhooks[0].clientConfig.url' <<<"$output"
     assert_output --partial "https://127.0.0.1:"
     assert_output --partial "/validate-rdd-rancherdesktop-io-v1alpha1-notary"
 
-    run -0 rdd ctl get validatingwebhookconfiguration notary-validator -o jsonpath='{.webhooks[0].failurePolicy}'
+    run -0 rdd ctl get ValidatingWebhookConfiguration notary-validator -o jsonpath='{.webhooks[0].failurePolicy}'
     assert_output "Fail"
 }
 

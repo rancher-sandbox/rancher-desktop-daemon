@@ -448,9 +448,10 @@ func unreadyComponentsFromError(err error) sets.Set[string] {
 	unreadyComponents := sets.New[string]()
 	for _, line := range strings.Split(innerErr, `\n`) {
 		if name := strings.TrimPrefix(strings.TrimSuffix(line, ` failed: reason withheld`), `[-]`); name != line {
-			// NB: sometimes the error we get is truncated (server-side?) to something like: `\n[-]poststar") has prevented the request from succeeding`
-			// In those cases, the `name` here is also truncated, but nothing we can do about that. For that reason, the list of components returned is
-			// not durable and should not be parsed.
+			// NB: sometimes the error we get is truncated (server-side?) to something like:
+			// `\n[-]poststar") has prevented the request from succeeding` # spellchecker:ignore
+			// In those cases, the `name` here is also truncated, but nothing we can do about that.
+			// For that reason, the list of components returned is not durable and should not be parsed.
 			unreadyComponents.Insert(name)
 		}
 	}
