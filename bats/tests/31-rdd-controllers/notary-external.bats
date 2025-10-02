@@ -30,9 +30,8 @@ assert_process_exited() {
 
 @test "external controller starts and registers" {
     # Start external rdd-controller binary in background
-    # Store PID to verify it auto-exits later
     ./bin/rdd-controller &
-    # Store PID for later tests to verify auto-cleanup
+    # Store PID to verify it auto-exits later
     echo "$!" > "${BATS_FILE_TMPDIR}/controller_pid"
 
     # Wait for external controller to register in discovery system
@@ -122,7 +121,6 @@ EOF
 
 @test "external controller auto-exits when control plane stops" {
     # Get the stored PID from the controller start test
-    local controller_pid
     controller_pid=$(cat "${BATS_FILE_TMPDIR}/controller_pid")
 
     # Verify the external controller process is currently running
