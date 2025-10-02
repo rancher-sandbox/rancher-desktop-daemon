@@ -11,7 +11,7 @@ Always use default RDD instance: "The `~/.rd2/bin` directory". **Not** "The `~/.
 ## Terminology
 
 * "API groups" are \`rdd.rancherdesktop.io\`. Always lowercase, fully qualified, and using backquotes, not rdd, \`rdd\` or \`RDD.rancherdesktop.io\`.
-* "Object types" are \`App\`, or \`LimaVM\`. They are mixed case and always using backquots, not App, \`app\` or \`limavm\`.
+* "Object types" are \`App\`, or \`LimaVM\`. They are mixed case and always using backquotes, not App, \`app\` or \`limavm\`.
 * Use "control plane" (or "RDD") and not "daemon".
 
 ### Instances

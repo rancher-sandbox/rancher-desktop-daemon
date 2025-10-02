@@ -10,21 +10,21 @@ local_setup_file() {
 
 @test "webhook configuration is created" {
     # Wait for the webhook configuration to be created
-    try --max 20 --delay 3 -- rdd ctl get validatingwebhookconfiguration notary-validator
+    try --max 20 --delay 3 -- rdd ctl get ValidatingWebHookConfiguration notary-validator
 
     # Check that the webhook configuration exists
-    run -0 rdd ctl get validatingwebhookconfiguration notary-validator
+    run -0 rdd ctl get ValidatingWebHookConfiguration notary-validator
     assert_output --partial "notary-validator"
 }
 
 @test "webhook URL is properly configured" {
-    run -0 rdd ctl get validatingwebhookconfiguration notary-validator -o jsonpath='{.webhooks[0].clientConfig.url}'
+    run -0 rdd ctl get ValidatingWebHookConfiguration notary-validator -o jsonpath='{.webhooks[0].clientConfig.url}'
     assert_output --partial "https://127.0.0.1:"
     assert_output --partial "/validate-rdd-rancherdesktop-io-v1alpha1-notary"
 }
 
 @test "webhook configuration has correct structure" {
-    run -0 rdd ctl get validatingwebhookconfiguration notary-validator -o jsonpath='{.webhooks[0]}'
+    run -0 rdd ctl get ValidatingWebHookConfiguration notary-validator -o jsonpath='{.webhooks[0]}'
     local json=$output
 
     run -0 jq -r '.failurePolicy' <<<"$output"

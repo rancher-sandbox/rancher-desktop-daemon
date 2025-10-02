@@ -1,0 +1,13 @@
+# Terms specific to Rancher Desktop
+ctl
+ctrctl
+devmode
+# limit ranger is currently commented out as an import
+limitranger
+nerdctl
+nochange
+rancherdesktop
+rdctl
+rdd
+# shared controller manager
+scm

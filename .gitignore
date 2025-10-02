@@ -1,1 +1,2 @@
-bin/*
+/.github/actions/spelling/expect/golang-generated.txt
+/bin/*

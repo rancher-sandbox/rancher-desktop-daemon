@@ -3,7 +3,8 @@
 # SPDX-FileCopyrightText: The Rancher Desktop Authors
 # SPDX-FileCopyrightText: The KCP Authors
 
-KUBE_VERSION := $(shell go list -m -f '{{.Version}}' 'k8s.io/kubernetes')
+EXE := $(if $(shell sh -c 'command -v winver.exe'),.exe,)
+KUBE_VERSION := $(shell go$(EXE) list -m -f '{{.Version}}' 'k8s.io/kubernetes')
 KUBE_MAJOR_VERSION := $(shell echo $(KUBE_VERSION) | sed 's/v\([0-9]*\).*/\1/')
 KUBE_MINOR_VERSION := $(shell echo $(KUBE_VERSION) | sed "s/v[0-9]*\.\([0-9]*\).*/\1/")
 GIT_COMMIT := $(shell git rev-parse --short HEAD || echo 'local')
@@ -44,10 +45,13 @@ ldflags:
 build: build-rdd build-all-controllers
 .PHONY: build
 
-build-rdd:
+GOLANG_SOURCES := $(shell find . -name '*.go') go.mod go.sum
+
+bin/rdd$(EXE): $(GOLANG_SOURCES)
 	CGO_CFLAGS="-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_USE_ALLOCA=1" \
-	CGO_ENABLED=1 go build -tags="$(TAGS)" -buildvcs=false -gcflags="all=${GCFLAGS}" -ldflags="$(LDFLAGS)" -o bin/rdd ./cmd/rdd
-	ls -lh ./bin/rdd
+	CGO_ENABLED=1 go build -tags="$(TAGS)" -buildvcs=false -gcflags="all=${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $@ ./cmd/rdd
+	ls -lh $@
+build-rdd: bin/rdd$(EXE)
 .PHONY: build-rdd
 
 # API Group Controller management - Auto-discovery of API groups
@@ -55,17 +59,18 @@ API_GROUPS := $(notdir $(shell find pkg/controllers -type d -mindepth 1 -maxdept
 
 # Generate build targets for API group controllers
 define API_GROUP_CONTROLLER_TARGETS
-build-$(1)-controller:
-	CGO_ENABLED=0 go build -tags="$(TAGS)" -buildvcs=false -gcflags="all=$${GCFLAGS}" -ldflags="$(LDFLAGS)" -o bin/$(1)-controller ./cmd/$(1)-controller
-	ls -lh ./bin/$(1)-controller
+bin/$(1)-controller$$(EXE): $$(GOLANG_SOURCES)
+	CGO_ENABLED=0 go build -tags="$(TAGS)" -buildvcs=false -gcflags="all=$${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $$@ ./cmd/$(1)-controller
+	ls -lh $$@
+build-$(1)-controller: bin/$(1)-controller$(EXE)
 .PHONY: build-$(1)-controller
 
 test-$(1)-controllers:
 	go test -v ./pkg/controllers/$(1)/...
 .PHONY: test-$(1)-controllers
 
-run-$(1)-controller:
-	./bin/$(1)-controller
+run-$(1)-controller: bin/$(1)-controller$(EXE)
+	$<
 .PHONY: run-$(1)-controller
 endef
 
@@ -82,8 +87,8 @@ test-all-controllers: $(addprefix test-,$(addsuffix -controllers,$(API_GROUPS)))
 run-all-controllers: $(addprefix run-,$(addsuffix -controller,$(API_GROUPS)))
 .PHONY: run-all-controllers
 
-run:
-	./bin/rdd start
+run: bin/rdd$(EXE)
+	$< start
 .PHONY: run
 
 lint:
@@ -94,6 +99,12 @@ lint:
 format:
 	golangci-lint fmt
 .PHONY: format
+
+.github/actions/spelling/expect/golang-generated.txt: scripts/spell-check-generate-golang-expect.go $(GOLANG_SOURCES)
+	go$(EXE) run $<
+spelling: scripts/check-spelling.sh .github/actions/spelling/expect/golang-generated.txt
+	$<
+.PHONY: spelling
 
 ltag:
 	# exclude bats/lib, but --excludes only takes a dir name, not a path name

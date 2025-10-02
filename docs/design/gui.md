@@ -2,9 +2,9 @@
 
 ## Startup sequence
 
-The GUI will only run an external process once to get the kube config for the rdd control plane[^rdx].
+The GUI will only run an external process once to get the kube config for the rdd control plane[^RDX].
 
-[^rdx]: The only exception is running external processes for RDX extensions.
+[^RDX]: The only exception is running external processes for RDX extensions.
 
 1.  Run `rdd service config`.
     This will create the rdd instance (with default settings) if it doesn't exist yet.

@@ -1,0 +1,30 @@
+# Generic golang
+deepcopy
+
+# Generic Kubernetes
+apigroup
+configmap
+crd
+gcflags
+GOGC
+GOTRACEBACK
+groupversion
+healthz
+KCP
+kerrors
+omitzero
+protobuf
+readyz
+replicaset
+serviceaccount
+
+# Library functions
+Eventf
+Infof
+RLock
+RUnlock
+Warningf
+
+# kubebuilder
+kubebuilder
+XValidation

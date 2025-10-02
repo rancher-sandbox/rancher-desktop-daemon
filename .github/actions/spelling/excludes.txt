@@ -1,0 +1,6 @@
+# Perl regular expressions for paths that are to be ignored.
+(?:^|/)\.gitmodules$
+(?:^|/)go\.mod$
+(?:^|/)go\.sum$
+# configuration for check-spelling itself
+^\.github/actions/spelling/

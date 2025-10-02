@@ -36,7 +36,7 @@ EOF
 
 delete_configmapreplicaset() {
     local name=$1
-    delete_resource "cmrs" "${name}"
+    delete_resource "ConfigMapReplicaSet" "${name}"
 }
 
 wait_for_configmaps() {
@@ -50,7 +50,7 @@ wait_for_configmaps() {
 }
 
 @test 'verify ConfigMapReplicaSet is created in Kubernetes' {
-    try --max 5 --delay 3 -- rdd ctl get cmrs basic
+    try --max 5 --delay 3 -- rdd ctl get ConfigMapReplicaSet basic
 }
 
 @test 'wait for controller to create 3 ConfigMaps' {
@@ -110,14 +110,14 @@ wait_for_configmaps() {
 
 @test 'debug owner references before deletion' {
     # Extract and validate complete owner reference structure
-    run -0 rdd ctl get cmrs basic -o json
+    run -0 rdd ctl get ConfigMapReplicaSet basic -o json
     local parent_json="$output"
 
     run -0 jq -r '.metadata.uid' <<<"$parent_json"
     local parent_uid=$output
 
     run -0 jq -r '.apiVersion' <<<"$parent_json"
-    local parent_apiversion=$output
+    local parent_api_version=$output
 
     # Verify owner reference structure
     run -0 rdd ctl get configmap basic-0 -o json
@@ -131,17 +131,17 @@ wait_for_configmaps() {
     run -0 jq -r '.metadata.ownerReferences[0].blockOwnerDeletion // false' <<<"$configmap"
     local ref_block_deletion=$output
     run -0 jq -r '.metadata.ownerReferences[0].apiVersion // empty' <<<"$configmap"
-    local ref_apiversion=$output
+    local ref_api_version=$output
 
     # Validate all fields are correct
     [ "$ref_uid" = "$parent_uid" ]
     [ "$ref_controller" = "true" ]
     [ "$ref_block_deletion" = "true" ]
-    [ "$ref_apiversion" = "$parent_apiversion" ]
+    [ "$ref_api_version" = "$parent_api_version" ]
 }
 
 @test 'scale ConfigMapReplicaSet up to 5 replicas' {
-    rdd ctl patch cmrs basic --type='merge' -p='{"spec":{"replicas":5}}'
+    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"replicas":5}}'
 }
 
 @test 'wait for scaling up to complete (5 ConfigMaps)' {
@@ -166,7 +166,7 @@ wait_for_configmaps() {
 }
 
 @test 'scale ConfigMapReplicaSet down to 2 replicas' {
-    rdd ctl patch cmrs basic --type='merge' -p='{"spec":{"replicas":2}}'
+    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"replicas":2}}'
 }
 
 @test 'wait for scaling down to complete (2 ConfigMaps)' {
@@ -189,10 +189,10 @@ wait_for_configmaps() {
 
 @test 'update ConfigMapReplicaSet data' {
     # Update the ConfigMapReplicaSet data
-    rdd ctl patch cmrs basic --type='merge' -p='{"spec":{"data":{"config.yaml":"updated: true\nversion: 2.0.0\n","new-file.txt":"This is a new file"}}}'
+    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"data":{"config.yaml":"updated: true\n''version: 2.0.0\n","new-file.txt":"This is a new file"}}}'
 
     # Increase replica count from 2 to 4 to create new replicas with updated data
-    rdd ctl patch cmrs basic --type='merge' -p='{"spec":{"replicas":4}}'
+    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"replicas":4}}'
 
     # Wait for new ConfigMaps to be created
     wait_for_configmaps "basic" 4
@@ -267,7 +267,7 @@ wait_for_configmaps() {
     refute_output
 
     # Check parent resource finalizers (should have cleanup finalizer)
-    run -0 rdd ctl get cmrs basic -o jsonpath='{.metadata.finalizers}'
+    run -0 rdd ctl get ConfigMapReplicaSet basic -o jsonpath='{.metadata.finalizers}'
     assert_output --partial "rdd.rancherdesktop.io/configmapreplicaset-cleanup"
 }
 
@@ -278,7 +278,7 @@ wait_for_configmaps() {
 @test 'verify parent resource deletion triggers finalizer cleanup' {
     # Parent should be deleted by the finalizer after ConfigMaps are cleaned up
     # The finalizer should handle cleanup automatically
-    run -1 rdd ctl get cmrs basic
+    run -1 rdd ctl get ConfigMapReplicaSet basic
 }
 
 @test 'wait for ConfigMaps to be cleaned up by finalizer' {
@@ -290,7 +290,7 @@ wait_for_configmaps() {
 }
 
 @test 'verify zero replicas ConfigMapReplicaSet is created' {
-    try --max 12 --delay 5 -- rdd ctl get cmrs zero
+    try --max 12 --delay 5 -- rdd ctl get ConfigMapReplicaSet zero
 }
 
 @test 'verify no ConfigMaps are created for zero replicas' {
@@ -330,7 +330,7 @@ wait_for_configmaps() {
     wait_for_configmaps "status" 3
 
     # Check the status of the ConfigMapReplicaSet
-    run -0 rdd ctl get cmrs status -o json
+    run -0 rdd ctl get ConfigMapReplicaSet status -o json
     run -0 jq -r 'has("status")' <<<"$output"
     assert_output "true"
 }

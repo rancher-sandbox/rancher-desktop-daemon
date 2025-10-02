@@ -14,3 +14,6 @@
 	path = bats/lib/bats-support
 	url = https://github.com/rancher-sandbox/bats-support.git
 	branch = master
+[submodule "tools/check-spelling"]
+	path = .github/actions/spelling/check-spelling
+	url = https://github.com/check-spelling/check-spelling.git

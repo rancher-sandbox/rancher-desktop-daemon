@@ -1,0 +1,6 @@
+routable #https://en.wiktionary.org/wiki/routable#English
+standalone #https://en.wiktionary.org/wiki/standalone#English
+startable #https://en.wiktionary.org/wiki/startable
+unmarshal #https://en.wiktionary.org/wiki/unmarshal#English
+versioned #https://en.wiktionary.org/wiki/versioned#English
+whitespaces #https://en.wiktionary.org/wiki/whitespaces#English

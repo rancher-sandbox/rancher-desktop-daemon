@@ -1,0 +1,71 @@
+# Words from tools.
+buildvcs
+cpanm
+cpanminus
+limactl
+limavm
+ltag
+mindepth
+maxdepth
+moby
+netcat
+
+# golangci-lint & its linter / formatter names
+golangci
+bodyclose
+copyloopvar
+depguard
+dupword
+errcheck
+errorlint
+forbidigo
+gci
+gocritic
+godot
+gofmt
+gofumpt
+govet
+ineffassign
+intrange
+nakedret
+noctx
+perfsprint
+usetesting
+
+# golangci-lint options
+localmodule
+nolint
+nolintlint
+gotest
+unlabel
+errorf
+strconcat
+mgechev
+
+# awk
+RLENGTH
+RSTART
+
+# bash
+neq
+
+# bats
+batslib
+
+# C & compilers
+ALLOCA
+ldflags
+sprintf
+
+# make
+addprefix
+addsuffix
+DBSTAT
+DSQLITE
+endef
+notdir
+VTAB
+
+# check-spelling
+hunspell
+dic

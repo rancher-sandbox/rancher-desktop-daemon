@@ -743,7 +743,7 @@ func Run(ctx context.Context, opts options.CompletedOptions) error {
 	return nil
 }
 
-// createServerChain creates the apiservers connected via delegation.
+// createServerChain creates the apiserver instances connected via delegation.
 func createServerChain(config options.CompletedConfig) (*aggregatorapiserver.APIAggregator, error) {
 	// 1. Basic not found handler
 	notFoundHandler := notfoundhandler.New(config.ControlPlane.Generic.Serializer, genericapifilters.NoMuxAndDiscoveryIncompleteKey)

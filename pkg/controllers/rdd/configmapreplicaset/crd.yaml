@@ -10,7 +10,7 @@ spec:
     plural: configmapreplicasets
     singular: configmapreplicaset
     shortNames:
-    - cmrs
+    - cmrs # spellchecker:ignore
   scope: Namespaced
   versions:
   - name: v1alpha1

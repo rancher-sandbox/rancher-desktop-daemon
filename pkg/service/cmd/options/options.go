@@ -109,14 +109,14 @@ func NewOptions(rootDir string) *Options {
 }
 
 // AddFlags adds flags for a specific APIServer to the specified FlagSet.
-func (o *Options) AddFlags(fss *cliflag.NamedFlagSets) {
-	o.ControlPlane.AddFlags(fss)
+func (o *Options) AddFlags(flags *cliflag.NamedFlagSets) {
+	o.ControlPlane.AddFlags(flags)
 
-	etcdServers := fss.FlagSet("etcd").Lookup("etcd-servers")
+	etcdServers := flags.FlagSet("etcd").Lookup("etcd-servers")
 	etcdServers.Usage += " By default an embedded etcd server is started."
 
-	o.AdminAuthentication.AddFlags(fss.FlagSet("RDD Standalone Authentication"))
-	o.Controllers.AddFlags(fss.FlagSet("Options"))
+	o.AdminAuthentication.AddFlags(flags.FlagSet("RDD Standalone Authentication"))
+	o.Controllers.AddFlags(flags.FlagSet("Options"))
 }
 
 // Complete fills in any fields not set that are required to have valid data.

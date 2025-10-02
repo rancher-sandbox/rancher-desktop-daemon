@@ -1,0 +1,35 @@
+# Generic technical terms
+backgrounding
+backquotes
+crt
+FQDNs
+gui
+hyperlinks
+lte
+OIDC
+remoting
+vms
+
+# Architectures
+aarch
+
+# Linux
+distros
+opensuse
+pids
+tarball
+veth
+zst
+zypper
+
+# Windows
+APPDATA
+cygwin
+LOCALAPPDATA
+msys
+PROGRAMFILES
+netsh
+SYSTEMROOT
+winver
+WSL
+wslpath
