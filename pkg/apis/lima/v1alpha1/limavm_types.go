@@ -18,9 +18,10 @@ type LimaVMSpec struct {
 	// The following markers will use OpenAPI v3 schema to validate the value
 	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
 
-	// foo is an example field of LimaVM. Edit limavm_types.go to remove/update
+	// running specifies whether the VM should be running
 	// +optional
-	Foo *string `json:"foo,omitempty"`
+	// +kubebuilder:default=false
+	Running *bool `json:"running,omitempty"`
 }
 
 // LimaVMStatus defines the observed state of LimaVM.
@@ -48,6 +49,7 @@ type LimaVMStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Running",type=boolean,JSONPath=`.spec.running`
 
 // LimaVM is the Schema for the limavms API.
 type LimaVM struct {

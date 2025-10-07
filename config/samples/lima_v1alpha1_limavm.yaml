@@ -1,0 +1,6 @@
+apiVersion: lima.rancherdesktop.io/v1alpha1
+kind: LimaVM
+metadata:
+  name: limavm-sample
+spec:
+  running: true

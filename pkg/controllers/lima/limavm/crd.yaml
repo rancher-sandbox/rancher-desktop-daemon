@@ -14,7 +14,11 @@ spec:
     singular: limavm
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.running
+      name: Running
+      type: boolean
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: LimaVM is the Schema for the limavms API.
@@ -39,10 +43,10 @@ spec:
           spec:
             description: spec defines the desired state of LimaVM
             properties:
-              foo:
-                description: foo is an example field of LimaVM. Edit limavm_types.go
-                  to remove/update
-                type: string
+              running:
+                default: false
+                description: running specifies whether the VM should be running
+                type: boolean
             type: object
           status:
             description: status defines the observed state of LimaVM
