@@ -13,6 +13,9 @@ vms
 # Architectures
 aarch
 
+# Kubernetes and KubeBuilder
+printcolumn
+
 # Linux
 distros
 opensuse

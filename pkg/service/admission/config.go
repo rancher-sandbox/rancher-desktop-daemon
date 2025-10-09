@@ -71,8 +71,7 @@ func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 // DefaultOffAdmissionPlugins returns a set of admission plugins that should be disabled by default.
 func DefaultOffAdmissionPlugins() sets.Set[string] {
 	defaultOnPlugins := sets.New[string](
-		lifecycle.PluginName, // NamespaceLifecycle
-		// limitranger.PluginName,           // LimitRanger
+		lifecycle.PluginName,                // NamespaceLifecycle
 		serviceaccount.PluginName,           // ServiceAccount
 		resourcequota.PluginName,            // ResourceQuota
 		certapproval.PluginName,             // CertificateApproval
