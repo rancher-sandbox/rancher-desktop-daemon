@@ -2,6 +2,7 @@
 ctl
 ctrctl
 devmode
+eio
 # limit ranger is currently commented out as an import
 limitranger
 nerdctl

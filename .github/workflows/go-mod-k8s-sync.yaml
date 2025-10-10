@@ -1,0 +1,99 @@
+name: Sync go.mod Kubernetes modules
+on:
+  pull_request_target:
+    types: [ opened, reopened, synchronize ]
+    paths:
+    - 'go.mod'
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  update-go-mod:
+    # We only run this for pull requests from the same repository.  This is
+    # important for security reasons, as we use pull_request_target.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    outputs:
+      changed: ${{ steps.changed.outputs.changed }}
+      go-mod: ${{ steps.changed.outputs.go-mod }}
+      go-sum: ${{ steps.changed.outputs.go-sum }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
+        ref: ${{ github.head_ref }}
+    - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      with:
+        go-version-file: go.mod
+    - run: go run scripts/go-module-k8s-bump/main.go
+    - run: go mod tidy
+    - name: Check for changes
+      id: changed
+      run: |
+        if [ -n "$(git status --porcelain -- go.mod)" ]; then
+          {
+            echo changed=true
+            echo 'go-mod<<@@EOF@@'
+            cat go.mod
+            echo '@@EOF@@'
+            echo 'go-sum<<@@EOF@@'
+            cat go.sum
+            echo '@@EOF@@'
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo '```diff'
+            git diff go.mod
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo changed= >> "$GITHUB_OUTPUT"
+          echo "### No changes to go.mod required" >> "$GITHUB_STEP_SUMMARY"
+        fi
+  commit-changes:
+    needs: update-go-mod
+    if: needs.update-go-mod.outputs.changed
+    permissions:
+      contents: read
+      id-token: write # Required for ./.github/actions/get-token
+    runs-on: ubuntu-latest
+    steps:
+    # Check out the base ref first to make sure get-token is ours.
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        ref: ${{ github.base_ref }}
+    - id: get-token
+      uses: ./.github/actions/get-token
+      with:
+        token-secret: ${{ secrets.RUN_WORKFLOW_FROM_WORKFLOW }}
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: true
+        ref: ${{ github.head_ref }}
+        token: ${{ steps.get-token.outputs.token }}
+    - run: cat <<<$GO_MOD >go.mod
+      env:
+        GO_MOD: ${{ needs.update-go-mod.outputs.go-mod }}
+    - run: cat <<<$GO_SUM >go.sum
+      env:
+        GO_SUM: ${{ needs.update-go-mod.outputs.go-sum }}
+    - name: Commit changes
+      run: >-
+        git
+        -c user.name="$GIT_AUTHOR_NAME"
+        -c user.email="$GIT_AUTHOR_EMAIL"
+        commit
+        --message='Update Kubernetes go modules'
+        --signoff
+        --
+        go.mod go.sum
+      env:
+        GIT_AUTHOR_NAME: Rancher Desktop Dependency Manager
+        GIT_AUTHOR_EMAIL: donotuse@rancherdesktop.io # spellchecker:ignore
+    - name: Push changes
+      run: |
+        git show
+        git push origin ${{ github.head_ref }}

@@ -1,3 +1,4 @@
+cooldown #https://en.wiktionary.org/wiki/cooldown#English
 routable #https://en.wiktionary.org/wiki/routable#English
 standalone #https://en.wiktionary.org/wiki/standalone#English
 startable #https://en.wiktionary.org/wiki/startable

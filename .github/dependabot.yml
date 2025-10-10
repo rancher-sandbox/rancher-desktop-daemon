@@ -1,0 +1,49 @@
+version: 2
+updates:
+- package-ecosystem: github-actions
+  directory: /
+  schedule:
+    interval: daily
+  cooldown:
+    default-days: 7
+- package-ecosystem: gomod # spellchecker:ignore
+  directory: /
+  schedule:
+    interval: daily
+  cooldown:
+    default-days: 7
+  ignore:
+  - { dependency-name: k8s.io/api } # spellchecker:ignore
+  - { dependency-name: k8s.io/apiextensions-apiserver } # spellchecker:ignore
+  - { dependency-name: k8s.io/apimachinery } # spellchecker:ignore
+  - { dependency-name: k8s.io/apiserver } # spellchecker:ignore
+  - { dependency-name: k8s.io/cli-runtime } # spellchecker:ignore
+  - { dependency-name: k8s.io/client-go } # spellchecker:ignore
+  - { dependency-name: k8s.io/cloud-provider } # spellchecker:ignore
+  - { dependency-name: k8s.io/cluster-bootstrap } # spellchecker:ignore
+  - { dependency-name: k8s.io/code-generator } # spellchecker:ignore
+  - { dependency-name: k8s.io/component-base } # spellchecker:ignore
+  - { dependency-name: k8s.io/component-helpers } # spellchecker:ignore
+  - { dependency-name: k8s.io/controller-manager } # spellchecker:ignore
+  - { dependency-name: k8s.io/cri-api } # spellchecker:ignore
+  - { dependency-name: k8s.io/cri-client } # spellchecker:ignore
+  - { dependency-name: k8s.io/csi-translation-lib } # spellchecker:ignore
+  - { dependency-name: k8s.io/dynamic-resource-allocation } # spellchecker:ignore
+  - { dependency-name: k8s.io/endpointslice } # spellchecker:ignore
+  - { dependency-name: k8s.io/externaljwt } # spellchecker:ignore
+  - { dependency-name: k8s.io/kms } # spellchecker:ignore
+  - { dependency-name: k8s.io/kube-aggregator } # spellchecker:ignore
+  - { dependency-name: k8s.io/kube-controller-manager } # spellchecker:ignore
+  - { dependency-name: k8s.io/kube-proxy } # spellchecker:ignore
+  - { dependency-name: k8s.io/kube-scheduler } # spellchecker:ignore
+  - { dependency-name: k8s.io/kubectl } # spellchecker:ignore
+  - { dependency-name: k8s.io/kubelet } # spellchecker:ignore
+  - { dependency-name: k8s.io/metrics } # spellchecker:ignore
+  - { dependency-name: k8s.io/mount-utils } # spellchecker:ignore
+  - { dependency-name: k8s.io/pod-security-admission } # spellchecker:ignore
+  - { dependency-name: k8s.io/sample-apiserver } # spellchecker:ignore
+  - { dependency-name: k8s.io/sample-cli-plugin } # spellchecker:ignore
+  - { dependency-name: k8s.io/sample-controller } # spellchecker:ignore
+  groups:
+    golang-x:
+      patterns: [ golang.org/x/* ]
