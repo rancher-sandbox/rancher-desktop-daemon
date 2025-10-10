@@ -1,0 +1,139 @@
+name: BATS
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  get-pr-number:
+    name: Lookup Pull Request
+    outputs:
+      number: ${{ steps.lookup.outputs.number }}
+    runs-on: ubuntu-latest
+    steps:
+    - id: lookup
+      if: >-
+        github.event_name == 'push' &&
+        github.repository_owner == 'rancher-sandbox' &&
+        github.ref_type == 'branch' &&
+        !github.ref_protected
+      shell: bash
+      run: >-
+        printf "number=%s\n"
+        $(gh pr list
+        --repo ${{ github.repository }}
+        --search ${{ github.sha }}
+        --json number
+        --jq '.[0].number // 0')
+        | tee --append "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ github.token }}
+  bats:
+    name: BATS
+    needs: get-pr-number
+    if: ${{ ! needs.get-pr-number.outputs.number }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Using macos-intel because macos-aarch64 does not have nested virtualization.
+        runs-on:
+        - macos-15-intel
+        - ubuntu-latest
+        # - windows-latest # Windows is not supported yet
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+    - name: "Linux: Install prerequisites"
+      if: runner.os == 'Linux'
+      working-directory: ${{ runner.temp }}
+      run: |
+        # Enable KVM access
+        test -w /dev/kvm || sudo chmod a+rwx /dev/kvm
+
+        # Set unprivileged port start to 80
+        if test $(cat /proc/sys/net/ipv4/ip_unprivileged_port_start) -gt 80; then
+          sudo sh -c 'echo 80 > /proc/sys/net/ipv4/ip_unprivileged_port_start'
+        fi
+
+        # Set up run-in-wsl helper script (as a symlink to bash)
+        mkdir -p bin
+        ln -s $(which bash) bin/run-in-wsl
+        readlink -f bin >> "$GITHUB_PATH"
+
+        # Install a newer version of jq
+        wget --output-document=bin/jq https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64
+        chmod a+x bin/jq
+
+    - name: "macOS: Install prerequisites"
+      if: runner.os == 'macOS'
+      working-directory: ${{ runner.temp }}
+      run: |
+        brew install bash
+
+        # Set up run-in-wsl helper script (as a symlink to bash)
+        mkdir -p bin
+        ln -s $(brew --prefix bash)/bin/bash bin/run-in-wsl
+        readlink -f bin >> "$GITHUB_PATH"
+
+    - name: "Windows: install prerequisites"
+      if: runner.os == 'Windows'
+      shell: pwsh
+      working-directory: ${{ runner.temp }}
+      run: |
+        # Stop unwanted services
+        Get-Service -ErrorAction Continue -Name @('W3SVC', 'docker') |
+          Stop-Service
+
+        # Update any pre-installed WSL
+        # Sometimes this fails; retry in a loop.
+        do { wsl --update } while ( -not $? )
+        # Setting the default version also lets WSL finish updating.
+        wsl --set-default-version 2
+
+        # Install WSL2 Distribution
+        # TODO: switch to Leap 16 once that is available
+        wsl --install --no-launch --version 2 --name openSUSE openSUSE-Tumbleweed
+        # Disable first-boot script
+        wsl --distribution openSUSE --exec sed -i '/^command =/d' /etc/wsl-distribution.conf
+
+        # Set up wrapper script PATH
+        New-Item -ItemType Directory -Name bin -Force
+        Get-ItemPropertyValue -Path bin -Name FullName | Out-File -Encoding UTF8 -Append "$env:GITHUB_PATH"
+
+        # Set up git configuration
+        git config --global --replace-all core.autocrlf false # spellchecker:ignore
+        git config --global --replace-all core.eol lf # spellchecker:ignore
+        git config --global --replace-all core.longpath true #spellchecker:ignore
+
+    - name: "Windows: write wrapper script"
+      # This is a separate step so that we can just set up the script as an
+      # inline YAML block.
+      if: runner.os == 'Windows'
+      shell: cmd /c copy {0} run-in-wsl.cmd
+      working-directory: ${{ runner.temp }}/bin
+      run: |
+        IF NOT DEFINED DISTRO SET DISTRO=openSUSE
+        FOR /F "usebackq tokens=*" %%L IN (`wsl --distribution %DISTRO% --exec wslpath -ua %1`) DO (
+          wsl --distribution %DISTRO% --exec /bin/bash -c "tr -d '\r' < %%L | /bin/bash -e"
+          EXIT %%ERRORLEVEL%%
+        )
+
+    - name: "Windows: Install prerequisites in WSL"
+      if: runner.os == 'Windows'
+      shell: run-in-wsl {0}
+      run: >-
+        zypper --non-interactive install
+        jq make netcat-openbsd
+
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
+        submodules: recursive
+    - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+      with:
+        go-version-file: go.mod
+    - run: make -C bats
+      shell: run-in-wsl {0}
