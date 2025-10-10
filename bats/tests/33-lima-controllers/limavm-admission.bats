@@ -38,7 +38,7 @@ spec: {}
 EOF
 }
 
-# Usage: apply_limavm <name> <namespace> [labels] [extra_args]
+# Usage: apply_limavm <name> <namespace> [labels]
 # Example: apply_limavm "my-vm" "test-ns1" "updated=true" "--dry-run=server"
 apply_limavm() {
     local name=$1
@@ -82,8 +82,8 @@ apply_limavm() {
     assert_output --partial "my-vm created"
 
     # Verify the LimaVM was created
-    run -0 rdd ctl get limavm my-vm -n test-ns1
-    assert_output --partial "my-vm"
+    run -0 rdd ctl get limavm "my-vm" -n "test-ns1" -o name
+    assert_line "limavm.lima.rancherdesktop.io/my-vm"
 }
 
 @test "duplicate LimaVM name in different namespace is rejected" {

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -22,6 +23,19 @@ import (
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
+
+// GenerateValidatingWebhookPath generates the webhook path that controller-runtime uses
+// when registering a validating webhook for a given API group, version, and kind.
+// This follows controller-runtime's convention: /validate-{group}-{version}-{kind}
+// For core resources (empty group), the path becomes: /validate--{version}-{kind}.
+// Dots in the API group are replaced with dashes.
+//
+// Example: GenerateValidatingWebhookPath("lima.rancherdesktop.io", "v1alpha1", "limavm")
+// Returns: "/validate-lima-rancherdesktop-io-v1alpha1-limavm".
+func GenerateValidatingWebhookPath(apiGroup, apiVersion, kind string) string {
+	group := strings.ReplaceAll(apiGroup, ".", "-")
+	return fmt.Sprintf("/validate-%s-%s-%s", group, apiVersion, kind)
+}
 
 // WebhookConfig contains configuration for creating a ValidatingWebhookConfiguration.
 type WebhookConfig struct {
@@ -59,8 +73,8 @@ type WebhookManager struct {
 	mgr    ctrl.Manager
 }
 
-// NewWebhookManager creates a new WebhookManager with the given configuration.
-func NewWebhookManager(config WebhookConfig, mgr ctrl.Manager) *WebhookManager {
+// newWebhookManager creates a new WebhookManager with the given configuration.
+func newWebhookManager(config WebhookConfig, mgr ctrl.Manager) *WebhookManager {
 	return &WebhookManager{
 		config: config,
 		mgr:    mgr,
@@ -71,7 +85,7 @@ func NewWebhookManager(config WebhookConfig, mgr ctrl.Manager) *WebhookManager {
 // It registers the webhook with controller-runtime and creates a WebhookManager for later setup.
 // The validator parameter must implement the admission.CustomValidator interface.
 // Returns the created WebhookManager for storage in the controller.
-func SetupWebhookForResource[T client.Object, V admission.CustomValidator](mgr ctrl.Manager, obj T, validator V, config WebhookConfig) (*WebhookManager, error) {
+func SetupWebhookForResource(mgr ctrl.Manager, obj client.Object, validator admission.CustomValidator, config WebhookConfig) (*WebhookManager, error) {
 	// Register webhook validation with controller-runtime
 	builder := ctrl.NewWebhookManagedBy(mgr).For(obj).WithValidator(validator)
 
@@ -80,7 +94,7 @@ func SetupWebhookForResource[T client.Object, V admission.CustomValidator](mgr c
 	}
 
 	// Create and return webhook manager for parallel setup
-	return NewWebhookManager(config, mgr), nil
+	return newWebhookManager(config, mgr), nil
 }
 
 // Setup creates the webhook configuration with retry logic.

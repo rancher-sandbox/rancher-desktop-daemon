@@ -31,10 +31,10 @@ const APIGroup = "rdd"
 
 // Webhook configuration constants.
 const (
-	// WebhookName is the name used for the webhook configuration.
-	WebhookName = "notary.rdd.rancherdesktop.io"
-	// ValidatorConfigName is the name of the ValidatingWebhookConfiguration.
-	ValidatorConfigName = "notary-validator"
+	// webhookName is the name used for the webhook configuration.
+	webhookName = "notary.rdd.rancherdesktop.io"
+	// validatorConfigName is the name of the ValidatingWebhookConfiguration.
+	validatorConfigName = "notary-validator"
 )
 
 //go:embed crd.yaml
@@ -100,9 +100,13 @@ func (c *Controller) setupReconciler(mgr ctrl.Manager) error {
 // setupWebhookWithRuntimeConfig sets up webhook with shared certificate configuration.
 func (c *Controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	webhookConfig := base.WebhookConfig{
-		Name:        ValidatorConfigName,
-		WebhookName: WebhookName,
-		WebhookPath: "/validate-rdd-rancherdesktop-io-v1alpha1-notary",
+		Name:        validatorConfigName,
+		WebhookName: webhookName,
+		WebhookPath: base.GenerateValidatingWebhookPath(
+			v1alpha1.GroupVersion.Group,
+			v1alpha1.GroupVersion.Version,
+			ControllerName,
+		),
 		APIGroup:    v1alpha1.GroupVersion.Group,
 		APIVersion:  v1alpha1.GroupVersion.Version,
 		Resource:    "notaries",

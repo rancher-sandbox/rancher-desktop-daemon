@@ -32,10 +32,10 @@ const APIGroup = "lima"
 
 // Webhook configuration constants.
 const (
-	// WebhookName is the name used for the webhook configuration.
-	WebhookName = "limavm.lima.rancherdesktop.io"
-	// ValidatorConfigName is the name of the ValidatingWebhookConfiguration.
-	ValidatorConfigName = "limavm-validator"
+	// webhookName is the name used for the webhook configuration.
+	webhookName = "limavm.lima.rancherdesktop.io"
+	// validatorConfigName is the name of the ValidatingWebhookConfiguration.
+	validatorConfigName = "limavm-validator"
 )
 
 //go:embed crd.yaml
@@ -100,9 +100,13 @@ func (c *Controller) setupReconciler(mgr ctrl.Manager) error {
 // setupWebhookWithRuntimeConfig sets up webhook with shared certificate configuration.
 func (c *Controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	webhookConfig := base.WebhookConfig{
-		Name:        ValidatorConfigName,
-		WebhookName: WebhookName,
-		WebhookPath: "/validate-lima-rancherdesktop-io-v1alpha1-limavm",
+		Name:        validatorConfigName,
+		WebhookName: webhookName,
+		WebhookPath: base.GenerateValidatingWebhookPath(
+			v1alpha1.GroupVersion.Group,
+			v1alpha1.GroupVersion.Version,
+			ControllerName,
+		),
 		APIGroup:    v1alpha1.GroupVersion.Group,
 		APIVersion:  v1alpha1.GroupVersion.Version,
 		Resource:    "limavms",
@@ -171,5 +175,5 @@ func (v *LimaVMValidator) validateLimaVM(ctx context.Context, limavm *v1alpha1.L
 			klog.V(1).Infof("[DryRun] Webhook validating LimaVM %s/%s\n", req.Namespace, req.Name)
 		}
 	}
-	return ValidateLimaVM(ctx, v.Client, limavm)
+	return validateLimaVM(ctx, v.Client, limavm)
 }

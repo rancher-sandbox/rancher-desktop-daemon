@@ -220,13 +220,13 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 	webhookWaitGroup.Wait()
 	close(webhookErrors)
 
-	var errors []error
+	var errs []error
 	for err := range webhookErrors {
-		errors = append(errors, err)
+		errs = append(errs, err)
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("webhook setup errors: %v", errors)
+	if len(errs) > 0 {
+		return fmt.Errorf("webhook setup : %w", errors.Join(errs...))
 	}
 
 	klog.Info("All webhook configurations created successfully")

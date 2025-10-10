@@ -14,14 +14,10 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 )
 
-// ValidateLimaVMUniqueName validates that the LimaVM name is unique across all namespaces.
+// validateLimaVMUniqueName validates that the LimaVM name is unique across all namespaces.
 // This is critical because LimaVM names correspond to actual VM instances on the host system,
 // which must be unique.
-func ValidateLimaVMUniqueName(ctx context.Context, c client.Client, limavm *v1alpha1.LimaVM) error {
-	if limavm == nil {
-		return errors.New("limavm object cannot be nil")
-	}
-
+func validateLimaVMUniqueName(ctx context.Context, c client.Client, limavm *v1alpha1.LimaVM) error {
 	// List all LimaVMs across all namespaces
 	limavmList := &v1alpha1.LimaVMList{}
 	if err := c.List(ctx, limavmList, &client.ListOptions{}); err != nil {
@@ -30,8 +26,8 @@ func ValidateLimaVMUniqueName(ctx context.Context, c client.Client, limavm *v1al
 
 	// Check for name conflicts in other namespaces
 	for _, existingVM := range limavmList.Items {
-		// Skip if it's an update to the existing resource (same namespace and name)
-		if existingVM.Namespace == limavm.Namespace && existingVM.Name == limavm.Name {
+		// Skip if it's an update to the existing resource (or a different name)
+		if existingVM.Namespace == limavm.Namespace {
 			continue
 		}
 
@@ -45,14 +41,14 @@ func ValidateLimaVMUniqueName(ctx context.Context, c client.Client, limavm *v1al
 	return nil
 }
 
-// ValidateLimaVM validates a complete LimaVM object and returns warnings.
-func ValidateLimaVM(ctx context.Context, c client.Client, limavm *v1alpha1.LimaVM) ([]string, error) {
+// validateLimaVM validates a complete LimaVM object and returns warnings.
+func validateLimaVM(ctx context.Context, c client.Client, limavm *v1alpha1.LimaVM) ([]string, error) {
 	if limavm == nil {
 		return nil, errors.New("limavm object cannot be nil")
 	}
 
 	var warnings []string
-	if err := ValidateLimaVMUniqueName(ctx, c, limavm); err != nil {
+	if err := validateLimaVMUniqueName(ctx, c, limavm); err != nil {
 		return warnings, err
 	}
 
