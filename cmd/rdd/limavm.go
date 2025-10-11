@@ -108,23 +108,13 @@ func getKubeClient(ctx context.Context) (client.Client, error) {
 // findLimaVM searches for a LimaVM with the given name across all namespaces.
 func findLimaVM(ctx context.Context, c client.Client, name string) (*limav1alpha1.LimaVM, error) {
 	vmList := &limav1alpha1.LimaVMList{}
-	if err := c.List(ctx, vmList); err != nil {
+	if err := c.List(ctx, vmList, client.MatchingFields{"metadata.name": name}); err != nil {
 		return nil, fmt.Errorf("failed to list LimaVMs: %w", err)
 	}
-
-	var found *limav1alpha1.LimaVM
-	for i := range vmList.Items {
-		if vmList.Items[i].Name == name {
-			if found != nil {
-				return nil, fmt.Errorf("multiple LimaVMs found with name %q in different namespaces", name)
-			}
-			found = &vmList.Items[i]
-		}
-	}
-	if found == nil {
+	if len(vmList.Items) == 0 {
 		return nil, fmt.Errorf("LimaVM %q not found in any namespace", name)
 	}
-	return found, nil
+	return &vmList.Items[0], nil
 }
 
 func limaCreateAction(ctx context.Context, name, namespace string) error {
