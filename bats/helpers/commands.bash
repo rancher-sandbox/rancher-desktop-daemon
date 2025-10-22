@@ -22,8 +22,10 @@ curl() {
     command "curl$EXE" "$@"
 }
 rdd() {
-    local arg args=("$@")
-    local env envs=()
+    local arg
+    local args=("$@")
+    local env
+    local envs=()
     if is_windows; then
         args=()
         for arg in "$@"; do

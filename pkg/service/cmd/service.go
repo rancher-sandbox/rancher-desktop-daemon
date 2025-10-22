@@ -385,8 +385,6 @@ func StopWithWait(wait bool) error {
 					_ = os.Remove(instance.KubeConfig()) // Ignore error as file might not exist
 					return nil
 				}
-			default:
-				time.Sleep(100 * time.Millisecond)
 			}
 		}
 	}

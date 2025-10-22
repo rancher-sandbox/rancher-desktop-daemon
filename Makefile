@@ -66,11 +66,11 @@ build-$(1)-controller: bin/$(1)-controller$$(EXE)
 .PHONY: build-$(1)-controller
 
 test-$(1)-controllers:
-	go$(EXE) test -v ./pkg/controllers/$(1)/...
+	go$$(EXE) test -v ./pkg/controllers/$(1)/...
 .PHONY: test-$(1)-controllers
 
-run-$(1)-controller: bin/$(1)-controller$(EXE)
-	$<
+run-$(1)-controller: bin/$(1)-controller$$(EXE)
+	$$<
 .PHONY: run-$(1)-controller
 endef
 
@@ -126,7 +126,7 @@ check-ltag:
 .PHONY: ltag check-ltag
 
 BATS_TARGETS := $(shell $(MAKE) -C bats --print-data-base --question --no-builtin-variables | awk -F: '$$1 ~ /^bats-/ { print $$1 }')
-$(BATS_TARGETS):
+$(BATS_TARGETS): bin/rdd$(EXE)
 	@$(MAKE) -C bats $@
 .PHONY: $(BATS_TARGETS)
 
