@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -87,18 +87,20 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 		return errors.New("shared controller manager already started")
 	}
 
+	log := klog.FromContext(ctx)
+
 	// Clean up unused resources from previous controller runs
 	if err := scm.cleanupUnusedResources(ctx); err != nil {
-		klog.ErrorS(err, "Failed to cleanup unused resources, continuing with startup")
+		log.Error(err, "Failed to cleanup unused resources, continuing with startup")
 	}
 
 	// Clean up stale discovery configmap to prevent readiness check confusion
 	if err := scm.cleanupStaleDiscovery(ctx); err != nil {
-		klog.ErrorS(err, "Failed to cleanup stale discovery configmap, continuing with startup")
+		log.Error(err, "Failed to cleanup stale discovery configmap, continuing with startup")
 	}
 
 	// Install CRDs for all registered controllers in parallel
-	klog.InfoS("Installing CRDs for all controllers in parallel", "controllers", len(scm.registrations))
+	log.Info("Installing CRDs for all controllers in parallel", "controllers", len(scm.registrations))
 	if err := scm.installControllerCRDs(ctx); err != nil {
 		return fmt.Errorf("failed to install controller CRDs: %w", err)
 	}
@@ -116,6 +118,9 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 		}
 	}
 
+	// Configure controller-runtime to use klog
+	ctrllog.SetLogger(log.WithName("controller-runtime"))
+
 	// Create and register scheme with required types
 	managerScheme := runtime.NewScheme()
 	utilruntime.Must(scheme.AddToScheme(managerScheme))
@@ -132,7 +137,6 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 		},
 		HealthProbeBindAddress: ":" + strconv.Itoa(scm.healthPort),
 		LeaderElection:         false, // RDD controllers are single-instance
-		Logger:                 zap.New(zap.UseDevMode(false)),
 	}
 
 	// Only configure webhook server if controllers require it
@@ -163,7 +167,7 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 	if scm.discovery == nil {
 		discovery, err := NewControllerManagerDiscovery(scm.kubeConfig)
 		if err != nil {
-			klog.ErrorS(err, "Failed to create controller manager discovery client")
+			log.Error(err, "Failed to create controller manager discovery client")
 		} else {
 			scm.discovery = discovery
 		}
@@ -171,14 +175,14 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 
 	if scm.discovery != nil {
 		if err := scm.registerDiscovery(ctx); err != nil {
-			klog.ErrorS(err, "Failed to register controller manager for discovery")
+			log.Error(err, "Failed to register controller manager for discovery")
 			// Don't fail startup for discovery registration errors
 		}
 
 		// Ensure cleanup on shutdown
 		defer func() {
 			if err := scm.discovery.UnregisterControllerManager(context.Background()); err != nil {
-				klog.ErrorS(err, "Failed to unregister controller manager")
+				log.Error(err, "Failed to unregister controller manager")
 			}
 		}()
 	}
