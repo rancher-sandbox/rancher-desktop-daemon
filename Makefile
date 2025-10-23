@@ -48,8 +48,9 @@ build: build-rdd build-all-controllers
 GOLANG_SOURCES := $(shell find . -name '*.go') go.mod go.sum
 
 bin/rdd$(EXE): $(GOLANG_SOURCES)
+	WSLENV=${WSLENV}:CGO_CFLAGS:CGO_ENABLED \
 	CGO_CFLAGS="-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_USE_ALLOCA=1" CGO_ENABLED=1 \
-	go$(EXE) build -tags="$(TAGS)" -buildvcs=false -gcflags="all=${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $@ ./cmd/rdd
+	go$(EXE) build -tags="$(TAGS)" -gcflags="all=${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $@ ./cmd/rdd
 	ls -lh $@
 build-rdd: bin/rdd$(EXE)
 .PHONY: build-rdd
@@ -60,7 +61,8 @@ API_GROUPS := $(notdir $(shell find pkg/controllers -mindepth 1 -maxdepth 1 -typ
 # Generate build targets for API group controllers
 define API_GROUP_CONTROLLER_TARGETS
 bin/$(1)-controller$$(EXE): $$(GOLANG_SOURCES)
-	CGO_ENABLED=0 go$$(EXE) build -tags="$(TAGS)" -buildvcs=false -gcflags="all=$${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $$@ ./cmd/$(1)-controller
+	WSLENV=${WSLENV}:CGO_ENABLED CGO_ENABLED=0 \
+	go$$(EXE) build -tags="$(TAGS)" -gcflags="all=$${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $$@ ./cmd/$(1)-controller
 	ls -lh $$@
 build-$(1)-controller: bin/$(1)-controller$$(EXE)
 .PHONY: build-$(1)-controller
