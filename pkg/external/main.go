@@ -12,11 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
-
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/service/controllers"
@@ -32,16 +31,14 @@ func RunControllers(apiGroupName string) int {
 	flag.IntVar(&desiredMetricsPort, "metrics-port", 8080, "The desired port the metric endpoint binds to.")
 	flag.IntVar(&desiredHealthPort, "health-port", 8081, "The desired port the health probe endpoint binds to.")
 
-	opts := zap.Options{
-		Development: true,
-	}
-	opts.BindFlags(flag.CommandLine)
+	klog.InitFlags(nil)
 	flag.Parse()
 
-	ctx := ctrl.SetupSignalHandler()
+	log := klog.NewKlogr()
+	ctx := klog.NewContext(ctrl.SetupSignalHandler(), log)
 
-	setupLog := ctrl.Log.WithName("setup")
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	ctrllog.SetLogger(log)
+	setupLog := log.WithName("setup")
 
 	// Get Kubernetes configuration from `rdd svc config`
 	config, err := base.GetKubeConfigFromRDD(ctx)
@@ -124,7 +121,7 @@ func RunControllers(apiGroupName string) int {
 
 // monitorControlPlane monitors the control plane lifecycle and cancels the context when it's no longer available.
 // This allows external controllers to automatically exit when `rdd svc stop` or `rdd svc delete` is called.
-func monitorControlPlane(ctx context.Context, config *rest.Config, log logr.Logger, cancel context.CancelFunc) {
+func monitorControlPlane(ctx context.Context, config *rest.Config, log klog.Logger, cancel context.CancelFunc) {
 	discovery, err := controllers.NewControllerManagerDiscovery(config)
 	if err != nil {
 		log.Error(err, "Failed to create discovery service for monitoring")
@@ -195,7 +192,7 @@ func monitorControlPlane(ctx context.Context, config *rest.Config, log logr.Logg
 
 // shouldStartController checks if an external controller should start based on RDD discovery.
 // Returns true if no RDD controller manager is running or the specific controller is not enabled.
-func shouldStartController(ctx context.Context, config *rest.Config, controllerName string, log logr.Logger) (bool, error) {
+func shouldStartController(ctx context.Context, config *rest.Config, controllerName string, log klog.Logger) (bool, error) {
 	discovery, err := controllers.NewControllerManagerDiscovery(config)
 	if err != nil {
 		return false, fmt.Errorf("failed to create discovery service: %w", err)
