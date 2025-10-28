@@ -66,8 +66,6 @@ jobs:
       with:
         cache: false
         go-version-file: go.mod
-    - name: Install shfmt
-      run: go install mvdan.cc/sh/v3/cmd/shfmt@latest # spellchecker:ignore
     - run: make -C bats lint
   spelling:
     name: Check Spelling
