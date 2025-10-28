@@ -1,19 +1,17 @@
 name: Sync go.mod Kubernetes modules
 on:
-  pull_request_target:
+  pull_request:
     types: [ opened, reopened, synchronize ]
     paths:
     - 'go.mod'
+  workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
 jobs:
   update-go-mod:
-    # We only run this for pull requests from the same repository.  This is
-    # important for security reasons, as we use pull_request_target.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # This step gets run regardless of how the workflow was triggered, so that
+    # if we can't write to the pull request the user can still apply it
+    # manually (though running the script locally would be easier).
     outputs:
       changed: ${{ steps.changed.outputs.changed }}
       go-mod: ${{ steps.changed.outputs.go-mod }}
@@ -25,7 +23,7 @@ jobs:
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         persist-credentials: false
-        ref: ${{ github.head_ref }}
+        ref: ${{ github.head_ref || github.ref }}
     - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
       with:
         go-version-file: go.mod
@@ -61,11 +59,11 @@ jobs:
       id-token: write # Required for ./.github/actions/get-token
     runs-on: ubuntu-latest
     steps:
-    # Check out the base ref first to make sure get-token is ours.
     - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      with:
-        ref: ${{ github.base_ref }}
-    - id: get-token
+    - # Get a GitHub token that can write to the repository, and will trigger CI
+      # on commit.  The normal github.token will not trigger further CI.
+      id: get-token
+      if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
       uses: ./.github/actions/get-token
       with:
         token-secret: ${{ secrets.RUN_WORKFLOW_FROM_WORKFLOW }}
@@ -73,7 +71,9 @@ jobs:
       with:
         persist-credentials: true
         ref: ${{ github.head_ref }}
-        token: ${{ steps.get-token.outputs.token }}
+        # If we don't have a writable token, then pushing will fail later; this
+        # is intentional so the workflow shows up as having failed.
+        token: ${{ steps.get-token.outputs.token || github.token }}
     - run: cat <<<$GO_MOD >go.mod
       env:
         GO_MOD: ${{ needs.update-go-mod.outputs.go-mod }}
