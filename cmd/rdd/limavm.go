@@ -7,19 +7,26 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
+	corev1scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrl "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	limav1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	service "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/service/cmd"
 )
 
-func newLimaCommand() *cobra.Command {
+func newLimaVMCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:     "limavm",
 		Short:   "Manage LimaVM resources",
@@ -27,59 +34,64 @@ func newLimaCommand() *cobra.Command {
 		Aliases: []string{"lima"},
 	}
 	command.AddCommand(
-		newLimaCreateCommand(),
-		newLimaStartCommand(),
-		newLimaStopCommand(),
-		newLimaDeleteCommand(),
+		newLimaVMCreateCommand(),
+		newLimaVMStartCommand(),
+		newLimaVMStopCommand(),
+		newLimaVMDeleteCommand(),
 	)
 	return command
 }
 
-func newLimaCreateCommand() *cobra.Command {
+func newLimaVMCreateCommand() *cobra.Command {
 	var namespace string
 	command := &cobra.Command{
-		Use:   "create NAME",
+		Use:   "create NAME TEMPLATE",
 		Short: "Create a new LimaVM resource",
-		Args:  cobra.ExactArgs(1),
+		Long: `Create a new LimaVM resource with the specified template.
+
+TEMPLATE can be one of:
+- A ConfigMap name (if it's a valid Kubernetes DNS-1123 subdomain) in the namespace specified by --namespace
+- A file path (if it's not a valid ConfigMap name) - creates a ConfigMap with the VM name`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return limaCreateAction(cmd.Context(), args[0], namespace)
+			return limaVMCreateAction(cmd.Context(), args[0], args[1], namespace)
 		},
 	}
-	command.Flags().StringVarP(&namespace, "namespace", "n", "default", "Namespace for the LimaVM resource")
+	command.Flags().StringVarP(&namespace, "namespace", "n", metav1.NamespaceDefault, "Namespace for the LimaVM resource")
 	return command
 }
 
-func newLimaStartCommand() *cobra.Command {
+func newLimaVMStartCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "start NAME",
 		Short: "Start a LimaVM by setting running=true",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return limaSetRunningAction(cmd.Context(), args[0], true)
+			return limaVMSetRunningAction(cmd.Context(), args[0], true)
 		},
 	}
 	return command
 }
 
-func newLimaStopCommand() *cobra.Command {
+func newLimaVMStopCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "stop NAME",
 		Short: "Stop a LimaVM by setting running=false",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return limaSetRunningAction(cmd.Context(), args[0], false)
+			return limaVMSetRunningAction(cmd.Context(), args[0], false)
 		},
 	}
 	return command
 }
 
-func newLimaDeleteCommand() *cobra.Command {
+func newLimaVMDeleteCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "delete NAME",
 		Short: "Delete a LimaVM resource",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return limaDeleteAction(cmd.Context(), args[0])
+			return limaVMDeleteAction(cmd.Context(), args[0])
 		},
 	}
 	return command
@@ -95,6 +107,9 @@ func getKubeClient(ctx context.Context) (client.Client, error) {
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
 	}
 	runtimeScheme := runtime.NewScheme()
+	if err := corev1scheme.AddToScheme(runtimeScheme); err != nil {
+		return nil, fmt.Errorf("failed to add core types to scheme: %w", err)
+	}
 	if err := limav1alpha1.AddToScheme(runtimeScheme); err != nil {
 		return nil, fmt.Errorf("failed to add LimaVM types to scheme: %w", err)
 	}
@@ -117,12 +132,80 @@ func findLimaVM(ctx context.Context, c client.Client, name string) (*limav1alpha
 	return &vmList.Items[0], nil
 }
 
-func limaCreateAction(ctx context.Context, name, namespace string) error {
+func createConfigMap(ctx context.Context, c client.Client, name, namespace, template string) (*corev1.ConfigMap, error) {
+	content, err := os.ReadFile(template)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read template file %q: %w", template, err)
+	}
+
+	// Check if ConfigMap already exists
+	configMap := &corev1.ConfigMap{}
+	err = c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, configMap)
+	if err == nil {
+		return nil, fmt.Errorf("ConfigMap %q already exists in namespace %q, will not modify existing ConfigMap", name, namespace)
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("failed to check for existing ConfigMap: %w", err)
+	}
+
+	// Create the ConfigMap with the template content
+	configMap = &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			limav1alpha1.TemplateConfigMapKey: string(content),
+		},
+	}
+	if err := c.Create(ctx, configMap); err != nil {
+		return nil, fmt.Errorf("failed to create ConfigMap %q: %w", name, err)
+	}
+	logrus.Infof("ConfigMap %q created in namespace %q with template from file %q", name, namespace, template)
+	return configMap, nil
+}
+
+func takeOwnership(ctx context.Context, c client.Client, limaVM *limav1alpha1.LimaVM, configMap *corev1.ConfigMap) error {
+	if configMap != nil {
+		// Need to fetch the ConfigMap again to update it with owner reference
+		configMapToUpdate := &corev1.ConfigMap{}
+		if err := c.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapToUpdate); err != nil {
+			return fmt.Errorf("failed to fetch ConfigMap for owner reference update: %w", err)
+		}
+		// Set owner reference using controller-runtime helper
+		if err := ctrl.SetControllerReference(limaVM, configMapToUpdate, c.Scheme()); err != nil {
+			return fmt.Errorf("failed to set owner reference on ConfigMap: %w", err)
+		}
+		// Update the ConfigMap with owner reference
+		if err := c.Update(ctx, configMapToUpdate); err != nil {
+			return fmt.Errorf("failed to update ConfigMap with owner reference: %w", err)
+		}
+		logrus.Debugf("Set LimaVM %q as owner of ConfigMap %q", limaVM.ObjectMeta.Name, configMap.Name)
+	}
+	return nil
+}
+
+func limaVMCreateAction(ctx context.Context, name, template, namespace string) error {
 	c, err := getKubeClient(ctx)
 	if err != nil {
 		return err
 	}
 
+	var createdConfigMap *corev1.ConfigMap // Track if we created a ConfigMap
+
+	// Check if template is a valid ConfigMap name (DNS-1123 subdomain)
+	// https://kubernetes.io/docs/concepts/configuration/configmap/#configmap-object
+	configMapName := template
+	validationErrs := validation.IsDNS1123Subdomain(configMapName)
+	if len(validationErrs) > 0 {
+		// Use the VM name as the ConfigMap name
+		configMapName = name
+		if createdConfigMap, err = createConfigMap(ctx, c, configMapName, namespace, template); err != nil {
+			return err
+		}
+	}
+
+	// Create the LimaVM resource with the template reference
 	running := false
 	limaVM := &limav1alpha1.LimaVM{
 		ObjectMeta: metav1.ObjectMeta{
@@ -130,18 +213,36 @@ func limaCreateAction(ctx context.Context, name, namespace string) error {
 			Namespace: namespace,
 		},
 		Spec: limav1alpha1.LimaVMSpec{
+			TemplateRef: limav1alpha1.TemplateReference{
+				Name: configMapName,
+			},
 			Running: &running,
 		},
 	}
 
+	// Delete createdConfigMap unless limaVM has been created and taken ownership of it.
+	defer func() {
+		if createdConfigMap != nil {
+			logrus.Warnf("Cleaning up created ConfigMap %q", createdConfigMap.Name)
+			_ = c.Delete(ctx, createdConfigMap)
+		}
+	}()
+
+	// Create LimaVM resource.
 	if err := c.Create(ctx, limaVM); err != nil {
 		return fmt.Errorf("failed to create LimaVM: %w", err)
 	}
-	logrus.Infof("LimaVM %q created in namespace %q", name, namespace)
+	logrus.Infof("LimaVM %q created in namespace %q with template ConfigMap %q", name, namespace, configMapName)
+
+	// If we created a ConfigMap, set the LimaVM as its owner for auto-cleanup
+	if err := takeOwnership(ctx, c, limaVM, createdConfigMap); err == nil {
+		// Keep createdConfigMap until limaVM itself is deleted.
+		createdConfigMap = nil
+	}
 	return nil
 }
 
-func limaSetRunningAction(ctx context.Context, name string, running bool) error {
+func limaVMSetRunningAction(ctx context.Context, name string, running bool) error {
 	c, err := getKubeClient(ctx)
 	if err != nil {
 		return err
@@ -167,7 +268,7 @@ func limaSetRunningAction(ctx context.Context, name string, running bool) error 
 	return nil
 }
 
-func limaDeleteAction(ctx context.Context, name string) error {
+func limaVMDeleteAction(ctx context.Context, name string) error {
 	c, err := getKubeClient(ctx)
 	if err != nil {
 		return err

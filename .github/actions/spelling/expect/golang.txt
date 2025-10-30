@@ -21,10 +21,12 @@ replicaset
 serviceaccount
 
 # Library functions
+Debugf
 Eventf
 Infof
 RLock
 RUnlock
+Warnf
 Warningf
 
 # kubebuilder

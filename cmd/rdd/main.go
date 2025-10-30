@@ -130,7 +130,7 @@ func main() {
 	ctlCmd.Hidden = !developer.Mode()
 	cmd.AddCommand(ctlCmd)
 
-	limaCmd := newLimaCommand()
+	limaCmd := newLimaVMCommand()
 	limaCmd.Hidden = !developer.Mode()
 	cmd.AddCommand(limaCmd)
 
