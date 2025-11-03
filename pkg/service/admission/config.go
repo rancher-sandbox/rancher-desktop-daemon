@@ -10,14 +10,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	validatingadmissionpolicy "k8s.io/apiserver/pkg/admission/plugin/policy/validating"
-	"k8s.io/apiserver/pkg/admission/plugin/resourcequota"
 	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
 	validatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/validating"
-	certapproval "k8s.io/kubernetes/plugin/pkg/admission/certificates/approval"
-	"k8s.io/kubernetes/plugin/pkg/admission/certificates/ctbattest"
-	certsigning "k8s.io/kubernetes/plugin/pkg/admission/certificates/signing"
-	certsubjectrestriction "k8s.io/kubernetes/plugin/pkg/admission/certificates/subjectrestriction"
-	"k8s.io/kubernetes/plugin/pkg/admission/defaulttolerationseconds"
 	"k8s.io/kubernetes/plugin/pkg/admission/deny"
 	"k8s.io/kubernetes/plugin/pkg/admission/eventratelimit"
 	"k8s.io/kubernetes/plugin/pkg/admission/gc"
@@ -28,23 +22,18 @@ import (
 
 // AllOrderedPlugins is the list of all the plugins in order.
 var AllOrderedPlugins = []string{
-	autoprovision.PluginName,          // NamespaceAutoProvision
-	lifecycle.PluginName,              // NamespaceLifecycle
-	exists.PluginName,                 // NamespaceExists
-	serviceaccount.PluginName,         // ServiceAccount
-	eventratelimit.PluginName,         // EventRateLimit
-	gc.PluginName,                     // OwnerReferencesPermissionEnforcement
-	certapproval.PluginName,           // CertificateApproval
-	certsigning.PluginName,            // CertificateSigning
-	ctbattest.PluginName,              // ClusterTrustBundleAttest
-	certsubjectrestriction.PluginName, // CertificateSubjectRestriction
+	autoprovision.PluginName,  // NamespaceAutoProvision
+	lifecycle.PluginName,      // NamespaceLifecycle
+	exists.PluginName,         // NamespaceExists
+	serviceaccount.PluginName, // ServiceAccount
+	eventratelimit.PluginName, // EventRateLimit
+	gc.PluginName,             // OwnerReferencesPermissionEnforcement
 
 	// new admission plugins should generally be inserted above here
-	// webhook, resourcequota, and deny plugins must go at the end
+	// webhook, and deny plugins must go at the end
 	mutatingwebhook.PluginName,           // MutatingAdmissionWebhook
 	validatingadmissionpolicy.PluginName, // ValidatingAdmissionPolicy
 	validatingwebhook.PluginName,         // ValidatingAdmissionWebhook
-	resourcequota.PluginName,             // ResourceQuota
 	deny.PluginName,                      // AlwaysDeny
 }
 
@@ -56,30 +45,18 @@ func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 	serviceaccount.Register(plugins)
 	eventratelimit.Register(plugins)
 	gc.Register(plugins)
-	certapproval.Register(plugins)
-	certsigning.Register(plugins)
-	ctbattest.Register(plugins)
-	certsubjectrestriction.Register(plugins)
 
 	mutatingwebhook.Register(plugins)
 	validatingadmissionpolicy.Register(plugins)
 	validatingwebhook.Register(plugins)
-	resourcequota.Register(plugins)
 	deny.Register(plugins)
 }
 
 // DefaultOffAdmissionPlugins returns a set of admission plugins that should be disabled by default.
 func DefaultOffAdmissionPlugins() sets.Set[string] {
 	defaultOnPlugins := sets.New[string](
-		lifecycle.PluginName,                // NamespaceLifecycle
-		serviceaccount.PluginName,           // ServiceAccount
-		resourcequota.PluginName,            // ResourceQuota
-		certapproval.PluginName,             // CertificateApproval
-		certsigning.PluginName,              // CertificateSigning
-		ctbattest.PluginName,                // ClusterTrustBundleAttest
-		certsubjectrestriction.PluginName,   // CertificateSubjectRestriction
-		defaulttolerationseconds.PluginName, // DefaultTolerationSeconds
-		// Always enable admission webhooks since admission is always enabled
+		lifecycle.PluginName,                 // NamespaceLifecycle
+		serviceaccount.PluginName,            // ServiceAccount
 		mutatingwebhook.PluginName,           // MutatingAdmissionWebhook
 		validatingwebhook.PluginName,         // ValidatingAdmissionWebhook
 		validatingadmissionpolicy.PluginName, // ValidatingAdmissionPolicy
