@@ -30,7 +30,8 @@ import (
 // minimalist controller pattern.
 type ConfigMapReplicaSetReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme  *runtime.Scheme
+	Manager ctrl.Manager
 }
 
 //+kubebuilder:rbac:groups=rdd.rancherdesktop.io,resources=configmapreplicasets,verbs=get;list;watch;create;update;patch;delete
@@ -153,13 +154,8 @@ func (r *ConfigMapReplicaSetReconciler) handleDeletion(ctx context.Context, conf
 	logger := log.FromContext(ctx)
 
 	// Clean up all owned ConfigMaps using the helper
-	cleanupOpts := base.CleanupOptions{
-		ResourceLists: []client.ObjectList{&corev1.ConfigMapList{}},
-		LabelSelector: labelsForConfigMap(configMapReplicaSet.Name),
-	}
-
-	if err := base.DeleteOwnedResources(ctx, r.Client, configMapReplicaSet, cleanupOpts); err != nil {
-		logger.Error(err, "Failed to delete owned ConfigMaps")
+	if err := base.DeleteOwnedResources(ctx, r.Client, configMapReplicaSet, r.Manager); err != nil {
+		logger.Error(err, "Failed to delete owned resources")
 		return ctrl.Result{}, err
 	}
 

@@ -93,6 +93,7 @@ func (c *Controller) setupReconciler(mgr ctrl.Manager) error {
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Recorder: mgr.GetEventRecorderFor(ControllerName + "-controller"),
+		Manager:  mgr,
 	}).SetupWithManager(mgr)
 }
 

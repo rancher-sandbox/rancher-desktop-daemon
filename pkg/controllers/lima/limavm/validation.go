@@ -53,7 +53,7 @@ func ValidateLimaVM(ctx context.Context, c client.Client, limavm *v1alpha1.LimaV
 
 	// Skip validation if the object is being deleted
 	// During deletion, the controller removes finalizers and may have already deleted owned resources
-	if limavm.DeletionTimestamp != nil {
+	if !limavm.DeletionTimestamp.IsZero() {
 		return warnings, nil
 	}
 

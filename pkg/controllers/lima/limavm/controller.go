@@ -101,8 +101,9 @@ func (c *Controller) GetCRDData() string {
 // setupReconciler sets up the LimaVMReconciler with the manager.
 func (c *Controller) setupReconciler(mgr ctrl.Manager) error {
 	return (&controllers.LimaVMReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:  mgr.GetClient(),
+		Scheme:  mgr.GetScheme(),
+		Manager: mgr,
 	}).SetupWithManager(mgr)
 }
 
