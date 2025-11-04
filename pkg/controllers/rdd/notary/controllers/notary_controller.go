@@ -29,6 +29,7 @@ type NotaryReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
+	Manager  ctrl.Manager
 }
 
 // +kubebuilder:rbac:groups=rdd.rancherdesktop.io,resources=notaries,verbs=get;list;watch;create;update;patch;delete
@@ -115,16 +116,8 @@ func (r *NotaryReconciler) handleDeletion(ctx context.Context, notary *v1alpha1.
 	log := logf.FromContext(ctx)
 
 	// Clean up all owned ConfigMaps using the helper
-	cleanupOpts := base.CleanupOptions{
-		ResourceLists: []client.ObjectList{&corev1.ConfigMapList{}},
-		LabelSelector: map[string]string{
-			"app.kubernetes.io/managed-by": "notary-controller",
-			"app.kubernetes.io/instance":   notary.Name,
-		},
-	}
-
-	if err := base.DeleteOwnedResources(ctx, r.Client, notary, cleanupOpts); err != nil {
-		log.Error(err, "Failed to delete owned ConfigMaps")
+	if err := base.DeleteOwnedResources(ctx, r.Client, notary, r.Manager); err != nil {
+		log.Error(err, "Failed to delete owned resources")
 		return ctrl.Result{}, err
 	}
 

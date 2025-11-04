@@ -9,10 +9,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -48,9 +52,9 @@ func RemoveFinalizer(ctx context.Context, c client.Client, obj client.Object) er
 	return nil
 }
 
-// IsBeingDeleted checks if an object is being deleted (has deletion timestamp).
+// IsBeingDeleted checks if an object is being deleted (has non-zero deletion timestamp).
 func IsBeingDeleted(obj client.Object) bool {
-	return obj.GetDeletionTimestamp() != nil
+	return !obj.GetDeletionTimestamp().IsZero()
 }
 
 // ResourceNamespace is an optional interface that cluster-scoped resources can implement
@@ -60,20 +64,11 @@ type ResourceNamespace interface {
 	GetResourceNamespace() string
 }
 
-// CleanupOptions provides configuration for resource cleanup.
-type CleanupOptions struct {
-	// ResourceLists is a slice of empty list objects used to query different resource types.
-	// Each list object (e.g., &corev1.ConfigMapList{}) serves as a template that gets
-	// populated by Client.List(). Example: []client.ObjectList{&corev1.ConfigMapList{}, &corev1.SecretList{}}
-	ResourceLists []client.ObjectList
-	// LabelSelector to find resources to clean up (optional).
-	// If provided, uses efficient label-based filtering.
-	// If empty, lists all resources in namespace and filters by owner UID.
-	LabelSelector client.MatchingLabels
-}
-
 // DeleteOwnedResources finds and deletes all resources owned by the given object.
 // This is RDD's replacement for Kubernetes garbage collection.
+//
+// The function uses dynamic resource discovery to automatically find ALL namespaced
+// resource types in the cluster, eliminating the need to manually specify resource lists.
 //
 // The function attempts to delete all owned resources, collecting errors along the way.
 // If any deletions fail, it returns a combined error, but continues trying to delete
@@ -84,7 +79,7 @@ type CleanupOptions struct {
 //
 // Use opts.LabelSelector to efficiently filter the set of deletion candidates, if possible.
 // Resources not actually owned by the owner will not be touched.
-func DeleteOwnedResources(ctx context.Context, c client.Client, owner client.Object, opts CleanupOptions) error {
+func DeleteOwnedResources(ctx context.Context, c client.Client, owner client.Object, mgr ctrl.Manager) error {
 	logger := log.FromContext(ctx)
 
 	var namespace string
@@ -97,58 +92,123 @@ func DeleteOwnedResources(ctx context.Context, c client.Client, owner client.Obj
 			owner.GetName(), owner.GetObjectKind().GroupVersionKind())
 	}
 
-	listOpts := []client.ListOption{client.InNamespace(namespace)}
-	listOpts = append(listOpts, opts.LabelSelector)
-	var errs []error
-
-	for _, resourceList := range opts.ResourceLists {
-		// List() mutates resourceList by populating its Items field
-		if err := c.List(ctx, resourceList, listOpts...); err != nil {
-			gvk := resourceList.GetObjectKind().GroupVersionKind()
-			errs = append(errs, fmt.Errorf("failed to list %s resources for cleanup: %w", gvk, err))
-			continue // Try next resource type
-		}
-
-		// Use Kubernetes standard library to iterate over list items
-		_ = meta.EachListItem(resourceList, func(runtimeObj runtime.Object) error {
-			obj, ok := runtimeObj.(client.Object)
-			if !ok {
-				errs = append(errs, fmt.Errorf("item is not a client.Object: %s", runtimeObj.GetObjectKind().GroupVersionKind()))
-				return nil // Continue to next item
-			}
-			if !IsOwnedByUID(obj, owner.GetUID()) {
-				return nil // Skip this item, continue iteration
-			}
-			gvk := obj.GetObjectKind().GroupVersionKind()
-
-			// Remove only the RDD finalizer before deletion to allow other controllers to still perform their own cleanup.
-			if controllerutil.ContainsFinalizer(obj, FinalizerName) {
-				logger.Info("Removing RDD finalizer from owned resource",
-					"resourceType", gvk,
-					"resourceNamespace", obj.GetNamespace(),
-					"resourceName", obj.GetName(),
-					"finalizers", obj.GetFinalizers())
-
-				controllerutil.RemoveFinalizer(obj, FinalizerName)
-				if err := c.Update(ctx, obj); err != nil {
-					errs = append(errs, fmt.Errorf("failed to remove finalizers from %s %s/%s: %w", gvk, obj.GetNamespace(), obj.GetName(), err))
-					return nil // Continue to next item
-				}
-			}
-
-			logger.Info("Deleting owned resource",
-				"resourceType", obj.GetObjectKind().GroupVersionKind(),
-				"resourceNamespace", obj.GetNamespace(),
-				"resourceName", obj.GetName())
-
-			if err := c.Delete(ctx, obj); err != nil && client.IgnoreNotFound(err) != nil {
-				errs = append(errs, fmt.Errorf("failed to delete %s %s/%s during cleanup: %w", gvk, obj.GetNamespace(), obj.GetName(), err))
-			}
-			return nil // Always continue to next item
-		})
+	// Discover all namespaced resource types dynamically
+	resourceTypes, err := discoverNamespacedResources(ctx, mgr)
+	if err != nil {
+		return fmt.Errorf("failed to discover namespaced resources: %w", err)
 	}
 
+	// Use GetAPIReader() instead of cached client for listing resources to avoid
+	// setting up watches for dynamically discovered types that may not be in the scheme.
+	apiReader := mgr.GetAPIReader()
+	var errs []error
+	listOpts := []client.ListOption{client.InNamespace(namespace)}
+
+	for _, gvk := range resourceTypes {
+		// We use PartialObjectMetadata because we're doing dynamic resource discovery -
+		// we don't know at compile time what types we'll encounter, and those types may
+		// not be registered in the scheme. PartialObjectMetadata lets us work with ANY
+		// Kubernetes resource using just metadata fields (name, namespace, finalizers, etc.)
+		// without needing the full type definition.
+		list := &metav1.PartialObjectMetadataList{}
+		list.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   gvk.Group,
+			Version: gvk.Version,
+			Kind:    gvk.Kind + "List",
+		})
+
+		// List resources of this type in the namespace using API reader (bypasses cache)
+		if err := apiReader.List(ctx, list, listOpts...); err != nil {
+			logger.V(1).Info("Failed to list resources, skipping",
+				"gvk", gvk.String(),
+				"error", err.Error())
+			continue
+		}
+
+		// Process each resource
+		for _, item := range list.Items {
+			if !IsOwnedByUID(&item, owner.GetUID()) {
+				continue
+			}
+
+			// Remove only the RDD finalizer before deletion to allow other controllers to still perform their own cleanup.
+			patch := client.MergeFrom(item.DeepCopy())
+			if controllerutil.RemoveFinalizer(&item, FinalizerName) {
+				// Use Patch instead of Update for PartialObjectMetadata
+				if err := c.Patch(ctx, &item, patch); err != nil {
+					itemLogger := logger.V(1).WithValues("namespace", item.GetNamespace(), "name", item.GetName(), "gvk", gvk.String())
+					if apierrors.IsNotFound(err) {
+						itemLogger.Info("Resource already deleted during finalizer removal")
+						continue
+					}
+					// For other errors, log and collect error but proceed with deletion attempt
+					// The deletion might still succeed if there are no other blocking finalizers
+					itemLogger.Info("Failed to remove finalizer, will attempt deletion anyway", "error", err)
+					errs = append(errs, fmt.Errorf("failed to remove finalizers from %s %s/%s: %w", gvk, item.GetNamespace(), item.GetName(), err))
+				}
+			}
+			if err := c.Delete(ctx, &item); err != nil && client.IgnoreNotFound(err) != nil {
+				errs = append(errs, fmt.Errorf("failed to delete %s %s/%s during cleanup: %w", gvk, item.GetNamespace(), item.GetName(), err))
+			}
+		}
+	}
 	return errors.Join(errs...)
+}
+
+// discoverNamespacedResources discovers all namespaced resource types in the cluster.
+// Uses the Kubernetes discovery API to find all available namespaced resources dynamically.
+func discoverNamespacedResources(ctx context.Context, mgr ctrl.Manager) ([]schema.GroupVersionKind, error) {
+	logger := log.FromContext(ctx)
+
+	// Create discovery client from manager's config
+	config := mgr.GetConfig()
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create discovery client: %w", err)
+	}
+
+	// Get all server resources
+	_, apiResourceLists, err := discoveryClient.ServerGroupsAndResources()
+	if err != nil {
+		// ServerGroupsAndResources can return partial results with an error
+		// We'll use whatever we got and log the error
+		logger.V(1).Info("Discovery returned partial results", "error", err)
+	}
+
+	var resourceTypes []schema.GroupVersionKind
+
+	// Iterate through all API groups and resources
+	for _, apiResourceList := range apiResourceLists {
+		// Parse the GroupVersion from the list
+		gv, err := schema.ParseGroupVersion(apiResourceList.GroupVersion)
+		if err != nil {
+			logger.V(1).Info("Failed to parse group version, skipping",
+				"groupVersion", apiResourceList.GroupVersion,
+				"error", err)
+			continue
+		}
+		for _, apiResource := range apiResourceList.APIResources {
+			if !apiResource.Namespaced {
+				continue
+			}
+			// Skip subresources (e.g., namespaces/status, namespaces/finalize)
+			if strings.Contains(apiResource.Name, "/") {
+				continue
+			}
+			gvk := schema.GroupVersionKind{
+				Group:   gv.Group,
+				Version: gv.Version,
+				Kind:    apiResource.Kind,
+			}
+			resourceTypes = append(resourceTypes, gvk)
+		}
+	}
+
+	logger.V(1).Info("Discovered namespaced resources for cleanup",
+		"totalResources", len(resourceTypes),
+		"apiGroups", len(apiResourceLists))
+
+	return resourceTypes, nil
 }
 
 // HasFinalizer checks if a resource has the RDD finalizer.

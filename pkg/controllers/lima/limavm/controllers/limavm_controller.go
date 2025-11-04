@@ -27,7 +27,8 @@ const (
 // LimaVMReconciler reconciles a LimaVM object.
 type LimaVMReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme  *runtime.Scheme
+	Manager ctrl.Manager
 }
 
 // +kubebuilder:rbac:groups=lima.rancherdesktop.io,resources=limavms,verbs=get;list;watch;create;update;patch;delete
@@ -114,13 +115,7 @@ func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.
 	logger := log.FromContext(ctx)
 
 	// Clean up all owned resources using the base helper
-	// DeleteOwnedResources automatically removes any finalizers before deletion
-	cleanupOpts := base.CleanupOptions{
-		ResourceLists: []client.ObjectList{
-			&corev1.ConfigMapList{},
-		},
-	}
-	if err := base.DeleteOwnedResources(ctx, r.Client, limaVM, cleanupOpts); err != nil {
+	if err := base.DeleteOwnedResources(ctx, r.Client, limaVM, r.Manager); err != nil {
 		logger.Error(err, "Failed to delete owned resources")
 		return ctrl.Result{}, err
 	}
