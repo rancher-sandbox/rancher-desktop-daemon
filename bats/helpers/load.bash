@@ -81,8 +81,9 @@ setup_file() {
 }
 
 teardown_file() {
-    # Need to stop the control plane, otherwise bats will hang
-    rdd svc delete
+    # Stop the control plane but don't delete it, to preserve logs for debugging.
+    # The next test run's setup will clean up and create a fresh instance.
+    rdd svc stop 2>/dev/null || true
 
     call_local_function
 }

@@ -236,10 +236,6 @@ func Start(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
-
 	cmdArgs := []string{"service", "serve"}
 	// Always start with saved args from create (contains --secure-port)
 	savedArgs := ServeArgs()
@@ -258,7 +254,95 @@ func Start(ctx context.Context, args []string) error {
 	return cmd.Start()
 }
 
+// checkReadiness performs a single readiness check.
+func checkReadiness(ctx context.Context) error {
+	config, err := GetKubeRestConfig()
+	if err != nil {
+		klog.V(2).Infof("Waiting for kubeconfig to be available: %v", err)
+		return err
+	}
+
+	// Wait for the controller manager to register with the actual running controllers
+	runtimeControllers, err := getRuntimeControllersFromCluster(ctx)
+	if err != nil {
+		// Check if this is a "no controller manager found" error, which indicates --controllers=""
+		if errors.Is(err, ErrControllerManagerNotFound) {
+			klog.V(2).Info("No controller manager found - checking if this is truly no-controllers mode")
+
+			// Check the original command args to see if --controllers="" was specified
+			serveArgs := ServeArgs()
+			isNoControllersMode := false
+			for i, arg := range serveArgs {
+				if arg == "--controllers" && i+1 < len(serveArgs) && serveArgs[i+1] == "" {
+					isNoControllersMode = true
+					break
+				}
+			}
+
+			if isNoControllersMode {
+				// Check if API server is ready for basic operations
+				if err := readiness.WaitForReady(ctx, config, false); err == nil {
+					klog.V(2).Info("API server ready and no controllers expected - no controllers mode")
+					return readiness.WaitForReadyWithCRDs(ctx, config, []base.Controller{}, false)
+				}
+				klog.V(2).Info("API server not ready yet, continuing to wait...")
+			} else {
+				klog.V(2).Info("Controllers expected but discovery configmap not found yet - waiting for external controllers to register...")
+			}
+		} else {
+			klog.V(2).Infof("getRuntimeControllersFromCluster: %v", err)
+		}
+		return err
+	}
+	klog.V(2).Infof("Waiting for %d runtime controllers to be ready", len(runtimeControllers))
+	if len(runtimeControllers) == 0 {
+		// This shouldn't happen since we handle it above, but keeping as fallback
+		// Check if API server is ready for basic operations
+		if err := readiness.WaitForReady(ctx, config, false); err == nil {
+			klog.V(2).Info("API server ready but no controllers registered - assuming no controllers mode")
+			return readiness.WaitForReadyWithCRDs(ctx, config, []base.Controller{}, false)
+		}
+		klog.V(2).Info("Waiting for controller manager to register in cluster...")
+		return errors.New("waiting for controller manager to register")
+	}
+
+	// Get the controller objects for the actually running controllers
+	allControllers := base.GetAllControllers()
+	var enabledControllers []base.Controller
+
+	for _, controller := range allControllers {
+		for _, enabledName := range runtimeControllers {
+			if controller.GetName() == enabledName {
+				enabledControllers = append(enabledControllers, controller)
+				break
+			}
+		}
+	}
+
+	klog.V(2).Infof("Discovery service found running controllers: %v", runtimeControllers)
+
+	// Debug: Log all available controllers
+	allControllerNames := make([]string, len(allControllers))
+	for i, c := range allControllers {
+		allControllerNames[i] = c.GetName()
+	}
+	klog.V(2).Infof("All available controllers: %v", allControllerNames)
+
+	// Debug: Log enabled controllers
+	enabledControllerNames := make([]string, len(enabledControllers))
+	for i, c := range enabledControllers {
+		enabledControllerNames[i] = c.GetName()
+	}
+	klog.V(2).Infof("Enabled controllers for readiness: %v", enabledControllerNames)
+
+	return readiness.WaitForReadyWithCRDs(ctx, config, enabledControllers, false)
+}
+
 func Wait(ctx context.Context) error {
+	if err := checkReadiness(ctx); err == nil {
+		return nil
+	}
+
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -267,87 +351,9 @@ func Wait(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			config, err := GetKubeRestConfig()
-			if err != nil {
-				klog.V(2).Infof("Waiting for kubeconfig to be available: %v", err)
-				continue
+			if err := checkReadiness(ctx); err == nil {
+				return nil
 			}
-
-			// Wait for the controller manager to register with the actual running controllers
-			// Discovery service is the single source of truth - no fallbacks
-			runtimeControllers, err := getRuntimeControllersFromCluster(ctx)
-			if err != nil {
-				// Check if this is a "no controller manager found" error, which indicates --controllers=""
-				if errors.Is(err, ErrControllerManagerNotFound) {
-					klog.V(2).Info("No controller manager found - checking if this is truly no-controllers mode")
-
-					// Check the original command args to see if --controllers="" was specified
-					serveArgs := ServeArgs()
-					isNoControllersMode := false
-					for i, arg := range serveArgs {
-						if arg == "--controllers" && i+1 < len(serveArgs) && serveArgs[i+1] == "" {
-							isNoControllersMode = true
-							break
-						}
-					}
-
-					if isNoControllersMode {
-						// Check if API server is ready for basic operations
-						if err := readiness.WaitForReady(ctx, config, false); err == nil {
-							klog.V(2).Info("API server ready and no controllers expected - no controllers mode")
-							return readiness.WaitForReadyWithCRDs(ctx, config, []base.Controller{}, false)
-						}
-						klog.V(2).Info("API server not ready yet, continuing to wait...")
-					} else {
-						klog.V(2).Info("Controllers expected but discovery configmap not found yet - waiting for external controllers to register...")
-					}
-				} else {
-					klog.V(2).Infof("getRuntimeControllersFromCluster: %v", err)
-				}
-				continue
-			}
-			klog.V(2).Infof("Waiting for %d runtime controllers to be ready", len(runtimeControllers))
-			if len(runtimeControllers) == 0 {
-				// This shouldn't happen since we handle it above, but keeping as fallback
-				// Check if API server is ready for basic operations
-				if err := readiness.WaitForReady(ctx, config, false); err == nil {
-					klog.V(2).Info("API server ready but no controllers registered - assuming no controllers mode")
-					return readiness.WaitForReadyWithCRDs(ctx, config, []base.Controller{}, false)
-				}
-				klog.V(2).Info("Waiting for controller manager to register in cluster...")
-				continue
-			}
-
-			// Get the controller objects for the actually running controllers
-			allControllers := base.GetAllControllers()
-			var enabledControllers []base.Controller
-
-			for _, controller := range allControllers {
-				for _, enabledName := range runtimeControllers {
-					if controller.GetName() == enabledName {
-						enabledControllers = append(enabledControllers, controller)
-						break
-					}
-				}
-			}
-
-			klog.V(2).Infof("Discovery service found running controllers: %v", runtimeControllers)
-
-			// Debug: Log all available controllers
-			allControllerNames := make([]string, len(allControllers))
-			for i, c := range allControllers {
-				allControllerNames[i] = c.GetName()
-			}
-			klog.V(2).Infof("All available controllers: %v", allControllerNames)
-
-			// Debug: Log enabled controllers
-			enabledControllerNames := make([]string, len(enabledControllers))
-			for i, c := range enabledControllers {
-				enabledControllerNames[i] = c.GetName()
-			}
-			klog.V(2).Infof("Enabled controllers for readiness: %v", enabledControllerNames)
-
-			return readiness.WaitForReadyWithCRDs(ctx, config, enabledControllers, false)
 		}
 	}
 }
@@ -450,7 +456,7 @@ func ServeArgs() []string {
 	return nil
 }
 
-// shouldEnableController determines if a controller should be enabled based on the controllers specification.
+// shouldEnableController determines if a controller should be enabled based on the controller's specification.
 func shouldEnableController(controller base.Controller, spec string) bool {
 	// Handle empty spec - no controllers should be enabled
 	if spec == "" {

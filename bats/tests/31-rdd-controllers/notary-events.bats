@@ -151,6 +151,9 @@ get_latest_event_timestamp() {
     run -0 get_latest_event_timestamp "dupe"
     timestamp=${output}
 
+    # Sleep to ensure timestamp ordering (events created after this will have later timestamps)
+    sleep 1
+
     # Trigger multiple reconciles with identical spec.value by changing annotations
     # Each will generate identical SpecUpdate and NoChange events that Kubernetes should deduplicate
     run -0 rdd ctl annotate notary dupe test-annotation-1=value1
@@ -158,9 +161,10 @@ get_latest_event_timestamp() {
     run -0 rdd ctl annotate notary dupe test-annotation-3=value3
     run -0 rdd ctl annotate notary dupe test-annotation-4=value4
 
-    # Wait for events to be processed
-    wait_for_events "dupe" "SpecUpdate"
-    wait_for_events "dupe" "NoChange"
+    # Wait for NEW events to be generated after the timestamp
+    # This ensures the controller has processed the annotation updates
+    wait_for_events_after_timestamp "dupe" "${timestamp}" "SpecUpdate"
+    wait_for_events_after_timestamp "dupe" "${timestamp}" "NoChange"
 
     # Count events after the timestamp - should be deduplicated by Kubernetes
     # It is not clear if Kubernetes will always catch all duplicates, but it should get at least 1

@@ -157,9 +157,8 @@ EOF
     run -0 rdd lima delete "my-vm"
     assert_output --partial "deleted"
 
-    # Verify deletion succeeded
-    run -1 rdd ctl get limavm "my-vm" --namespace "test-ns1"
-    assert_output --partial "not found"
+    # Wait for deletion to complete (asynchronous Kubernetes deletion)
+    try --max 10 --delay 1 --until-fail -- rdd ctl get limavm "my-vm" --namespace "test-ns1"
 
     # Now we should be able to create a LimaVM with the same name in test-ns2
     run -0 rdd lima create "my-vm" "test-template" --namespace "test-ns2"

@@ -44,8 +44,6 @@ func WaitForReady(ctx context.Context, config *rest.Config, logging bool) error 
 	}
 
 	for {
-		time.Sleep(100 * time.Millisecond)
-
 		select {
 		case <-ctx.Done():
 			return errors.New("context canceled")
@@ -76,9 +74,9 @@ func WaitForReady(ctx context.Context, config *rest.Config, logging bool) error 
 			logger.Info("Control plane is ready")
 			break
 		}
-
-		// Always log non-ready status for debugging
 		klog.V(1).InfoS("Control plane not ready", "status", rc, "unreadyComponents", sets.List[string](lastSeenUnready))
+
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	return nil
@@ -175,7 +173,7 @@ func waitForCRDsEstablished(ctx context.Context, config *rest.Config, controller
 	}
 
 	// Check if all are already established
-	allEstablished := establishedCRDs.Equal(expectedCRDs)
+	allEstablished := establishedCRDs.IsSuperset(expectedCRDs)
 
 	if allEstablished {
 		logger.Info("All CRDs are already established")
@@ -209,7 +207,7 @@ func waitForCRDsEstablished(ctx context.Context, config *rest.Config, controller
 		if isCRDEstablished(crd) {
 			wasNew := !establishedCRDs.Has(crdName)
 			establishedCRDs.Insert(crdName)
-			allEstablished = establishedCRDs.Equal(expectedCRDs)
+			allEstablished = establishedCRDs.IsSuperset(expectedCRDs)
 
 			if wasNew {
 				logger.Info("CRD became established during watch setup", "crd", crdName)
@@ -248,7 +246,7 @@ func waitForCRDsEstablished(ctx context.Context, config *rest.Config, controller
 				if isCRDEstablished(crd) {
 					wasNew := !establishedCRDs.Has(crd.Name)
 					establishedCRDs.Insert(crd.Name)
-					allEstablished := establishedCRDs.Equal(expectedCRDs)
+					allEstablished := establishedCRDs.IsSuperset(expectedCRDs)
 
 					if wasNew {
 						logger.Info("CRD became established", "crd", crd.Name)
@@ -350,7 +348,7 @@ func waitForWebhookConfigurations(ctx context.Context, config *rest.Config, cont
 	}
 
 	// Check if all are already created
-	allFound := foundWebhooks.Equal(expectedWebhookSet)
+	allFound := foundWebhooks.IsSuperset(expectedWebhookSet)
 
 	if allFound {
 		logger.Info("All webhook configurations already exist")
@@ -364,6 +362,34 @@ func waitForWebhookConfigurations(ctx context.Context, config *rest.Config, cont
 
 	logger.Info("Polling for webhook configuration creation")
 
+	// Helper function to check webhook status
+	checkWebhooks := func() bool {
+		for _, webhook := range expectedWebhooks {
+			if foundWebhooks.Has(webhook.name) {
+				continue
+			}
+
+			var err error
+			if webhook.webhookType == base.MutatingWebhook {
+				_, err = mutatingClient.Get(ctx, webhook.name, metav1.GetOptions{})
+			} else {
+				_, err = validatingClient.Get(ctx, webhook.name, metav1.GetOptions{})
+			}
+			if err == nil {
+				foundWebhooks.Insert(webhook.name)
+				logger.Info("Webhook configuration became available", "webhook", webhook.name, "type", webhook.webhookType)
+			}
+		}
+		return foundWebhooks.IsSuperset(expectedWebhookSet)
+	}
+
+	// Check immediately first - don't waste 500ms waiting for ticker
+	if checkWebhooks() {
+		logger.Info("All webhook configurations are ready")
+		return nil
+	}
+
+	// Not all ready yet, start polling
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -373,26 +399,9 @@ func waitForWebhookConfigurations(ctx context.Context, config *rest.Config, cont
 			missing := expectedWebhookSet.Difference(foundWebhooks)
 			return fmt.Errorf("timeout waiting for webhook configurations to be created: missing %v", sets.List(missing))
 		case <-ticker.C:
-			// Check for any missing webhook configurations
-			for _, webhook := range expectedWebhooks {
-				if foundWebhooks.Has(webhook.name) {
-					continue
-				}
-
-				var err error
-				if webhook.webhookType == base.MutatingWebhook {
-					_, err = mutatingClient.Get(ctx, webhook.name, metav1.GetOptions{})
-				} else {
-					_, err = validatingClient.Get(ctx, webhook.name, metav1.GetOptions{})
-				}
-				if err == nil {
-					logger.Info("Webhook configuration became available", "webhook", webhook.name, "type", webhook.webhookType)
-					foundWebhooks.Insert(webhook.name)
-					if foundWebhooks.IsSuperset(expectedWebhookSet) {
-						logger.Info("All webhook configurations are ready")
-						return nil
-					}
-				}
+			if checkWebhooks() {
+				logger.Info("All webhook configurations are ready")
+				return nil
 			}
 		}
 	}
