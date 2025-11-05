@@ -105,6 +105,10 @@ run: bin/rdd$(EXE)
 	$< start
 .PHONY: run
 
+test: $(GOLANG_SOURCES)
+	go$(EXE) test ./...
+.PHONY: test
+
 lint:
 	$(MAKE) -C bats lint
 	golangci-lint$(EXE) run
@@ -131,6 +135,9 @@ BATS_TARGETS := $(shell $(MAKE) -C bats --print-data-base --question --no-builti
 $(BATS_TARGETS): bin/rdd$(EXE)
 	@$(MAKE) -C bats $@
 .PHONY: $(BATS_TARGETS)
+
+check: test lint spelling check-ltag
+.PHONY: check
 
 clean:
 	-rm -r bin
