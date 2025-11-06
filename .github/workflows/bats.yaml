@@ -32,9 +32,28 @@ jobs:
         | tee --append "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{ github.token }}
+  get-targets:
+    name: Lookup Test Suites
+    outputs:
+      targets: ${{ steps.lookup.outputs.targets }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      with:
+        persist-credentials: false
+        submodules: recursive
+    - id: lookup
+      run: >-
+        make --dry-run --debug=b -C bats
+        | grep --before=1 bats-core
+        | awk '/Must remake target .bats-/ { print $NF }'
+        | tr -d \`\'.
+        | jq --raw-input --slurp --compact-output 'rtrimstr("\n") | split("\n")'
+        | xargs -0 printf "targets=%s"
+        | tee --append "$GITHUB_OUTPUT"
   bats:
     name: BATS
-    needs: get-pr-number
+    needs: [get-pr-number, get-targets]
     if: ${{ ! needs.get-pr-number.outputs.number }}
     strategy:
       fail-fast: false
@@ -44,6 +63,8 @@ jobs:
         - macos-15-intel
         - ubuntu-latest
         - windows-latest
+        target: ${{ fromJSON(needs.get-targets.outputs.targets) }}
+
     runs-on: ${{ matrix.runs-on }}
     steps:
     - name: "Linux: Install prerequisites"
@@ -134,5 +155,20 @@ jobs:
     - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
       with:
         go-version-file: go.mod
-    - run: make -C bats
+    - run: make -C bats ${{ matrix.target }}
       shell: run-in-wsl {0}
+  done:
+    # This job just depends on all the tests passing, so it can be used as a
+    # required check to pass.  The `if: always()` is required in this case so
+    # it will not be skipped when the dependencies fail.
+    name: All BATS tests passed
+    needs: bats
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - run: >-
+        jq --exit-status
+        'map(select(. != "success")) | length == 0'
+        <<<"${RESULTS}"
+      env:
+        RESULTS: ${{ toJSON(needs.*.result) }}

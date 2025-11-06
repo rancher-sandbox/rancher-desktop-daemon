@@ -58,6 +58,9 @@ ALLOCA
 ldflags
 sprintf
 
+# jq
+rtrimstr
+
 # make
 addprefix
 addsuffix
