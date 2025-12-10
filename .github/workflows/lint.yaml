@@ -46,7 +46,7 @@ jobs:
         git config --global --replace-all core.autocrlf false # spellchecker:ignore
         git config --global --replace-all core.eol lf # spellchecker:ignore
         git config --global --replace-all core.longpath true #spellchecker:ignore
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         persist-credentials: false
     - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
@@ -62,7 +62,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     if: ${{ ! needs.get-pr-number.outputs.number }}
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         persist-credentials: false
     - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
@@ -75,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ ! needs.get-pr-number.outputs.number }}
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         persist-credentials: false
     - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
@@ -90,7 +90,7 @@ jobs:
     if: ${{ ! needs.get-pr-number.outputs.number }}
     steps:
     - run: sudo apt install cpanminus
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         persist-credentials: false
         submodules: recursive
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ ! needs.get-pr-number.outputs.number }}
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         persist-credentials: false
     - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
