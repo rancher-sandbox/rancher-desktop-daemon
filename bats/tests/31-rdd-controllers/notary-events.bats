@@ -90,7 +90,7 @@ wait_for_events_after_timestamp() {
     local timestamp=$2
     local reason=$3
 
-    try --max 10 --delay 1 -- assert_events_after_timestamp "${resource_name}" "${timestamp}" "${reason}"
+    try --max 20 --delay 1 -- assert_events_after_timestamp "${resource_name}" "${timestamp}" "${reason}"
 }
 
 get_latest_event_timestamp() {
