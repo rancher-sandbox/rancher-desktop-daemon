@@ -42,7 +42,7 @@ spec:
       - hostIp: '::'
         hostPort: 32768
   labels:
-    org.openbuildservice.disturl: obs://build.opensuse.org/openSUSE:Leap:15.6:Images/images/54f24e8a33253ce205ee46962e0db0c8-opensuse-leap-image:docker
+    org.opensuse.base.vendor: openSUSE Project
 status:
   status: Running
   pid: 5059
@@ -86,7 +86,7 @@ spec:
   os: linux
   size: 45150437
   labels:
-    org.openbuildservice.disturl: obs://build.opensuse.org/openSUSE:Leap:15.6:Images/images/54f24e8a33253ce205ee46962e0db0c8-opensuse-leap-image:docker
+    org.opensuse.base.vendor: openSUSE Project
 ```
 
 ## Volumes

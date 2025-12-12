@@ -20,6 +20,8 @@ printcolumn
 # Linux
 distros
 kvm
+# out of memory
+OOM
 opensuse
 pids
 tarball
