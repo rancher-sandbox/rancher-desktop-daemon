@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: SUSE LLC
+// SPDX-FileCopyrightText: The Rancher Desktop Authors
+
+// Package mock contains webhooks and reconcilers to automatically generate
+// mock data on controller startup.
+package mock
+
+import (
+	"context"
+
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	containersv1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+)
+
+const (
+	// The reconcilers will trigger on update of a namespace with this name.
+	mockNamespaceName = "rdd-mocks"
+
+	apiGroup       = "mock"
+	controllerName = "mock"
+)
+
+func init() {
+	base.RegisterController(&controller{})
+}
+
+// controller that creates mock data when started.
+// This creates a "rdd-mocks" namespace to own the created resources, and
+// reconcilers that create mocked resources based on the namespace.
+type controller struct {
+	webhookPort     int
+	webhookManagers []*base.WebhookManager
+}
+
+var (
+	_ base.Controller        = &controller{}
+	_ base.WebhookController = &controller{}
+)
+
+func (c *controller) GetAPIGroup() string {
+	return apiGroup
+}
+
+func (c *controller) SetWebhookPort(port int) {
+	c.webhookPort = port
+}
+
+func (c *controller) GetCRDData() string {
+	return ""
+}
+
+// GetName implements [base.Controller].
+func (c *controller) GetName() string {
+	return controllerName + "-webhook"
+}
+
+func (c *controller) setupReconciler(_ ctrl.Manager) error {
+	// TODO: set up reconcilers to create mock data.
+	return nil
+}
+
+func (c *controller) createNamespace(ctx context.Context, mgr ctrl.Manager) error {
+	client := mgr.GetClient()
+	namespacedName := types.NamespacedName{
+		Name: mockNamespaceName,
+	}
+
+	// At this point, the cache is not started; we have to use the API reader
+	// directly to bypass the cache.
+	var namespace corev1.Namespace
+	apiReader := mgr.GetAPIReader()
+	if err := apiReader.Get(ctx, namespacedName, &namespace); apierrors.IsNotFound(err) {
+		mgr.GetLogger().Info("Creating mock namespace", "namespace", mockNamespaceName)
+		namespace = corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: mockNamespaceName,
+			},
+		}
+		if err := client.Create(ctx, &namespace); err != nil {
+			mgr.GetLogger().Error(err, "Failed to create mock namespace", "namespace", mockNamespaceName)
+			return err
+		}
+	} else if err != nil {
+		mgr.GetLogger().Error(err, "Failed to get mock namespace", "namespace", mockNamespaceName)
+		return err
+	}
+	return nil
+}
+
+// RegisterWithManager implements [base.Controller].
+func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
+	mgr.GetLogger().Info("Registering Mock Controller with Manager")
+	ctx := context.Background()
+
+	if err := containersv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		return err
+	}
+
+	if err := c.setupReconciler(mgr); err != nil {
+		mgr.GetLogger().Error(err, "Failed to set up Mock ContainerReconciler")
+		return err
+	}
+	if err := c.setupWebhookWithManager(mgr); err != nil {
+		mgr.GetLogger().Error(err, "Failed to set up Mock Namespace webhook")
+		return err
+	}
+	if err := c.createNamespace(ctx, mgr); err != nil {
+		mgr.GetLogger().Error(err, "Failed to create Mock Namespace")
+		return err
+	}
+	return nil
+}
