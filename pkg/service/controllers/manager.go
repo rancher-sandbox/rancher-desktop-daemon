@@ -133,9 +133,9 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 	managerOptions := ctrl.Options{
 		Scheme: managerScheme,
 		Metrics: server.Options{
-			BindAddress: ":" + strconv.Itoa(scm.metricsPort),
+			BindAddress: "127.0.0.1:" + strconv.Itoa(scm.metricsPort),
 		},
-		HealthProbeBindAddress: ":" + strconv.Itoa(scm.healthPort),
+		HealthProbeBindAddress: "127.0.0.1:" + strconv.Itoa(scm.healthPort),
 		LeaderElection:         false, // RDD controllers are single-instance
 	}
 
@@ -145,6 +145,7 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 		webhookCertDir := instance.TLSDir()
 
 		opts := webhook.Options{
+			Host:     "127.0.0.1",
 			Port:     scm.webhookPort,
 			CertDir:  webhookCertDir,
 			CertName: fmt.Sprintf("webhook-%s.crt", scm.name),
