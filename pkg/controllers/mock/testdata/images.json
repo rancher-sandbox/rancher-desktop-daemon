@@ -1,0 +1,121 @@
+[
+    {
+        "Id": "sha256:5ac3eb3f274fbe0ac615752b8164dee2619b80abf3252fd4ad4e151ea86a86b4",
+        "RepoTags": [
+            "ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest"
+        ],
+        "RepoDigests": [
+            "ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy@sha256:5ac3eb3f274fbe0ac615752b8164dee2619b80abf3252fd4ad4e151ea86a86b4"
+        ],
+        "Parent": "",
+        "Comment": "",
+        "DockerVersion": "",
+        "Author": "",
+        "Architecture": "arm64",
+        "Os": "linux",
+        "Size": 5769893,
+        "GraphDriver": {
+            "Data": null,
+            "Name": "overlayfs"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:4a3b58f065414e14fcd487d1afe9e867eec6af8075fdedb809dd2fd543a7fb40"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2025-12-16T19:26:22.283646343Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+            "digest": "sha256:5ac3eb3f274fbe0ac615752b8164dee2619b80abf3252fd4ad4e151ea86a86b4",
+            "size": 422,
+            "annotations": {
+                "io.containerd.image.name": "ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest",
+                "org.opencontainers.image.ref.name": "latest"
+            }
+        },
+        "Config": {
+            "Cmd": null,
+            "Entrypoint": [
+                "/extension-proxy"
+            ],
+            "Env": null,
+            "ExposedPorts": {
+                "80/tcp": {}
+            },
+            "Labels": null,
+            "OnBuild": null,
+            "User": "",
+            "Volumes": null,
+            "WorkingDir": "/"
+        }
+    },
+    {
+        "Id": "sha256:702bb92714f2547d0eec39b68e0d527a99513638a95e71be175bc210d8668756",
+        "RepoTags": [
+            "registry.opensuse.org/opensuse/leap:latest"
+        ],
+        "RepoDigests": [
+            "registry.opensuse.org/opensuse/leap@sha256:702bb92714f2547d0eec39b68e0d527a99513638a95e71be175bc210d8668756"
+        ],
+        "Parent": "",
+        "Comment": "openSUSE Leap 15.6 Base Container",
+        "Created": "2025-11-29T06:36:26Z",
+        "DockerVersion": "",
+        "Author": "Fabian Vogt \u003cfvogt@suse.com\u003e",
+        "Architecture": "arm64",
+        "Os": "linux",
+        "Size": 45774682,
+        "GraphDriver": {
+            "Data": null,
+            "Name": "overlayfs"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:1559fbecedbee9109c0556855acd4e58cc80de97dcb7d0fd65a749add991023e"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2025-12-13T00:40:13.354297337Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+            "digest": "sha256:702bb92714f2547d0eec39b68e0d527a99513638a95e71be175bc210d8668756",
+            "size": 1758
+        },
+        "Config": {
+            "Cmd": [
+                "/bin/bash"
+            ],
+            "Entrypoint": null,
+            "Env": null,
+            "Labels": {
+                "org.openbuildservice.disturl": "obs://build.opensuse.org/openSUSE:Leap:15.6:Images/images/54f24e8a33253ce205ee46962e0db0c8-opensuse-leap-image:docker",
+                "org.opencontainers.image.created": "2025-11-29T06:35:58.422655560Z",
+                "org.opencontainers.image.description": "Image containing a minimal environment for containers based on openSUSE Leap 15.6.",
+                "org.opencontainers.image.source": "https://build.opensuse.org/package/show/openSUSE:Leap:15.6:Images/opensuse-leap-image?rev=54f24e8a33253ce205ee46962e0db0c8",
+                "org.opencontainers.image.title": "openSUSE Leap 15.6 Base Container",
+                "org.opencontainers.image.url": "https://www.opensuse.org/",
+                "org.opencontainers.image.vendor": "openSUSE Project",
+                "org.opencontainers.image.version": "15.6.7.23",
+                "org.opensuse.base.created": "2025-11-29T06:35:58.422655560Z",
+                "org.opensuse.base.description": "Image containing a minimal environment for containers based on openSUSE Leap 15.6.",
+                "org.opensuse.base.disturl": "obs://build.opensuse.org/openSUSE:Leap:15.6:Images/images/54f24e8a33253ce205ee46962e0db0c8-opensuse-leap-image:docker",
+                "org.opensuse.base.reference": "registry.opensuse.org/opensuse/leap:15.6.7.23",
+                "org.opensuse.base.source": "https://build.opensuse.org/package/show/openSUSE:Leap:15.6:Images/opensuse-leap-image?rev=54f24e8a33253ce205ee46962e0db0c8",
+                "org.opensuse.base.title": "openSUSE Leap 15.6 Base Container",
+                "org.opensuse.base.url": "https://www.opensuse.org/",
+                "org.opensuse.base.vendor": "openSUSE Project",
+                "org.opensuse.base.version": "15.6.7.23",
+                "org.opensuse.reference": "registry.opensuse.org/opensuse/leap:15.6.7.23"
+            },
+            "OnBuild": null,
+            "User": "",
+            "Volumes": null,
+            "WorkingDir": ""
+        }
+    }
+]

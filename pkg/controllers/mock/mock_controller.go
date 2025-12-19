@@ -61,12 +61,21 @@ func (c *controller) GetName() string {
 	return controllerName + "-webhook"
 }
 
-func (c *controller) setupReconciler(mgr ctrl.Manager) error {
+func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) error {
 	mgr.GetLogger().Info("Setting up Mock ContainerReconciler")
 	err := (&containerReconciler{
 		Client:   mgr.GetClient(),
 		Recorder: mgr.GetEventRecorderFor(controllerName + "-controller"),
 	}).SetupWithManager(mgr)
+	if err != nil {
+		return err
+	}
+
+	mgr.GetLogger().Info("Setting up Mock ImageReconciler")
+	err = (&imageReconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorderFor(controllerName + "-controller"),
+	}).SetupWithManager(ctx, mgr)
 	if err != nil {
 		return err
 	}
@@ -110,7 +119,7 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	if err := c.setupReconciler(mgr); err != nil {
+	if err := c.setupReconciler(ctx, mgr); err != nil {
 		mgr.GetLogger().Error(err, "Failed to set up Mock ContainerReconciler")
 		return err
 	}

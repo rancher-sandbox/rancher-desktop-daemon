@@ -410,6 +410,7 @@ spec:
             type: object
         type: object
     selectableFields:
+    - jsonPath: .status.id
     - jsonPath: .status.repoTag
     served: true
     storage: true
