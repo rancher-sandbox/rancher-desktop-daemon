@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -78,21 +79,36 @@ func (d *ControllerManagerDiscovery) RegisterControllerManager(ctx context.Conte
 		return fmt.Errorf("failed to serialize controller manager info: %w", err)
 	}
 
-	configMap, err := d.client.CoreV1().ConfigMaps(d.namespace).Get(ctx, controllerManagerConfigMapName, metav1.GetOptions{})
+	// Update the config map if it exists.
+	patchData, err := json.Marshal(map[string]any{
+		"data": map[string]string{
+			d.name: string(serializedInfo),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to serialize controller manager patch: %w", err)
+	}
+	_, err = d.client.CoreV1().ConfigMaps(d.namespace).Patch(
+		ctx,
+		controllerManagerConfigMapName,
+		types.StrategicMergePatchType,
+		patchData,
+		metav1.PatchOptions{},
+	)
 	if err == nil {
-		// Update existing ConfigMap as needed
-		configMap.Data[d.name] = string(serializedInfo)
-		_, err = d.client.CoreV1().ConfigMaps(d.namespace).Update(ctx, configMap, metav1.UpdateOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to update existing controller manager configmap: %w", err)
-		}
+		klog.InfoS("Registered controller manager in cluster",
+			"namespace", d.namespace,
+			"configmap", controllerManagerConfigMapName,
+			"name", d.name,
+			"controllers", len(controllers))
 		return nil
-	} else if !errors.IsNotFound(err) {
-		return fmt.Errorf("failed to get existing controller manager configmap: %w", err)
+	}
+	if !errors.IsNotFound(err) {
+		return fmt.Errorf("failed to patch existing controller manager configmap: %w", err)
 	}
 
 	// Create the config map
-	configMap = &corev1.ConfigMap{
+	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      controllerManagerConfigMapName,
 			Namespace: d.namespace,
@@ -107,10 +123,16 @@ func (d *ControllerManagerDiscovery) RegisterControllerManager(ctx context.Conte
 	}
 	_, err = d.client.CoreV1().ConfigMaps(d.namespace).Create(ctx, configMap, metav1.CreateOptions{})
 	if err != nil {
+		if errors.IsAlreadyExists(err) {
+			// We hit a race condition, and somebody else created it first.  Try again.
+			// We're not expecting to recurse more than once, because if the config map
+			// exists then we won't hit IsNotFound on the patch attempt.
+			return d.RegisterControllerManager(ctx, healthPort, metricsPort, controllers)
+		}
 		return fmt.Errorf("failed to register controller manager: %w", err)
 	}
 
-	klog.InfoS("Registered controller manager in cluster",
+	klog.InfoS("Registered initial controller manager in cluster",
 		"namespace", d.namespace,
 		"configmap", controllerManagerConfigMapName,
 		"name", d.name,
@@ -121,29 +143,50 @@ func (d *ControllerManagerDiscovery) RegisterControllerManager(ctx context.Conte
 
 // UnregisterControllerManager removes the controller manager ConfigMap.
 func (d *ControllerManagerDiscovery) UnregisterControllerManager(ctx context.Context) error {
-	cm, err := d.client.CoreV1().ConfigMaps(d.namespace).Get(ctx, controllerManagerConfigMapName, metav1.GetOptions{})
+	patchData, err := json.Marshal(map[string]any{
+		d.name: nil,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to serialize controller manager patch: %w", err)
+	}
+
+	cm, err := d.client.CoreV1().ConfigMaps(d.namespace).Patch(
+		ctx,
+		controllerManagerConfigMapName,
+		types.StrategicMergePatchType,
+		patchData,
+		metav1.PatchOptions{},
+	)
 	if errors.IsNotFound(err) {
 		return nil // Already deleted, no error
 	}
 	if err != nil {
-		return fmt.Errorf("failed to get controller manager configmap: %w", err)
+		return fmt.Errorf("failed to patch controller manager configmap: %w", err)
 	}
 
-	if _, exists := cm.Data[d.name]; !exists {
-		return nil // No entry for this instance, nothing to do
-	}
-
-	delete(cm.Data, d.name)
-	if len(cm.Data) > 0 {
-		// Update the ConfigMap without this instance's entry
-		_, err = d.client.CoreV1().ConfigMaps(d.namespace).Update(ctx, cm, metav1.UpdateOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to update controller manager configmap: %w", err)
-		}
-	} else {
+	if len(cm.Data) == 0 {
 		// No more entries, delete the ConfigMap
-		err = d.client.CoreV1().ConfigMaps(d.namespace).Delete(ctx, controllerManagerConfigMapName, metav1.DeleteOptions{})
-		if err != nil {
+		err = d.client.CoreV1().ConfigMaps(d.namespace).Delete(
+			ctx,
+			controllerManagerConfigMapName,
+			metav1.DeleteOptions{
+				Preconditions: &metav1.Preconditions{
+					ResourceVersion: &cm.ResourceVersion,
+				},
+			},
+		)
+
+		if err == nil {
+			klog.InfoS("Unregistered final controller manager from cluster",
+				"namespace", d.namespace,
+				"configmap", controllerManagerConfigMapName,
+				"name", d.name)
+			return nil
+		}
+
+		// If somebody else deleted the config map or modified it, the config
+		// map should stay in the state the other controller managers left it.
+		if !errors.IsNotFound(err) && !errors.IsConflict(err) {
 			return fmt.Errorf("failed to delete controller manager configmap: %w", err)
 		}
 	}
