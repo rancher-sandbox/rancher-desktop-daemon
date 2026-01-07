@@ -43,6 +43,7 @@ spec:
         hostPort: 32768
   labels:
     org.opensuse.base.vendor: openSUSE Project
+  state: Running # Desired state
 status:
   status: Running
   pid: 5059
@@ -64,21 +65,45 @@ status:
     status: False
 ```
 
+If a `Container` object exists that does not actually exist in the container
+engine, it is automatically deleted.  Therefore, creating `Container` objects
+directly is not effective; to create containers, use `ContainerRequest`.
+
 ### Container actions
 
 We will need to support a variety of actions on containers:
 
 #### Create container
-Somehow we don't actually need this in the front end.  This will not be
-supported initially.
 
-If `.metadata.name` is the container ID (which we can't generate ahead of time),
-we can't actually create containers (because we don't know their name).
+To create a container, create a `ContainerRequest` object:
+```yaml
+apiVersion: containers.rancherdesktop.io/v1alpha1
+kind: ContainerRequest
+metadata:
+  generateName: whatever
+  namespace: rdd-system
+  labels:
+    name: magical_gates
+    namespace: k8s.io # containerd namespace
+spec:
+  # See Container.spec
+status:
+  # Resulting .metadata.name, which is the container ID.  It must be in the
+  # same Kubernetes namespace as the ContainerRequest.
+  name: 8eb6f2cf72b6616aa743cf9187f350af84c9749dab65474db2530f26745d2ef3
+  conditions:
+  - type: Finished
+    status: True
+```
+
+The `ContainerRequest` will be deleted soon after the `Finished` condition
+transitions to `True`.
+
+If multiple `ContainerRequest` objects exist at the same time for the same
+contained `name`/`namespace` pair, the result is undefined.
 
 #### Change container state
-Set an annotation? `containers.rancherdesktop.io/desiredStatus` perhaps?
-Alternatively, add a `.spec.state` and make that the desired state, which would
-match Kubernetes APIs better.
+Set `.spec.state` to match how Kubernetes resources normally work.
 
 #### Fetch container logs
 The `@kubernetes/client-node` package has some hand-written code to deal with
@@ -89,7 +114,12 @@ Same as logs; there's some special code in `@kubernetes/client-node` that we may
 be able to fork.
 
 #### Delete container
-Delete the Kubernetes API object.
+Create a `ContainerRequest` with `.spec.state` set to `deleted`.
+We can't just delete the Kubernetes object, because it will be recreated as a
+reflection of the containerd object.
+
+Once the container has been removed from the container engine, the Kubernetes
+object will be removed via normal reflection.
 
 ## Images
 
@@ -126,6 +156,7 @@ metadata:
 spec:
   # refers to `Image` objects, which are not namespaced.
   imageRef: 'sha256.999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b'
+  push: false # If set to true, the image is pushed; see below.
 status:
   conditions:
   - type: PullStarted
@@ -151,15 +182,15 @@ Not sure; do something with the `Resource` API maybe?
 We may need an `ImageBuildRequest` job-thing or something?
 
 #### Push image
-Annotation? Spec?
-After push, probably set the `Pushed` condition to `True` (which will
-automatically get a time stamp).
+Set `.spec.push` to `true`.  The image will be pushed by `.metadata.labels.name`.
+After the push, `.status[?(@.type=="Pushed")]` will be set to `True`, and
+`.spec.push` will be set to `false`.
 
 #### Scan image
 We will need a new object type for this; maybe something like
 ```yaml
 apiVersion: containers.rancherdesktop.io/v1alpha1
-kind: ImageScan
+kind: ImageScanRequest
 metadata:
   generateName: imageScan-
   namespace: rdd-system # not containerd namespace
@@ -174,8 +205,9 @@ status:
     # Just dump the Trivy result JSON here (without converting to YAML).
 ```
 
-#### Delete image
-Delete the Kubernetes API object.
+#### Untag image
+Update the `ImageTag` with the `.spec.imageRef` set to `deleted`; once processed,
+the `ImageTag` will be removed to reflect the container engine state.
 
 ## Volumes
 
@@ -200,7 +232,21 @@ spec:
 ### Volume Actions
 
 #### Create volume
-Create a volume with a name.  To start with, only local volumes are supported.
+Create a `VolumeRequest`:
+```yaml
+apiVersion: containers.rancherdesktop.io/v1alpha1
+kind: Volume
+metadata: # same as Volume.metadata
+spec: # same as Volume.spec
+status:
+  conditions:
+  - type: Processed
+    status: False
+```
+Only local volumes are supported initially.
+Parts of `.spec` may be ignored.
 
 #### Delete volume
-Delete the Kubernetes object.
+Create a `VolumeRequest`, with `.spec.scope` set to `deleted`.
+Once the volume has been deleted, the `VolumeRequest` will also be deleted after
+a brief timeout.
