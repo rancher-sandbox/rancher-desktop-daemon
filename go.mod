@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/k3s-io/kine v1.14.2
 	github.com/muesli/reflow v0.3.0
-	github.com/pulumi/pulumi/sdk/v3 v3.214.0
+	github.com/pulumi/pulumi/sdk/v3 v3.214.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
