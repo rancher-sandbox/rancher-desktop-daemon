@@ -190,10 +190,12 @@ EOF
 
 @test "create LimaVM with invalid Lima schema fails" {
     # arch parses fine as a string but fails Lima validation (not a valid architecture)
-    rdd ctl create configmap "bad-lima" --namespace "${NAMESPACE}" --from-literal='template=arch: "invalid"'
+    rdd ctl create configmap "bad-lima" --namespace "${NAMESPACE}" --from-literal='template=arch: "cray-1"'
 
     run -1 create_limavm "test-vm-bad-lima" "bad-lima"
     assert_output --partial "failed to validate template"
+    assert_output --partial "field \`arch\`"
+    assert_output --partial 'got "cray-1"'
 }
 
 @test "updating LimaVM spec.running does not affect template ConfigMap" {

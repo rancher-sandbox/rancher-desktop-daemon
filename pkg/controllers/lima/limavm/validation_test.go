@@ -53,6 +53,12 @@ func TestValidateTemplateData(t *testing.T) {
 			data:        map[string]string{v1alpha1.TemplateConfigMapKey: `{"memory":"2GB","images":[{"location":"https://example.com/image.qcow2"}]}`},
 			expectError: false,
 		},
+		{
+			// Currently Lima validation will only warn about unknown keys, but otherwise ignore them. rdd is disabling these warnings.
+			name:        "valid template with unknown key",
+			data:        map[string]string{v1alpha1.TemplateConfigMapKey: `{"unknown":true,"images":[{"location":"https://example.com/image.qcow2"}]}`},
+			expectError: false,
+		},
 	}
 
 	ctx := context.Background()
