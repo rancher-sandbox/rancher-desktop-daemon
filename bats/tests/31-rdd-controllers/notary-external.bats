@@ -131,8 +131,8 @@ EOF
     run -0 rdd svc stop
 
     # Wait for external controller to detect control plane shutdown and exit
-    # External controllers check every 2 seconds, allow up to 3 failures (6 seconds), plus buffer
-    try --max 15 --delay 1 -- assert_process_exited "${controller_pid}"
+    # Worst case: 9s detection (3 failures × 3s timeout) + 5s cleanup timeout + buffer
+    try --max 17 --delay 1 -- assert_process_exited "${controller_pid}"
 }
 
 @test "control plane starts with different controller" {
@@ -185,6 +185,6 @@ EOF
     rdd service stop
 
     # Wait for external controller to detect control plane shutdown and exit
-    # External controllers check every 2 seconds, allow up to 3 failures (6 seconds), plus buffer
-    try --max 15 --delay 1 -- assert_process_exited "${controller_pid}"
+    # Worst case: 9s detection (3 failures × 3s timeout) + 5s cleanup timeout + buffer
+    try --max 17 --delay 1 -- assert_process_exited "${controller_pid}"
 }

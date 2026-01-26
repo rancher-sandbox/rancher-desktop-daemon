@@ -184,9 +184,11 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 		// Don't fail startup for discovery registration errors
 	}
 
-	// Ensure cleanup on shutdown
+	// Ensure cleanup on shutdown with a timeout to avoid blocking if apiserver is gone
 	defer func() {
-		if err := scm.discovery.UnregisterControllerManager(context.Background()); err != nil {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		if err := scm.discovery.UnregisterControllerManager(cleanupCtx); err != nil {
 			log.Error(err, "Failed to unregister controller manager")
 		}
 	}()
