@@ -58,7 +58,7 @@ wait_for_events() {
     local reason=$2
 
     # couldn't figure out a way to use `wait` for events
-    try --max 10 --delay 1 -- assert_events_exist "${resource_name}" "${reason}"
+    try --max 20 --delay 1 -- assert_events_exist "${resource_name}" "${reason}"
 }
 
 get_events_after_timestamp() {
@@ -106,10 +106,6 @@ get_latest_event_timestamp() {
 }
 
 @test 'verify event generation for spec updates' {
-    if is_ci && is_linux; then
-        skip "This test randomly fails in GitHub CI on Linux"
-    fi
-
     create_notary "events" "initial-event-value" "events-history"
 
     # Wait for initial ConfigMap creation and events
