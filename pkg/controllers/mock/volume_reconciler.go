@@ -16,11 +16,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -36,18 +35,14 @@ var testVolumes []byte
 
 type volumeReconciler struct {
 	client.Client
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
+	inspects []mobyvolume.Volume
 }
 
 // Reconcile implements [reconcile.TypedReconciler].
 func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
-	log := log.FromContext(ctx)
-
 	var errs []error
-	var inspects []mobyvolume.Volume
-	if err := json.Unmarshal(testVolumes, &inspects); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to load static test data: %w", err)
-	}
+	log := log.FromContext(ctx)
 
 	// Check for the CRD to be registered.
 	const crdName = "volumes.containers.rancherdesktop.io"
@@ -75,7 +70,7 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 		log.Error(err, "Failed to get GVK for namespace", "namespace", &rddNamespace)
 	}
 
-	for _, inspect := range inspects {
+	for _, inspect := range r.inspects {
 		namespacedName := types.NamespacedName{
 			Namespace: metav1.NamespaceDefault,
 			Name:      inspect.Name,
@@ -123,11 +118,12 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 			errs = append(errs, err)
 		} else {
 			targetVolume.ResourceVersion = existingVolume.ResourceVersion
-			if equality.Semantic.DeepEqual(existingVolume, targetVolume) {
-				continue // Nothing to do here.
-			}
 			if err := r.Update(ctx, &targetVolume); err != nil {
 				errs = append(errs, fmt.Errorf("failed to update static volume %s: %w", namespacedName, err))
+			} else {
+				if err := r.Status().Update(ctx, &targetVolume); err != nil {
+					errs = append(errs, fmt.Errorf("failed to update status for static volume %s: %w", namespacedName, err))
+				}
 			}
 		}
 	}
@@ -140,6 +136,12 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rec
 }
 
 func (r *volumeReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	var inspects []mobyvolume.Volume
+	if err := json.Unmarshal(testVolumes, &inspects); err != nil {
+		return fmt.Errorf("failed to load static test data: %w", err)
+	}
+	r.inspects = inspects
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
 		Named("mock-volume-reconciler").

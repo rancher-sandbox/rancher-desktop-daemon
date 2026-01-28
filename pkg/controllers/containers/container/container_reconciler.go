@@ -8,10 +8,11 @@ import (
 	"context"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,7 +25,7 @@ import (
 type ContainerReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=containers.rancherdesktop.io,resources=containers,verbs=get;list;watch;create;update;patch;delete
@@ -83,17 +84,25 @@ func (r *ContainerReconciler) setCondition(container *containersv1alpha1.Contain
 
 	// Find existing condition of this type
 	for i, condition := range container.Status.Conditions {
-		if condition.Type == conditionType {
-			// Update existing condition if status changed
-			if condition.Status != status || condition.Reason != reason || condition.Message != message {
-				container.Status.Conditions[i].Status = status
-				container.Status.Conditions[i].Reason = reason
-				container.Status.Conditions[i].Message = message
-				container.Status.Conditions[i].LastTransitionTime = now
-				r.Recorder.Event(container, "Normal", "StatusChanged", message)
-			}
-			return
+		if condition.Type != conditionType {
+			continue
 		}
+		// Update existing condition if status changed
+		changed := false
+		if condition.Status != status {
+			container.Status.Conditions[i].Status = status
+			container.Status.Conditions[i].LastTransitionTime = now
+			changed = true
+		}
+		if condition.Reason != reason || condition.Message != message {
+			container.Status.Conditions[i].Reason = reason
+			container.Status.Conditions[i].Message = message
+			changed = true
+		}
+		if changed {
+			r.Recorder.Eventf(container, nil, corev1.EventTypeNormal, "StatusChanged", conditionType, message)
+		}
+		return
 	}
 
 	// Add new condition
@@ -104,7 +113,7 @@ func (r *ContainerReconciler) setCondition(container *containersv1alpha1.Contain
 		Reason:             reason,
 		Message:            message,
 	})
-	r.Recorder.Event(container, "Normal", "StatusChanged", message)
+	r.Recorder.Eventf(container, nil, corev1.EventTypeNormal, "StatusChanged", conditionType, message)
 }
 
 // SetupWithManager sets up the controller with the Manager.

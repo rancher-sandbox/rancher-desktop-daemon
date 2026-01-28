@@ -74,7 +74,7 @@ func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 	return (&ContainerReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor(ControllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(ControllerName + "-controller"),
 	}).SetupWithManager(mgr)
 }
 

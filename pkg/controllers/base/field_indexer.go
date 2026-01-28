@@ -30,7 +30,7 @@ func IndexFields(ctx context.Context, obj client.Object, mgr ctrl.Manager) error
 	}
 	var crd apiextensionsv1.CustomResourceDefinition
 	// The client-side cache is typically not set up at this point, so we need to
-	// use ``.GetAPIReader()`` instead of .GetClient().
+	// use .GetAPIReader() instead of .GetClient().
 	err = mgr.GetAPIReader().Get(ctx, client.ObjectKey{Name: mapping.Resource.Resource + "." + gvk.Group}, &crd)
 	if err != nil {
 		return fmt.Errorf("failed to get CRD for %T: %w", obj, err)
@@ -45,6 +45,8 @@ func IndexFields(ctx context.Context, obj client.Object, mgr ctrl.Manager) error
 				continue
 			}
 			jp := jsonpath.New(field.JSONPath)
+			// field.JSONPath is a full JSONPath expression, including a leading
+			// dot (e.g., `.status.repoTag`).
 			if err := jp.Parse("{" + field.JSONPath + "}"); err != nil {
 				return fmt.Errorf("failed to parse selectableField %q for %T: %w", field.JSONPath, obj, err)
 			}

@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -38,7 +38,8 @@ var testImages []byte
 
 type imageReconciler struct {
 	client.Client
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
+	inspects []mobyimage.InspectResponse
 }
 
 // sanitizeKubernetesObjectName replaces characters that are not allowed in
@@ -52,10 +53,6 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	log := log.FromContext(ctx)
 
 	var errs []error
-	var inspects []mobyimage.InspectResponse
-	if err := json.Unmarshal(testImages, &inspects); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to load static test data: %w", err)
-	}
 
 	// Check for the CRD to be registered.
 	const crdName = "images.containers.rancherdesktop.io"
@@ -84,7 +81,7 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	}
 
 	var reconcileResult reconcile.Result
-	for _, inspect := range inspects {
+	for _, inspect := range r.inspects {
 		imageName := inspect.ID
 		if len(inspect.RepoTags) > 0 {
 			imageName = inspect.RepoTags[0]
@@ -133,7 +130,7 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reco
 	}
 
 	if len(errs) > 0 {
-		log.V(9).Info("Reconciled with errors", "count", len(inspects), "errors", len(errs))
+		log.V(9).Info("Reconciled with errors", "count", len(r.inspects), "errors", len(errs))
 		return reconcileResult, errors.Join(errs...)
 	}
 
@@ -179,6 +176,12 @@ func (r *imageReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager
 	if err := base.IndexFields(ctx, &containersv1alpha1.Image{}, mgr); err != nil {
 		errs = append(errs, err)
 	}
+
+	var inspects []mobyimage.InspectResponse
+	if err := json.Unmarshal(testImages, &inspects); err != nil {
+		errs = append(errs, fmt.Errorf("failed to load static test data: %w", err))
+	}
+	r.inspects = inspects
 
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).

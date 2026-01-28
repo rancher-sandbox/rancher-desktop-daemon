@@ -3,6 +3,8 @@ load '../../helpers/load'
 # Mock controller tests - using the mock controller, verify that the container
 # and image controllers work as expected.
 
+TEST_DATA_PATH="${PATH_BATS_ROOT}/../pkg/controllers/mock/testdata"
+
 local_setup_file() {
     setup_rdd_control_plane "containers"
     echo "${PATH_LOGS}/mock-controller.log" >&3
@@ -19,40 +21,40 @@ local_teardown_file() {
 }
 
 @test "containers are created" {
-    run -0 cat ../pkg/controllers/mock/testdata/containers.json
-    run -0 jq_output '.[].Id'
-    mapfile -t containers <<<"${output}"
-
     try --max 30 --delay 1 -- rdd ctl get namespace rdd-mocks -o name
 
-    for container in "${containers[@]}"; do
+    run -0 cat "${TEST_DATA_PATH}/containers.json"
+    run -0 jq_output '.[].Id'
+    containers=${output}
+
+    while IFS= read -r container; do
         try --max 30 --delay 1 -- rdd ctl get container "${container}" -o name
         assert_line "container.containers.rancherdesktop.io/${container}"
-    done
+    done <<<"${containers}"
 }
 
 @test "images are created" {
-    run -0 cat ../pkg/controllers/mock/testdata/images.json
-    run -0 jq_output '.[].RepoTags.[]'
-    mapfile -t images <<<"${output}"
-
     try --max 30 --delay 1 -- rdd ctl get namespace rdd-mocks -o name
 
-    for image in "${images[@]}"; do
+    run -0 cat "${TEST_DATA_PATH}/images.json"
+    run -0 jq_output '.[].RepoTags.[]'
+    images=${output}
+
+    while IFS= read -r image; do
         try --max 30 --delay 1 -- rdd ctl get image --field-selector "status.repoTag=${image}" --output jsonpath='{.items[*].status.repoTag}'
         assert_line "${image}"
-    done
+    done <<<"${images}"
 }
 
 @test "volumes are created" {
-    run -0 cat ../pkg/controllers/mock/testdata/volumes.json
-    run -0 jq_output '.[].Name'
-    mapfile -t volumes <<<"${output}"
-
     try --max 30 --delay 1 -- rdd ctl get namespace rdd-mocks -o name
 
-    for volume in "${volumes[@]}"; do
+    run -0 cat "${TEST_DATA_PATH}/volumes.json"
+    run -0 jq_output '.[].Name'
+    volumes=${output}
+
+    while IFS= read -r volume; do
         try --max 30 --delay 1 -- rdd ctl get volume "${volume}" -o name
         assert_line "volume.containers.rancherdesktop.io/${volume}"
-    done
+    done <<<"${volumes}"
 }

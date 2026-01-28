@@ -17,11 +17,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -37,18 +36,13 @@ var testContainers []byte
 
 type containerReconciler struct {
 	client.Client
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
+	inspects []mobycontainer.InspectResponse
 }
 
-// Reconcile implements [reconcile.TypedReconciler].
 func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (reconcile.Result, error) {
-	log := log.FromContext(ctx)
-
 	var errs []error
-	var inspects []mobycontainer.InspectResponse
-	if err := json.Unmarshal(testContainers, &inspects); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to load static test data: %w", err)
-	}
+	log := log.FromContext(ctx)
 
 	// Check for the CRD to be registered.
 	const crdName = "containers.containers.rancherdesktop.io"
@@ -78,7 +72,7 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	reconcileResult := reconcile.Result{}
 
-	for _, inspect := range inspects {
+	for _, inspect := range r.inspects {
 		namespacedName := types.NamespacedName{
 			Namespace: metav1.NamespaceDefault,
 			Name:      inspect.ID,
@@ -127,18 +121,18 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			targetContainer.Status.Ports = append(targetContainer.Status.Ports, containerPort)
 		}
 		var existingContainer containersv1alpha1.Container
+		canUpdateStatus := true
 		if err := r.Get(ctx, namespacedName, &existingContainer); apierrors.IsNotFound(err) {
 			if err := r.Create(ctx, &targetContainer); err != nil {
 				errs = append(errs, fmt.Errorf("failed to create static container %s: %w", namespacedName, err))
+				canUpdateStatus = false
 			}
 		} else if err != nil {
 			log.Error(err, "Failed to get static container", "name", namespacedName)
 			errs = append(errs, err)
 		} else {
 			targetContainer.ResourceVersion = existingContainer.ResourceVersion
-			if equality.Semantic.DeepEqual(existingContainer, targetContainer) {
-				continue // Nothing to do here.
-			}
+			targetContainer.Status.Conditions = existingContainer.Status.Conditions
 			if err := r.Update(ctx, &targetContainer); err != nil {
 				if apierrors.IsConflict(err) {
 					log.V(5).Info("Conflict updating container, will retry on next reconcile", "name", namespacedName)
@@ -146,6 +140,12 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				} else {
 					errs = append(errs, fmt.Errorf("failed to update static container %s: %w", namespacedName, err))
 				}
+				canUpdateStatus = false
+			}
+		}
+		if canUpdateStatus {
+			if err := r.Status().Update(ctx, &targetContainer); err != nil {
+				errs = append(errs, fmt.Errorf("failed to update status for static container %s: %w", namespacedName, err))
 			}
 		}
 	}
@@ -158,6 +158,12 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *containerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	var inspects []mobycontainer.InspectResponse
+	if err := json.Unmarshal(testContainers, &inspects); err != nil {
+		return fmt.Errorf("failed to load static test data: %w", err)
+	}
+	r.inspects = inspects
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
 		Named("mock-container-reconciler").

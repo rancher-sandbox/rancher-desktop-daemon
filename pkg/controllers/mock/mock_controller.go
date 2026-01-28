@@ -44,6 +44,10 @@ var (
 	_ base.WebhookController = &controller{}
 )
 
+func (c *controller) GetName() string {
+	return controllerName
+}
+
 func (c *controller) GetAPIGroup() string {
 	return apiGroup
 }
@@ -56,16 +60,11 @@ func (c *controller) GetCRDData() string {
 	return ""
 }
 
-// GetName implements [base.Controller].
-func (c *controller) GetName() string {
-	return controllerName + "-webhook"
-}
-
 func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) error {
 	mgr.GetLogger().Info("Setting up Mock ContainerReconciler")
 	err := (&containerReconciler{
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor(controllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(controllerName + "-controller"),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		return err
@@ -74,7 +73,7 @@ func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) erro
 	mgr.GetLogger().Info("Setting up Mock ImageReconciler")
 	err = (&imageReconciler{
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor(controllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(controllerName + "-controller"),
 	}).SetupWithManager(ctx, mgr)
 	if err != nil {
 		return err
@@ -83,7 +82,7 @@ func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) erro
 	mgr.GetLogger().Info("Setting up Mock VolumeReconciler")
 	err = (&volumeReconciler{
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorderFor(controllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(controllerName + "-controller"),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		return err
