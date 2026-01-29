@@ -6,11 +6,18 @@ package controllers
 
 import (
 	"context"
+	"errors"
+	"time"
+
+	limainstance "github.com/lima-vm/lima/v2/pkg/instance"
+	"github.com/lima-vm/lima/v2/pkg/store"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -22,13 +29,23 @@ import (
 const (
 	// TemplateConfigMapLabel is the label applied to template ConfigMaps managed by LimaVM resources.
 	TemplateConfigMapLabel = "lima.rancherdesktop.io/template-configmap"
+
+	// ConditionInstanceCreated indicates whether the Lima instance has been created on disk.
+	ConditionInstanceCreated = "InstanceCreated"
+
+	// ReasonCreated is used when the Lima instance was successfully created.
+	ReasonCreated = "Created"
+
+	// ReasonCreateFailed is used when the Lima instance creation failed.
+	ReasonCreateFailed = "CreateFailed"
 )
 
 // LimaVMReconciler reconciles a LimaVM object.
 type LimaVMReconciler struct {
 	client.Client
-	Scheme  *runtime.Scheme
-	Manager ctrl.Manager
+	Scheme   *runtime.Scheme
+	Manager  ctrl.Manager
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=lima.rancherdesktop.io,resources=limavms,verbs=get;list;watch;create;update;patch;delete
@@ -36,30 +53,25 @@ type LimaVMReconciler struct {
 // +kubebuilder:rbac:groups=lima.rancherdesktop.io,resources=limavms/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
+// Reconcile moves the cluster state toward the desired state.
 //
 // Webhook and reconciler responsibilities:
-// - Mutating webhook adds finalizer to LimaVM during admission
-// - Mutating webhook validates templateRef and creates ConfigMap with finalizer
-// - Reconciler sets owner reference (requires LimaVM UID which is only available after persistence)
-// - Reconciler sets status.templateConfigMap after owner reference is set
-// - ConfigMap admission webhook validates template content and prevents deletion
+// - Mutating webhook: adds finalizer, validates templateRef, creates ConfigMap
+// - Reconciler: sets owner reference (needs LimaVM UID, available only after persistence)
+// - Reconciler: sets status.templateConfigMap, creates Lima instance on disk
+// - ConfigMap webhook: validates template content, prevents deletion
 //
-// The status.templateConfigMap field serves dual purposes:
-// - Informational: external consumers can read which ConfigMap contains the template
-// - Optimization: indicates owner reference setup is complete, avoiding unnecessary fetches
+// The status.templateConfigMap field tells consumers which ConfigMap holds the template
+// and signals that owner reference setup is complete.
 //
-// Note: templateRef is never accessed after initial creation (handled by mutating webhook).
-// It exists only as documentation of the template's origin.
+// The templateRef field documents the template's origin; the webhook handles it at creation.
 func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Fetch the LimaVM instance
 	var limaVM v1alpha1.LimaVM
 	if err := r.Get(ctx, req.NamespacedName, &limaVM); err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Info("LimaVM resource not found. Ignoring since object must be deleted")
+			logger.Info("LimaVM resource not found; already deleted")
 			return ctrl.Result{}, nil
 		}
 		logger.Error(err, "Failed to get LimaVM")
@@ -70,23 +82,27 @@ func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return r.handleDeletion(ctx, &limaVM)
 	}
 
-	// If status.templateConfigMap is already set then initialization is complete.
-	if limaVM.Status.TemplateConfigMap != "" {
-		return ctrl.Result{}, nil
+	// Delete any leftover instance from a failed deletion before setting up owner references.
+	if limaVM.Status.TemplateConfigMap == "" {
+		existingInst, err := store.Inspect(ctx, limaVM.Name)
+		if err == nil && existingInst != nil {
+			logger.Info("Deleting leftover Lima instance", "instance", limaVM.Name)
+			if err := limainstance.Delete(ctx, existingInst, true); err != nil {
+				logger.Error(err, "Failed to delete leftover Lima instance")
+				return ctrl.Result{}, err
+			}
+		}
 	}
 
-	// Fetch the template ConfigMap to set owner reference
-	// The mutating webhook creates it during admission, but cannot set the owner reference
-	// (requires LimaVM UID which is only available after the resource is persisted)
+	// Get the template ConfigMap (created by the mutating webhook)
 	configMapName := limaVM.GetTemplateConfigMapName()
 	templateConfigMap := &corev1.ConfigMap{}
 	if err := r.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: limaVM.Namespace}, templateConfigMap); err != nil {
-		logger.Error(err, "Failed to get template ConfigMap for owner reference setup")
+		logger.Error(err, "Failed to get template ConfigMap")
 		return ctrl.Result{}, err
 	}
 
-	// Set owner reference if not already set.
-	// Note: ConfigMap finalizer is already set during creation by the mutating webhook.
+	// Set owner reference (the webhook already set the finalizer)
 	if !base.IsOwnedByUID(templateConfigMap, limaVM.GetUID()) {
 		if err := ctrl.SetControllerReference(&limaVM, templateConfigMap, r.Scheme); err != nil {
 			logger.Error(err, "Failed to set owner reference on template ConfigMap")
@@ -97,36 +113,160 @@ func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, err
 		}
 		logger.Info("Set owner reference on template ConfigMap", "ConfigMap.Name", configMapName)
+		return ctrl.Result{}, nil
 	}
 
-	// Update status.templateConfigMap to mark initialization as complete
-	limaVM.Status.TemplateConfigMap = configMapName
-	if err := r.Status().Update(ctx, &limaVM); err != nil {
-		logger.Error(err, "Failed to update status")
+	// Record the template ConfigMap name in status
+	if limaVM.Status.TemplateConfigMap == "" {
+		limaVM.Status.TemplateConfigMap = configMapName
+		if err := r.Status().Update(ctx, &limaVM); err != nil {
+			logger.Error(err, "Failed to update status.templateConfigMap")
+			return ctrl.Result{}, err
+		}
+		logger.Info("Set status.templateConfigMap", "ConfigMap.Name", configMapName)
+		return ctrl.Result{}, nil
+	}
+
+	// Instance already created
+	if r.hasCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionTrue) {
+		return ctrl.Result{}, nil
+	}
+
+	// Instance exists on disk (perhaps from a previous reconcile); record the condition
+	existingInst, err := store.Inspect(ctx, limaVM.Name)
+	if err == nil && existingInst != nil {
+		logger.Info("Lima instance already exists", "instance", limaVM.Name)
+		r.setCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionTrue, ReasonCreated, "Lima instance exists")
+		if statusErr := r.Status().Update(ctx, &limaVM); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status for existing instance")
+			return ctrl.Result{}, statusErr
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Extract template data
+	templateData, ok := templateConfigMap.Data[v1alpha1.TemplateConfigMapKey]
+	if !ok || templateData == "" {
+		err := errors.New("template ConfigMap missing template data")
+		logger.Error(err, "Template ConfigMap has no template key")
+		r.setCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionFalse, ReasonCreateFailed, err.Error())
+		if statusErr := r.Status().Update(ctx, &limaVM); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status")
+		}
 		return ctrl.Result{}, err
 	}
-	logger.Info("Completed initialization: set owner reference and status", "ConfigMap.Name", limaVM.GetTemplateConfigMapName())
+
+	// Create the Lima instance
+	inst, err := limainstance.Create(ctx, limaVM.Name, []byte(templateData), false)
+	if err != nil {
+		logger.Error(err, "Failed to create Lima instance")
+		r.setCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionFalse, ReasonCreateFailed, err.Error())
+		if statusErr := r.Status().Update(ctx, &limaVM); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after instance creation failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Prepare the instance: download images and create disks.
+	// The guestAgent path is unused during Prepare (only stored for later);
+	// limactl start will look up the real path when called.
+	if _, err := limainstance.Prepare(ctx, inst, "unused"); err != nil {
+		logger.Error(err, "Failed to prepare Lima instance")
+		// Clean up the partially created instance so the next reconcile doesn't
+		// see it as existing and skip creation.
+		if delErr := limainstance.Delete(ctx, inst, true); delErr != nil {
+			logger.Error(delErr, "Failed to clean up instance after prepare failure")
+		}
+		r.setCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionFalse, ReasonCreateFailed, err.Error())
+		if statusErr := r.Status().Update(ctx, &limaVM); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after instance preparation failure")
+		}
+		return ctrl.Result{}, err
+	}
+
+	logger.Info("Created Lima instance", "instance", limaVM.Name)
+	r.setCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionTrue, ReasonCreated, "Lima instance created successfully")
+	if err := r.Status().Update(ctx, &limaVM); err != nil {
+		logger.Error(err, "Failed to update status after instance creation")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
 
-// handleDeletion handles cleanup when a LimaVM is being deleted.
+// hasCondition reports whether the given condition type has the given status.
+func (r *LimaVMReconciler) hasCondition(limaVM *v1alpha1.LimaVM, conditionType string, status metav1.ConditionStatus) bool {
+	for _, condition := range limaVM.Status.Conditions {
+		if condition.Type == conditionType {
+			return condition.Status == status
+		}
+	}
+	return false
+}
+
+// setCondition updates or adds a condition in the LimaVM status.
+func (r *LimaVMReconciler) setCondition(limaVM *v1alpha1.LimaVM, conditionType string, status metav1.ConditionStatus, reason, message string) {
+	now := metav1.NewTime(time.Now())
+
+	for i, condition := range limaVM.Status.Conditions {
+		if condition.Type != conditionType {
+			continue
+		}
+		// Update existing condition if parameters changed.
+		changed := false
+		if condition.Status != status {
+			limaVM.Status.Conditions[i].Status = status
+			limaVM.Status.Conditions[i].LastTransitionTime = now
+			changed = true
+		}
+		if condition.Reason != reason || condition.Message != message {
+			limaVM.Status.Conditions[i].Reason = reason
+			limaVM.Status.Conditions[i].Message = message
+			changed = true
+		}
+		if changed {
+			r.Recorder.Eventf(limaVM, corev1.EventTypeNormal, "ConditionChanged", conditionType, message)
+		}
+		return
+	}
+
+	limaVM.Status.Conditions = append(limaVM.Status.Conditions, metav1.Condition{
+		Type:               conditionType,
+		Status:             status,
+		LastTransitionTime: now,
+		Reason:             reason,
+		Message:            message,
+	})
+}
+
+// handleDeletion cleans up when a LimaVM is being deleted.
 func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.LimaVM) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Clean up all owned resources using the base helper
+	// Delete the Lima instance
+	existingInst, err := store.Inspect(ctx, limaVM.Name)
+	if err == nil && existingInst != nil {
+		logger.Info("Deleting Lima instance", "instance", limaVM.Name)
+		if err := limainstance.Delete(ctx, existingInst, true); err != nil {
+			logger.Error(err, "Failed to delete Lima instance")
+			return ctrl.Result{}, err
+		}
+		logger.Info("Deleted Lima instance", "instance", limaVM.Name)
+	}
+
+	// Delete owned resources
 	if err := base.DeleteOwnedResources(ctx, r.Client, limaVM, r.Manager); err != nil {
 		logger.Error(err, "Failed to delete owned resources")
 		return ctrl.Result{}, err
 	}
 
-	// Remove finalizer to allow LimaVM deletion
+	// Remove finalizer
 	if err := base.RemoveFinalizer(ctx, r.Client, limaVM); err != nil {
 		logger.Error(err, "Failed to remove finalizer")
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("Successfully deleted owned resources and removed finalizer")
+	logger.Info("Deleted Lima instance, owned resources, and finalizer")
 	return ctrl.Result{}, nil
 }
 

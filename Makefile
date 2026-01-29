@@ -58,10 +58,16 @@ build-rdd: bin/rdd$(EXE)
 # API Group Controller management - Auto-discovery of API groups
 CONTROLLERS := $(patsubst cmd/%-controller,%,$(wildcard cmd/*-controller))
 
+# Per-controller CGO settings (default is 0)
+# lima-controller requires CGO on macOS for the vz driver (Virtualization.framework)
+ifeq ($(shell uname -s),Darwin)
+CGO_ENABLED_lima := 1
+endif
+
 # Generate build targets for API group controllers
 define CONTROLLER_TARGETS
 bin/$(1)-controller$$(EXE): $$(GOLANG_SOURCES)
-	WSLENV=${WSLENV}:CGO_ENABLED CGO_ENABLED=0 \
+	WSLENV=${WSLENV}:CGO_ENABLED CGO_ENABLED=$$(or $$(CGO_ENABLED_$(1)),0) \
 	go$$(EXE) build -tags="$(TAGS)" -gcflags="all=$${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $$@ ./cmd/$(1)-controller
 	ls -lh $$@
 build-$(1)-controller: bin/$(1)-controller$$(EXE)

@@ -2,8 +2,6 @@
 buildvcs
 cpanm
 cpanminus
-limactl
-limavm
 ltag
 maxdepth
 mindepth
@@ -65,6 +63,7 @@ addsuffix
 DBSTAT
 DSQLITE
 endef
+ifeq
 ifneq
 notdir
 patsubst

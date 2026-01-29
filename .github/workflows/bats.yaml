@@ -58,6 +58,10 @@ jobs:
           sudo sh -c 'echo 80 > /proc/sys/net/ipv4/ip_unprivileged_port_start'
         fi
 
+        # Install qemu-img for Lima disk operations
+        sudo apt-get update
+        sudo apt-get install --yes qemu-utils
+
         # Set up run-in-wsl helper script (as a symlink to bash)
         mkdir -p bin
         ln -s $(which bash) bin/run-in-wsl

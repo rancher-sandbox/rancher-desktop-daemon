@@ -43,4 +43,7 @@ if is_windows; then
     PATH_DISTRO_DATA="${PATH_APP_HOME}/distro-data"
 fi
 
-LIMA_HOME="${PATH_APP_HOME}/lima"
+# PATH_RD is the "path directory" (e.g., ~/.rd2) as documented in docs/design/cmd_service.md.
+# LIMA_HOME uses PATH_RD instead of PATH_APP_HOME because of socket name length constraints.
+PATH_RD="${HOME}/.rd${RDD_INSTANCE}"
+LIMA_HOME="${PATH_RD}/lima"

@@ -13,3 +13,9 @@ rdd
 scm
 # sample controllers
 cmrs
+
+# Lima
+basedisk
+diffdisk
+limactl
+limavm

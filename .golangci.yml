@@ -83,6 +83,8 @@ linters:
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md
       rules:
       - name: blank-imports
+        exclude:
+        - "**/drivers_*.go"
       - name: context-as-argument
       - name: context-keys-type
       - name: deep-exit

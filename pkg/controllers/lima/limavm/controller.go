@@ -8,6 +8,7 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"os"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +24,7 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/lima/limavm/controllers"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
 func init() {
@@ -96,9 +98,11 @@ func (c *controller) GetCRDData() string {
 // setupReconciler sets up the LimaVMReconciler with the manager.
 func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 	return (&controllers.LimaVMReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Manager: mgr,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Manager:  mgr,
+		Recorder: mgr.GetEventRecorderFor(ControllerName + "-controller"), //nolint:staticcheck // new API requires events.k8s.io
+
 	}).SetupWithManager(mgr)
 }
 
@@ -152,6 +156,13 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 
 // RegisterWithManager implements the complete controller registration for both embedded and external modes.
 func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
+	// Set LIMA_HOME for the Lima library to use the correct instance directory.
+	// This must be set before any Lima operations are performed.
+	if err := os.Setenv("LIMA_HOME", instance.LimaHome()); err != nil {
+		return fmt.Errorf("failed to set LIMA_HOME: %w", err)
+	}
+	klog.Infof("Set LIMA_HOME to %s", instance.LimaHome())
+
 	// Register the CRD types with the scheme
 	if err := v1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 		return err
