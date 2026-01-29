@@ -29,6 +29,7 @@ require (
 	k8s.io/kube-aggregator v0.35.0
 	k8s.io/kubectl v0.35.0
 	k8s.io/kubernetes v1.35.0
+	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.23.0
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -404,7 +405,6 @@ require (
 	k8s.io/metrics v0.35.0 // indirect
 	k8s.io/mount-utils v0.35.0 // indirect
 	k8s.io/pod-security-admission v0.35.0 // indirect
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	mvdan.cc/editorconfig v0.3.0 // indirect
 	mvdan.cc/gofumpt v0.9.2 // indirect
 	mvdan.cc/sh/v3 v3.12.0 // indirect
