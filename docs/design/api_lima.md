@@ -59,6 +59,7 @@ status:
 
     | Type | Status | Reason | Description |
     | --- | --- | --- | --- |
+    | `InstanceCreated` | `Unknown` | `Pending` | Reconciler has seen the resource; creation not yet attempted |
     | `InstanceCreated` | `True` | `Created` | Lima instance exists on disk and is ready |
     | `InstanceCreated` | `False` | `CreateFailed` | Instance creation or preparation failed |
 
@@ -80,7 +81,11 @@ flowchart TD
     DeleteOwned --> RemoveFinalizer[Remove finalizer]
     RemoveFinalizer --> Done([Done])
 
-    Deleted -->|No| CheckSentinel{Sentinel file exists?}
+    Deleted -->|No| CheckCondition{Condition exists?}
+    CheckCondition -->|No| SetUnknown[Set InstanceCreated = Unknown]
+    SetUnknown --> Done
+
+    CheckCondition -->|Yes| CheckSentinel{Sentinel file exists?}
     CheckSentinel -->|Yes| SentinelCreated{InstanceCreated = True?}
     SentinelCreated -->|Yes| RemoveSentinel[Remove sentinel]
     SentinelCreated -->|No| DeleteIncomplete[Delete instance directory]

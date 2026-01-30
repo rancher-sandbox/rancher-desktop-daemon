@@ -42,6 +42,9 @@ const (
 	// ReasonCreateFailed is used when the Lima instance creation failed.
 	ReasonCreateFailed = "CreateFailed"
 
+	// ReasonPending is used when the reconciler has seen the resource but not yet created the instance.
+	ReasonPending = "Pending"
+
 	// preparingSentinel is a marker file created during instance preparation.
 	// Its presence indicates that preparation is in progress or failed.
 	preparingSentinel = ".preparing"
@@ -113,6 +116,16 @@ func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	if base.IsBeingDeleted(&limaVM) {
 		return r.handleDeletion(ctx, &limaVM)
+	}
+
+	// Set initial condition to Unknown so other components know reconciliation is in progress.
+	if !r.conditionExists(&limaVM, ConditionInstanceCreated) {
+		r.setCondition(&limaVM, ConditionInstanceCreated, metav1.ConditionUnknown, ReasonPending, "Reconciliation in progress")
+		if err := r.Status().Update(ctx, &limaVM); err != nil {
+			logger.Error(err, "Failed to set initial condition")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	// Handle instances with a preparing sentinel file. The sentinel indicates that
@@ -272,6 +285,16 @@ func (r *LimaVMReconciler) hasCondition(limaVM *v1alpha1.LimaVM, conditionType s
 	for _, condition := range limaVM.Status.Conditions {
 		if condition.Type == conditionType {
 			return condition.Status == status
+		}
+	}
+	return false
+}
+
+// conditionExists reports whether the given condition type exists.
+func (r *LimaVMReconciler) conditionExists(limaVM *v1alpha1.LimaVM, conditionType string) bool {
+	for _, condition := range limaVM.Status.Conditions {
+		if condition.Type == conditionType {
+			return true
 		}
 	}
 	return false
