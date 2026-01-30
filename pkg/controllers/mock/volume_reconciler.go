@@ -47,20 +47,12 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	const crdName = "volumes.containers.rancherdesktop.io"
 	var crd apiextensionsv1.CustomResourceDefinition
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: crdName}, &crd); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Info("CRD not found, requeuing", "crd", crdName)
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
 		log.Error(err, "Failed to get CRD", "crd", crdName)
 		return ctrl.Result{}, err
 	}
 
 	var rddNamespace corev1.Namespace
 	if err := r.Client.Get(ctx, req.NamespacedName, &rddNamespace); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Info("Namespace not found, requeuing", "namespace", req.NamespacedName)
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
 		log.Error(err, "Failed to get namespace", "namespace", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
@@ -70,7 +62,6 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
-	var reconcileResult ctrl.Result
 	for _, inspect := range r.inspects {
 		namespacedName := types.NamespacedName{
 			Namespace: metav1.NamespaceDefault,
@@ -111,12 +102,7 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			} else {
 				existingVolume.Status = targetVolume.Status
 				if err := r.Status().Update(ctx, &existingVolume); err != nil {
-					if apierrors.IsConflict(err) {
-						log.V(5).Info("Conflict updating volume status, will retry on next reconcile", "name", namespacedName)
-						reconcileResult.RequeueAfter = time.Second
-					} else {
-						errs = append(errs, fmt.Errorf("failed to update status for static volume %s: %w", namespacedName, err))
-					}
+					errs = append(errs, fmt.Errorf("failed to update status for static volume %s: %w", namespacedName, err))
 				}
 			}
 		} else if err != nil {
@@ -125,30 +111,16 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		} else {
 			targetVolume.ResourceVersion = existingVolume.ResourceVersion
 			if err := r.Update(ctx, &targetVolume); err != nil {
-				if apierrors.IsConflict(err) {
-					log.V(5).Info("Conflict updating volume, will retry on next reconcile", "name", namespacedName)
-					reconcileResult.RequeueAfter = time.Second
-				} else {
-					errs = append(errs, fmt.Errorf("failed to update static volume %s: %w", namespacedName, err))
-				}
+				errs = append(errs, fmt.Errorf("failed to update static volume %s: %w", namespacedName, err))
 			} else {
 				if err := r.Status().Update(ctx, &targetVolume); err != nil {
-					if apierrors.IsConflict(err) {
-						log.V(5).Info("Conflict updating volume status, will retry on next reconcile", "name", namespacedName)
-						reconcileResult.RequeueAfter = time.Second
-					} else {
-						errs = append(errs, fmt.Errorf("failed to update status for static volume %s: %w", namespacedName, err))
-					}
+					errs = append(errs, fmt.Errorf("failed to update status for static volume %s: %w", namespacedName, err))
 				}
 			}
 		}
 	}
 
-	if len(errs) > 0 {
-		return ctrl.Result{}, errors.Join(errs...)
-	}
-
-	return reconcileResult, nil
+	return ctrl.Result{}, errors.Join(errs...)
 }
 
 func (r *volumeReconciler) SetupWithManager(mgr ctrl.Manager) error {

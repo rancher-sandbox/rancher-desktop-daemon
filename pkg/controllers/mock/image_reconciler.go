@@ -57,20 +57,12 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	const crdName = "images.containers.rancherdesktop.io"
 	var crd apiextensionsv1.CustomResourceDefinition
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: crdName}, &crd); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Info("CRD not found, requeuing", "crd", crdName)
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
 		log.Error(err, "Failed to get CRD", "crd", crdName)
 		return ctrl.Result{}, err
 	}
 
 	var rddNamespace corev1.Namespace
 	if err := r.Client.Get(ctx, req.NamespacedName, &rddNamespace); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Info("Namespace not found, requeuing", "namespace", req.NamespacedName)
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
 		log.Error(err, "Failed to get namespace", "namespace", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
@@ -80,7 +72,6 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	var reconcileResult ctrl.Result
 	for _, inspect := range r.inspects {
 		imageName := inspect.ID
 		if len(inspect.RepoTags) > 0 {
@@ -115,24 +106,14 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				targetImage.Labels["namespace"] = "moby"
 				targetImage.Status.RepoTag = tag
 				if err := r.upsertImage(ctx, targetImage); err != nil {
-					if apierrors.IsConflict(err) {
-						log.V(5).Info("Conflict updating image, will retry on next reconcile", "image", tag)
-						reconcileResult.RequeueAfter = time.Second
-					} else {
-						errs = append(errs, err)
-					}
+					errs = append(errs, err)
 				}
 			}
 		} else {
 			// No tags; create a single dangling image.
 			templateImage.ObjectMeta.Name = sanitizeKubernetesObjectName(inspect.ID)
 			if err := r.upsertImage(ctx, &templateImage); err != nil {
-				if apierrors.IsConflict(err) {
-					log.V(5).Info("Conflict updating image, will retry on next reconcile", "image", imageName)
-					reconcileResult.RequeueAfter = time.Second
-				} else {
-					errs = append(errs, err)
-				}
+				errs = append(errs, err)
 			}
 		}
 	}
@@ -142,7 +123,7 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, errors.Join(errs...)
 	}
 
-	return reconcileResult, nil
+	return ctrl.Result{}, nil
 }
 
 // upsertImage creates or updates the given Image resource.  The passed in image

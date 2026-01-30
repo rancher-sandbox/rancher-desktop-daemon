@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	mobycontainer "github.com/moby/moby/api/types/container"
 
@@ -47,20 +46,12 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	const crdName = "containers.containers.rancherdesktop.io"
 	var crd apiextensionsv1.CustomResourceDefinition
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: crdName}, &crd); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Info("CRD not found, requeuing", "crd", crdName)
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
 		log.Error(err, "Failed to get CRD", "crd", crdName)
 		return ctrl.Result{}, err
 	}
 
 	var rddNamespace corev1.Namespace
 	if err := r.Client.Get(ctx, req.NamespacedName, &rddNamespace); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Info("Namespace not found, requeuing", "namespace", req.NamespacedName)
-			return ctrl.Result{RequeueAfter: time.Second}, nil
-		}
 		log.Error(err, "Failed to get namespace", "namespace", req.NamespacedName)
 		return ctrl.Result{}, err
 	}
@@ -69,8 +60,6 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		log.Error(err, "Failed to get GVK for namespace", "namespace", &rddNamespace)
 		return ctrl.Result{}, err
 	}
-
-	reconcileResult := ctrl.Result{}
 
 	for _, inspect := range r.inspects {
 		namespacedName := types.NamespacedName{
@@ -134,32 +123,18 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			targetContainer.ResourceVersion = existingContainer.ResourceVersion
 			targetContainer.Status.Conditions = existingContainer.Status.Conditions
 			if err := r.Update(ctx, &targetContainer); err != nil {
-				if apierrors.IsConflict(err) {
-					log.V(5).Info("Conflict updating container, will retry on next reconcile", "name", namespacedName)
-					reconcileResult.RequeueAfter = time.Second
-				} else {
-					errs = append(errs, fmt.Errorf("failed to update static container %s: %w", namespacedName, err))
-				}
+				errs = append(errs, fmt.Errorf("failed to update static container %s: %w", namespacedName, err))
 				canUpdateStatus = false
 			}
 		}
 		if canUpdateStatus {
 			if err := r.Status().Update(ctx, &targetContainer); err != nil {
-				if apierrors.IsConflict(err) {
-					log.V(5).Info("Conflict updating container status, will retry on next reconcile", "name", namespacedName)
-					reconcileResult.RequeueAfter = time.Second
-				} else {
-					errs = append(errs, fmt.Errorf("failed to update status for static container %s: %w", namespacedName, err))
-				}
+				errs = append(errs, fmt.Errorf("failed to update status for static container %s: %w", namespacedName, err))
 			}
 		}
 	}
 
-	if len(errs) > 0 {
-		return ctrl.Result{}, errors.Join(errs...)
-	}
-
-	return reconcileResult, nil
+	return ctrl.Result{}, errors.Join(errs...)
 }
 
 func (r *containerReconciler) SetupWithManager(mgr ctrl.Manager) error {
