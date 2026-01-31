@@ -11,7 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,7 +24,7 @@ import (
 type DemoReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=app.rancherdesktop.io,resources=demos,verbs=get;list;watch;create;update;patch;delete
@@ -78,14 +78,14 @@ func (r *DemoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		r.setCondition(&demo, appv1alpha1.DemoConditionCompleted, metav1.ConditionFalse, "InProgress", "Processing is still in progress")
 
 		log.Info("Processing demo message", "message", demo.Spec.Message, "count", demo.Status.ProcessedCount)
-		r.Recorder.Eventf(&demo, "Normal", "Processing", "Processed message %d of %d: %s", demo.Status.ProcessedCount, demo.Spec.Count, demo.Spec.Message)
+		r.Recorder.Eventf(&demo, nil, corev1.EventTypeNormal, "Processing", "Process", "Processed message %d of %d: %s", demo.Status.ProcessedCount, demo.Spec.Count, demo.Spec.Message)
 	} else {
 		// Update conditions for completed state
 		r.setCondition(&demo, appv1alpha1.DemoConditionReady, metav1.ConditionTrue, "Ready", "Demo controller is ready")
 		r.setCondition(&demo, appv1alpha1.DemoConditionProcessing, metav1.ConditionFalse, "Completed", "Processing has completed")
 		r.setCondition(&demo, appv1alpha1.DemoConditionCompleted, metav1.ConditionTrue, "Completed", "All messages have been processed successfully")
 
-		r.Recorder.Event(&demo, "Normal", "Completed", "Demo processing completed successfully")
+		r.Recorder.Eventf(&demo, nil, corev1.EventTypeNormal, "Completed", "Process", "Demo processing completed successfully")
 	}
 
 	// Update status
@@ -124,7 +124,7 @@ func (r *DemoReconciler) setCondition(demo *appv1alpha1.Demo, conditionType stri
 			changed = true
 		}
 		if changed {
-			r.Recorder.Eventf(demo, corev1.EventTypeNormal, "ConditionChanged", conditionType, message)
+			r.Recorder.Eventf(demo, nil, corev1.EventTypeNormal, "ConditionChanged", conditionType, message)
 		}
 		return
 	}
@@ -137,7 +137,7 @@ func (r *DemoReconciler) setCondition(demo *appv1alpha1.Demo, conditionType stri
 		Reason:             reason,
 		Message:            message,
 	})
-	r.Recorder.Eventf(demo, corev1.EventTypeNormal, "ConditionChanged", conditionType, message)
+	r.Recorder.Eventf(demo, nil, corev1.EventTypeNormal, "ConditionChanged", conditionType, message)
 }
 
 // SetupWithManager sets up the controller with the Manager.

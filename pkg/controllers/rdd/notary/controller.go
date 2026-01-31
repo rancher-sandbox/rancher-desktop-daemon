@@ -87,7 +87,7 @@ func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 	return (&controllers.NotaryReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor(ControllerName + "-controller"), //nolint:staticcheck // new API requires events.k8s.io
+		Recorder: mgr.GetEventRecorder(ControllerName + "-controller"),
 		Manager:  mgr,
 	}).SetupWithManager(mgr)
 }

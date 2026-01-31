@@ -72,6 +72,7 @@ import (
 var requiredAPIGroups = sets.NewString(
 	"apiextensions.k8s.io",         // CRDs
 	"authorization.k8s.io",         // Authorization
+	"events.k8s.io",                // Events
 	"rbac.authorization.k8s.io",    // RBAC
 	"admissionregistration.k8s.io", // Admission
 	"coordination.k8s.io",          // Coordination (for controller-runtime compatibility)

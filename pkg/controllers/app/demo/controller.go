@@ -59,6 +59,6 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 	return (&controllers.DemoReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor(ControllerName + "-controller"), //nolint:staticcheck // new API requires events.k8s.io
+		Recorder: mgr.GetEventRecorder(ControllerName + "-controller"),
 	}).SetupWithManager(mgr)
 }

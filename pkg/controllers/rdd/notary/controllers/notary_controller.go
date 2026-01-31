@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -28,7 +28,7 @@ import (
 type NotaryReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 	Manager  ctrl.Manager
 }
 
@@ -74,7 +74,7 @@ func (r *NotaryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	// Record event for every reconcile with current spec value
-	r.Recorder.Eventf(&notary, "Normal", "SpecUpdate", "Notary spec updated with value: %s", notary.Spec.Value)
+	r.Recorder.Eventf(&notary, nil, corev1.EventTypeNormal, "Reconcile", "SpecUpdate", "Notary spec updated with value: %s", notary.Spec.Value)
 
 	// Check if the value has changed
 	oldValue := notary.Status.LastRecordedValue
@@ -86,7 +86,7 @@ func (r *NotaryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// Record the change in the ConfigMap
 		if err := r.recordValueChange(ctx, &notary); err != nil {
 			log.Error(err, "Failed to record value change")
-			r.Recorder.Eventf(&notary, "Warning", "ConfigMapError", "Failed to record value change: %v", err)
+			r.Recorder.Eventf(&notary, nil, corev1.EventTypeWarning, "ConfigMapError", "SyncValue", "Failed to record value change: %v", err)
 			return ctrl.Result{}, err
 		}
 
@@ -97,13 +97,13 @@ func (r *NotaryReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 		if err := r.Status().Update(ctx, &notary); err != nil {
 			log.Error(err, "Failed to update Notary status")
-			r.Recorder.Eventf(&notary, "Warning", "StatusUpdateError", "Failed to update status: %v", err)
+			r.Recorder.Eventf(&notary, nil, corev1.EventTypeWarning, "StatusUpdateError", "SyncValue", "Failed to update status: %v", err)
 			return ctrl.Result{}, err
 		}
 
-		r.Recorder.Eventf(&notary, "Normal", "ValueRecorded", "Value change recorded in ConfigMap: %s -> %s", oldValue, notary.Spec.Value)
+		r.Recorder.Eventf(&notary, nil, corev1.EventTypeNormal, "ValueRecorded", "SyncValue", "Value change recorded in ConfigMap: %s -> %s", oldValue, notary.Spec.Value)
 	} else {
-		r.Recorder.Event(&notary, "Normal", "NoChange", "Spec update received but value unchanged, no ConfigMap update needed")
+		r.Recorder.Eventf(&notary, nil, corev1.EventTypeNormal, "NoChange", "SyncValue", "Spec update received but value unchanged, no ConfigMap update needed")
 	}
 
 	return ctrl.Result{}, nil
