@@ -30,7 +30,7 @@ var controllerCRD string
 // controller implements the base.Controller interface for container.
 type controller struct {
 	webhookPort     int
-	webhookManagers []*base.WebhookManager
+	webhookManagers []base.WebhookManager
 }
 
 // Verify that controller implements base.Controller and base.WebhookController interfaces.
@@ -59,7 +59,7 @@ func (c *controller) GetWebhookServiceName() string {
 }
 
 // GetWebhookManagers implements base.WebhookController.
-func (c *controller) GetWebhookManagers() []*base.WebhookManager {
+func (c *controller) GetWebhookManagers() []base.WebhookManager {
 	return c.webhookManagers
 }
 
@@ -81,7 +81,7 @@ func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 // set up the container controller with a webhook which prevents all modification.
 func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	mgr.GetLogger().Info("Setting up container webhook")
-	mutatingConfig := base.WebhookConfig{
+	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{
 		Name:        "container-mutating",
 		WebhookName: "container-mutating.containers.rancherdesktop.io",
 		WebhookPort: c.webhookPort,

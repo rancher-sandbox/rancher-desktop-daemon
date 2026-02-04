@@ -13,7 +13,6 @@ import (
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,8 +54,8 @@ var limaCRD string
 
 // controller implements the base.Controller interface for limavm.
 type controller struct {
-	webhookPort     int                    // The actual webhook port allocated by SharedControllerManager
-	webhookManagers []*base.WebhookManager // WebhookManagers for parallel setup
+	webhookPort     int                   // The actual webhook port allocated by SharedControllerManager
+	webhookManagers []base.WebhookManager // WebhookManagers for parallel setup
 }
 
 // Verify that controller implements base.Controller and base.WebhookController interfaces.
@@ -86,7 +85,7 @@ func (c *controller) GetWebhookServiceName() string {
 }
 
 // GetWebhookManagers returns all WebhookManagers for parallel setup.
-func (c *controller) GetWebhookManagers() []*base.WebhookManager {
+func (c *controller) GetWebhookManagers() []base.WebhookManager {
 	return c.webhookManagers
 }
 
@@ -109,7 +108,7 @@ func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	// Set up LimaVM mutating webhook (validates uniqueness and creates template ConfigMap during admission)
 	sideEffectsNoneOnDryRun := admissionregistrationv1.SideEffectClassNoneOnDryRun
-	mutatingConfig := base.WebhookConfig{
+	mutatingConfig := base.WebhookConfig[*v1alpha1.LimaVM]{
 		Name:        limaVMDefaulterConfigName,
 		WebhookName: limaVMDefaulterWebhookName,
 		WebhookPort: c.webhookPort,
@@ -127,7 +126,7 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	c.webhookManagers = append(c.webhookManagers, managers...)
 
 	// Set up ConfigMap webhook for template ConfigMaps
-	configMapWebhookConfig := base.WebhookConfig{
+	configMapWebhookConfig := base.WebhookConfig[*corev1.ConfigMap]{
 		Name:        configMapValidatorConfigName,
 		WebhookName: configMapValidatorWebhookName,
 		WebhookPort: c.webhookPort,
@@ -178,16 +177,10 @@ type defaulter struct {
 	Client client.Client
 }
 
-//nolint:staticcheck // CustomDefaulter is a type alias for Defaulter[runtime.Object]
-var _ ctrlwebhookadmission.CustomDefaulter = &defaulter{}
+var _ ctrlwebhookadmission.Defaulter[*v1alpha1.LimaVM] = &defaulter{}
 
 // Default is called during CREATE operations to add finalizer and create the template ConfigMap.
-func (d *defaulter) Default(ctx context.Context, obj runtime.Object) error {
-	limavm, ok := obj.(*v1alpha1.LimaVM)
-	if !ok {
-		return fmt.Errorf("expected a LimaVM object but got %T", obj)
-	}
-
+func (d *defaulter) Default(ctx context.Context, limavm *v1alpha1.LimaVM) error {
 	controllerutil.AddFinalizer(limavm, base.FinalizerName)
 
 	// Validate name uniqueness BEFORE creating ConfigMap
@@ -262,22 +255,17 @@ type ConfigMapValidator struct {
 	Client client.Client
 }
 
-//nolint:staticcheck // CustomValidator is a type alias for Validator[runtime.Object]
-var _ ctrlwebhookadmission.CustomValidator = &ConfigMapValidator{}
+var _ ctrlwebhookadmission.Validator[*corev1.ConfigMap] = &ConfigMapValidator{}
 
-func (v *ConfigMapValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
-	return v.validateTemplateConfigMap(ctx, obj)
+func (v *ConfigMapValidator) ValidateCreate(ctx context.Context, configMap *corev1.ConfigMap) (ctrlwebhookadmission.Warnings, error) {
+	return v.validateTemplateConfigMap(ctx, configMap)
 }
 
-func (v *ConfigMapValidator) ValidateUpdate(ctx context.Context, _, newObj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
-	return v.validateTemplateConfigMap(ctx, newObj)
+func (v *ConfigMapValidator) ValidateUpdate(ctx context.Context, _, newConfigMap *corev1.ConfigMap) (ctrlwebhookadmission.Warnings, error) {
+	return v.validateTemplateConfigMap(ctx, newConfigMap)
 }
 
-func (v *ConfigMapValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
-	configMap, ok := obj.(*corev1.ConfigMap)
-	if !ok {
-		return nil, fmt.Errorf("expected a ConfigMap object but got %T", obj)
-	}
+func (v *ConfigMapValidator) ValidateDelete(ctx context.Context, configMap *corev1.ConfigMap) (ctrlwebhookadmission.Warnings, error) {
 	if base.IsDryRun(ctx) {
 		klog.V(1).Infof("[DryRun] Webhook validating ConfigMap deletion %s/%s\n", configMap.Namespace, configMap.Name)
 	}
@@ -288,11 +276,7 @@ func (v *ConfigMapValidator) ValidateDelete(ctx context.Context, obj runtime.Obj
 }
 
 // validateTemplateConfigMap validates the template data in a ConfigMap.
-func (v *ConfigMapValidator) validateTemplateConfigMap(ctx context.Context, obj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
-	configMap, ok := obj.(*corev1.ConfigMap)
-	if !ok {
-		return nil, fmt.Errorf("expected a ConfigMap object but got %T", obj)
-	}
+func (v *ConfigMapValidator) validateTemplateConfigMap(ctx context.Context, configMap *corev1.ConfigMap) (ctrlwebhookadmission.Warnings, error) {
 	if base.IsDryRun(ctx) {
 		klog.V(1).Infof("[DryRun] Webhook validating template ConfigMap %s/%s\n", configMap.Namespace, configMap.Name)
 	}

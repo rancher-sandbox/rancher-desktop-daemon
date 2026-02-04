@@ -49,7 +49,7 @@ type WebhookController interface {
 
 	// GetWebhookManagers returns all WebhookManagers for parallel setup.
 	// Returns nil or empty slice if the controller doesn't use webhooks.
-	GetWebhookManagers() []*WebhookManager
+	GetWebhookManagers() []WebhookManager
 }
 
 // Registry holds all registered controllers.

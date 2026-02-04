@@ -15,6 +15,7 @@ import (
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -68,7 +69,7 @@ const (
 )
 
 // WebhookConfig contains configuration for creating a webhook configuration.
-type WebhookConfig struct {
+type WebhookConfig[T runtime.Object] struct {
 	// Name is the name of the webhook configuration resource
 	Name string
 
@@ -95,15 +96,29 @@ type WebhookConfig struct {
 	SideEffects *admissionregistrationv1.SideEffectClass
 
 	// Validator is the custom validator for validating admission webhooks
-	Validator admission.CustomValidator //nolint:staticcheck // CustomValidator is a type alias for Validator[runtime.Object]
+	Validator admission.Validator[T]
 
 	// Defaulter is the custom defaulter for mutating admission webhooks
-	Defaulter admission.CustomDefaulter //nolint:staticcheck // CustomDefaulter is a type alias for Defaulter[runtime.Object]
+	Defaulter admission.Defaulter[T]
 }
 
 // WebhookManager handles the creation and management of webhook configurations.
-type WebhookManager struct {
-	config      WebhookConfig
+type WebhookManager interface {
+	// GetConfigName returns the name of the webhook configuration resource.
+	GetConfigName() string
+
+	// GetWebhookType returns the type of webhook (Validating or Mutating).
+	GetWebhookType() WebhookType
+
+	// Setup creates the webhook configuration with retry logic.
+	// This blocks until the webhook is successfully registered or max attempts are exceeded.
+	// This should be called after the webhook server is registered with the manager.
+	Setup() error
+}
+
+// webhookManagerImpl is the implementation of WebhookManager for a specific resource type.
+type webhookManagerImpl[T runtime.Object] struct {
+	config      WebhookConfig[T]
 	webhookType WebhookType // Validating or Mutating - set by SetupWebhookForResource
 	mgr         ctrl.Manager
 
@@ -114,12 +129,12 @@ type WebhookManager struct {
 }
 
 // GetConfigName returns the name of the webhook configuration resource.
-func (wm *WebhookManager) GetConfigName() string {
+func (wm *webhookManagerImpl[T]) GetConfigName() string {
 	return wm.config.Name
 }
 
 // GetWebhookType returns the type of webhook (Validating or Mutating).
-func (wm *WebhookManager) GetWebhookType() WebhookType {
+func (wm *webhookManagerImpl[T]) GetWebhookType() WebhookType {
 	return wm.webhookType
 }
 
@@ -128,7 +143,7 @@ func (wm *WebhookManager) GetWebhookType() WebhookType {
 //
 // The config must specify either a validator, a defaulter, or both. The function will create the
 // appropriate webhook manager(s) based on which are provided.
-func SetupWebhookForResource(mgr ctrl.Manager, obj client.Object, config WebhookConfig) ([]*WebhookManager, error) {
+func SetupWebhookForResource[T runtime.Object](mgr ctrl.Manager, obj T, config WebhookConfig[T]) ([]WebhookManager, error) {
 	if config.Validator == nil && config.Defaulter == nil {
 		return nil, errors.New("config must specify at least one of either Validator or Defaulter (or both)")
 	}
@@ -145,14 +160,14 @@ func SetupWebhookForResource(mgr ctrl.Manager, obj client.Object, config Webhook
 	gvk := gvks[0]
 
 	// Build webhook registration with controller-runtime
-	builder := ctrl.NewWebhookManagedBy(mgr, obj).WithCustomValidator(config.Validator).WithCustomDefaulter(config.Defaulter) //nolint:staticcheck // CustomValidator/CustomDefaulter are type aliases
+	builder := ctrl.NewWebhookManagedBy(mgr, obj).WithValidator(config.Validator).WithDefaulter(config.Defaulter)
 	if err := builder.Complete(); err != nil {
 		return nil, err
 	}
 
-	var managers []*WebhookManager
+	var managers []WebhookManager
 	if config.Validator != nil {
-		managers = append(managers, &WebhookManager{
+		managers = append(managers, &webhookManagerImpl[T]{
 			config:      config,
 			webhookType: ValidatingWebhook,
 			mgr:         mgr,
@@ -160,7 +175,7 @@ func SetupWebhookForResource(mgr ctrl.Manager, obj client.Object, config Webhook
 		})
 	}
 	if config.Defaulter != nil {
-		managers = append(managers, &WebhookManager{
+		managers = append(managers, &webhookManagerImpl[T]{
 			config:      config,
 			webhookType: MutatingWebhook,
 			mgr:         mgr,
@@ -173,7 +188,7 @@ func SetupWebhookForResource(mgr ctrl.Manager, obj client.Object, config Webhook
 // Setup creates the webhook configuration with retry logic.
 // This blocks until the webhook is successfully registered or max attempts are exceeded.
 // This should be called after the webhook server is registered with the manager.
-func (wm *WebhookManager) Setup() error {
+func (wm *webhookManagerImpl[T]) Setup() error {
 	klog.Info("Starting webhook configuration creation...")
 
 	const maxAttempts = 20
@@ -217,7 +232,7 @@ func (wm *WebhookManager) Setup() error {
 }
 
 // createWebhookConfiguration creates the webhook configuration (Validating or Mutating).
-func (wm *WebhookManager) createWebhookConfiguration() error {
+func (wm *webhookManagerImpl[T]) createWebhookConfiguration() error {
 	klog.Infof("Creating %s webhook configuration...", wm.webhookType)
 	ctx := context.Background()
 
@@ -284,7 +299,7 @@ func (wm *WebhookManager) createWebhookConfiguration() error {
 	}
 }
 
-func (wm *WebhookManager) createValidatingWebhook(ctx context.Context, c client.Client, webhookURL string, clientConfig admissionregistrationv1.WebhookClientConfig, rules []admissionregistrationv1.RuleWithOperations, failurePolicy admissionregistrationv1.FailurePolicyType, sideEffects admissionregistrationv1.SideEffectClass) error {
+func (wm *webhookManagerImpl[T]) createValidatingWebhook(ctx context.Context, c client.Client, webhookURL string, clientConfig admissionregistrationv1.WebhookClientConfig, rules []admissionregistrationv1.RuleWithOperations, failurePolicy admissionregistrationv1.FailurePolicyType, sideEffects admissionregistrationv1.SideEffectClass) error {
 	webhook := &admissionregistrationv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "admissionregistration.k8s.io/v1",
@@ -316,7 +331,7 @@ func (wm *WebhookManager) createValidatingWebhook(ctx context.Context, c client.
 	return nil
 }
 
-func (wm *WebhookManager) createMutatingWebhook(ctx context.Context, c client.Client, webhookURL string, clientConfig admissionregistrationv1.WebhookClientConfig, rules []admissionregistrationv1.RuleWithOperations, failurePolicy admissionregistrationv1.FailurePolicyType, sideEffects admissionregistrationv1.SideEffectClass) error {
+func (wm *webhookManagerImpl[T]) createMutatingWebhook(ctx context.Context, c client.Client, webhookURL string, clientConfig admissionregistrationv1.WebhookClientConfig, rules []admissionregistrationv1.RuleWithOperations, failurePolicy admissionregistrationv1.FailurePolicyType, sideEffects admissionregistrationv1.SideEffectClass) error {
 	webhook := &admissionregistrationv1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "admissionregistration.k8s.io/v1",

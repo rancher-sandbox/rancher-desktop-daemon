@@ -11,7 +11,6 @@ import (
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlwebhookadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -23,7 +22,7 @@ func (c *controller) setupWebhookWithManager(mgr ctrl.Manager) error {
 	mgr.GetLogger().Info("Setting up Mock Namespace webhook")
 
 	// set up the container controller with a webhook which prevents all modification.
-	mutatingConfig := base.WebhookConfig{
+	mutatingConfig := base.WebhookConfig[*corev1.Namespace]{
 		Name:        "mock-namespace-no-delete",
 		WebhookName: "mock-namespace-no-delete.mock.rancherdesktop.io",
 		WebhookPort: c.webhookPort,
@@ -47,23 +46,19 @@ func (c *controller) GetWebhookServiceName() string {
 	return controllerName + "-webhook"
 }
 
-func (c *controller) GetWebhookManagers() []*base.WebhookManager {
+func (c *controller) GetWebhookManagers() []base.WebhookManager {
 	return c.webhookManagers
 }
 
 type staticNamespaceNoDeleteValidator struct{}
 
-// ValidateCreate implements ctrlwebhookadmission.CustomValidator.
-func (c *staticNamespaceNoDeleteValidator) ValidateCreate(_ context.Context, _ runtime.Object) (warnings ctrlwebhookadmission.Warnings, err error) {
+// ValidateCreate implements [ctrlwebhookadmission.Validator].
+func (c *staticNamespaceNoDeleteValidator) ValidateCreate(context.Context, *corev1.Namespace) (warnings ctrlwebhookadmission.Warnings, err error) {
 	return nil, nil
 }
 
-// ValidateDelete implements ctrlwebhookadmission.CustomValidator.
-func (c *staticNamespaceNoDeleteValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (warnings ctrlwebhookadmission.Warnings, err error) {
-	ns, ok := obj.(*corev1.Namespace)
-	if !ok {
-		return nil, errors.New("object is not a Namespace")
-	}
+// ValidateDelete implements [ctrlwebhookadmission.Validator].
+func (c *staticNamespaceNoDeleteValidator) ValidateDelete(ctx context.Context, ns *corev1.Namespace) (warnings ctrlwebhookadmission.Warnings, err error) {
 	if ns.Name == mockNamespaceName {
 		klog.FromContext(ctx).V(4).Info("Rejecting delete of namespace")
 		return nil, apierrors.NewForbidden(
@@ -75,7 +70,7 @@ func (c *staticNamespaceNoDeleteValidator) ValidateDelete(ctx context.Context, o
 	return nil, nil
 }
 
-// ValidateUpdate implements ctrlwebhookadmission.CustomValidator.
-func (c *staticNamespaceNoDeleteValidator) ValidateUpdate(_ context.Context, _, _ runtime.Object) (warnings ctrlwebhookadmission.Warnings, err error) {
+// ValidateUpdate implements [ctrlwebhookadmission.Validator].
+func (c *staticNamespaceNoDeleteValidator) ValidateUpdate(_ context.Context, _, _ *corev1.Namespace) (warnings ctrlwebhookadmission.Warnings, err error) {
 	return nil, nil
 }

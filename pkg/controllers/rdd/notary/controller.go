@@ -7,9 +7,7 @@ package notary
 import (
 	"context"
 	_ "embed"
-	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlwebhookadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,8 +40,8 @@ var notaryCRD string
 
 // controller implements the base.Controller interface for notary.
 type controller struct {
-	webhookPort     int                    // The actual webhook port allocated by SharedControllerManager
-	webhookManagers []*base.WebhookManager // WebhookManagers for parallel setup
+	webhookPort     int                   // The actual webhook port allocated by SharedControllerManager
+	webhookManagers []base.WebhookManager // WebhookManagers for parallel setup
 }
 
 // Verify that controller implements base.Controller and base.WebhookController interfaces.
@@ -73,7 +71,7 @@ func (c *controller) GetWebhookServiceName() string {
 }
 
 // GetWebhookManagers returns all WebhookManagers for parallel setup.
-func (c *controller) GetWebhookManagers() []*base.WebhookManager {
+func (c *controller) GetWebhookManagers() []base.WebhookManager {
 	return c.webhookManagers
 }
 
@@ -94,7 +92,7 @@ func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 
 // setupWebhookWithRuntimeConfig sets up webhook with shared certificate configuration.
 func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
-	webhookConfig := base.WebhookConfig{
+	webhookConfig := base.WebhookConfig[*v1alpha1.Notary]{
 		Name:        validatorConfigName,
 		WebhookName: webhookName,
 		WebhookPort: c.webhookPort,
@@ -125,26 +123,17 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 // validator validates Notary resources via webhook (for external controllers).
 type validator struct{}
 
-//nolint:staticcheck // CustomValidator is a type alias for Validator[runtime.Object]
-var _ ctrlwebhookadmission.CustomValidator = &validator{}
+var _ ctrlwebhookadmission.Validator[*v1alpha1.Notary] = &validator{}
 
-func (v *validator) ValidateCreate(ctx context.Context, obj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
-	notary, ok := obj.(*v1alpha1.Notary)
-	if !ok {
-		return nil, fmt.Errorf("expected a Notary object but got %T", obj)
-	}
+func (v *validator) ValidateCreate(ctx context.Context, notary *v1alpha1.Notary) (ctrlwebhookadmission.Warnings, error) {
 	return v.validateNotary(ctx, notary)
 }
 
-func (v *validator) ValidateUpdate(ctx context.Context, _, newObj runtime.Object) (ctrlwebhookadmission.Warnings, error) {
-	notary, ok := newObj.(*v1alpha1.Notary)
-	if !ok {
-		return nil, fmt.Errorf("expected a Notary object but got %T", newObj)
-	}
-	return v.validateNotary(ctx, notary)
+func (v *validator) ValidateUpdate(ctx context.Context, _, newNotary *v1alpha1.Notary) (ctrlwebhookadmission.Warnings, error) {
+	return v.validateNotary(ctx, newNotary)
 }
 
-func (v *validator) ValidateDelete(context.Context, runtime.Object) (ctrlwebhookadmission.Warnings, error) {
+func (v *validator) ValidateDelete(context.Context, *v1alpha1.Notary) (ctrlwebhookadmission.Warnings, error) {
 	// Allow all deletions
 	return nil, nil
 }

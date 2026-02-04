@@ -36,7 +36,7 @@ func init() {
 // reconcilers that create mocked resources based on the namespace.
 type controller struct {
 	webhookPort     int
-	webhookManagers []*base.WebhookManager
+	webhookManagers []base.WebhookManager
 }
 
 var (

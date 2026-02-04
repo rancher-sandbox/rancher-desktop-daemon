@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlwebhookadmission "sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -21,28 +20,19 @@ type ContainerImmutableValidator struct {
 	Client client.Client
 }
 
-// ValidateCreate implements ctrlwebhookadmission.CustomValidator.
-func (c *ContainerImmutableValidator) ValidateCreate(_ context.Context, _ runtime.Object) (warnings ctrlwebhookadmission.Warnings, err error) {
+// ValidateCreate implements [ctrlwebhookadmission.Validator].
+func (c *ContainerImmutableValidator) ValidateCreate(context.Context, *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
 	return nil, errors.New("webhook does not implement create")
 }
 
-// ValidateDelete implements ctrlwebhookadmission.CustomValidator.
-func (c *ContainerImmutableValidator) ValidateDelete(_ context.Context, _ runtime.Object) (warnings ctrlwebhookadmission.Warnings, err error) {
+// ValidateDelete implements [ctrlwebhookadmission.Validator].
+func (c *ContainerImmutableValidator) ValidateDelete(context.Context, *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
 	return nil, errors.New("webhook does not implement delete")
 }
 
-// ValidateUpdate implements ctrlwebhookadmission.CustomValidator.
-func (c *ContainerImmutableValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (warnings ctrlwebhookadmission.Warnings, err error) {
+// ValidateUpdate implements [ctrlwebhookadmission.Validator].
+func (c *ContainerImmutableValidator) ValidateUpdate(_ context.Context, oldContainer, newContainer *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
 	// Return an error if the old object does not match the new object.
-	oldContainer, ok := oldObj.(*v1alpha1.Container)
-	if !ok {
-		return nil, fmt.Errorf("old object should be a Container, but got %T", oldObj)
-	}
-	newContainer, ok := newObj.(*v1alpha1.Container)
-	if !ok {
-		return nil, fmt.Errorf("new object should be a Container, but got a %T", newObj)
-	}
-
 	if !equality.Semantic.DeepEqual(oldContainer.Spec, newContainer.Spec) {
 		return nil, fmt.Errorf("container objects must not be modified: old: %v, new: %v", oldContainer, newContainer)
 	}
