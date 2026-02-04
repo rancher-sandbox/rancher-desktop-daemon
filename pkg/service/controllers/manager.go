@@ -10,9 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
+	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/go-logr/logr"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -28,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -42,15 +47,16 @@ const (
 
 // SharedControllerManager manages all embedded RDD controllers using a single controller-runtime manager.
 type SharedControllerManager struct {
-	name          string
-	manager       ctrl.Manager
-	registrations []base.Controller
-	kubeConfig    *rest.Config
-	metricsPort   int
-	healthPort    int
-	webhookPort   int
-	started       bool
-	discovery     *ControllerManagerDiscoveryGroup
+	name            string
+	manager         ctrl.Manager
+	registrations   []base.Controller
+	kubeConfig      *rest.Config
+	metricsPort     int
+	healthPort      int
+	webhookPort     int
+	passThroughPort int
+	started         bool
+	discovery       *ControllerManagerDiscoveryGroup
 }
 
 // NewSharedControllerManager creates a new shared controller manager.
@@ -68,15 +74,22 @@ func NewSharedControllerManager(ctx context.Context, name string, kubeConfig *re
 		return nil, fmt.Errorf("failed to get available webhook port: %w", err)
 	}
 
+	desiredPassThroughPort := 9090 + instance.Index()
+	passThroughPort, err := GetAvailablePort(ctx, desiredPassThroughPort)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get available pass through port: %w", err)
+	}
+
 	return &SharedControllerManager{
-		name:          name,
-		kubeConfig:    kubeConfig,
-		metricsPort:   metricsPort,
-		healthPort:    healthPort,
-		webhookPort:   webhookPort,
-		registrations: make([]base.Controller, 0),
-		started:       false,
-		discovery:     discovery,
+		name:            name,
+		kubeConfig:      kubeConfig,
+		metricsPort:     metricsPort,
+		healthPort:      healthPort,
+		webhookPort:     webhookPort,
+		passThroughPort: passThroughPort,
+		registrations:   make([]base.Controller, 0),
+		started:         false,
+		discovery:       discovery,
 	}, nil
 }
 
@@ -197,6 +210,11 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 		}
 	}()
 
+	// Add pass through server
+	if err := mgr.Add(manager.RunnableFunc(scm.runPassThroughServer)); err != nil {
+		return fmt.Errorf("failed to add pass through server to manager: %w", err)
+	}
+
 	// Track webhook setup goroutines
 	var webhookWaitGroup sync.WaitGroup
 	webhookErrors := make(chan error, len(scm.registrations))
@@ -305,9 +323,13 @@ func (scm *SharedControllerManager) registerDiscovery(ctx context.Context) error
 	// Get controller names, filtering out builtin controllers.
 	// Builtin controllers are internal system controllers and should not be registered in discovery.
 	var controllerNames []string
+	var passThroughNames []string
 	for _, registration := range scm.registrations {
 		if registration.GetAPIGroup() != "builtin" {
 			controllerNames = append(controllerNames, registration.GetName())
+		}
+		if httpController, ok := registration.(base.PassThroughController); ok {
+			passThroughNames = append(passThroughNames, httpController.GetPassThroughEndpoints()...)
 		}
 	}
 
@@ -316,7 +338,13 @@ func (scm *SharedControllerManager) registerDiscovery(ctx context.Context) error
 		return nil
 	}
 
-	return scm.discovery.RegisterControllerManager(ctx, scm.healthPort, scm.metricsPort, controllerNames)
+	return scm.discovery.RegisterControllerManager(ctx, ControllerManagerInput{
+		HealthPort:          scm.healthPort,
+		MetricsPort:         scm.metricsPort,
+		PassThroughPort:     scm.passThroughPort,
+		EnabledControllers:  controllerNames,
+		EnabledPassThroughs: passThroughNames,
+	})
 }
 
 // installControllerCRDs installs all controller CRDs in parallel for better performance.
@@ -427,6 +455,54 @@ func (scm *SharedControllerManager) installControllerCRDs(ctx context.Context) e
 	}
 
 	klog.Infof("All %d CRDs are established", len(crdInfos))
+	return nil
+}
+
+func (scm *SharedControllerManager) runPassThroughServer(ctx context.Context) error {
+	hasPassThroughServers := false
+	log := klog.FromContext(ctx)
+
+	mux := http.NewServeMux()
+	for _, registration := range scm.registrations {
+		if httpController, ok := registration.(base.PassThroughController); ok {
+			hasPassThroughServers = true
+			for _, endpoint := range httpController.GetPassThroughEndpoints() {
+				handler := httpController.GetPassThroughHandler(endpoint)
+				fullPath := fmt.Sprintf("/%s/", endpoint)
+				log.V(2).Info("Registering pass through endpoint", "controller", registration.GetName(), "endpoint", fullPath)
+				mux.Handle(fullPath, handler)
+			}
+		}
+	}
+
+	if !hasPassThroughServers {
+		klog.V(2).InfoS("No pass through controllers registered, skipping pass through server startup")
+		return nil
+	}
+
+	server := http.Server{
+		Addr:     fmt.Sprintf("localhost:%d", scm.passThroughPort),
+		Handler:  mux,
+		ErrorLog: slog.NewLogLogger(logr.ToSlogHandler(klog.FromContext(ctx)), slog.LevelError),
+	}
+
+	shutdownComplete := make(chan struct{})
+	go func() {
+		defer close(shutdownComplete)
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			log.Error(err, "failed to shutdown pass through server")
+		}
+	}()
+
+	log.V(2).Info("Starting pass through server", "addr", server.Addr)
+	if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("pass through server failed: %w", err)
+	}
+	<-shutdownComplete
+
 	return nil
 }
 
