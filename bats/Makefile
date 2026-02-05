@@ -83,11 +83,11 @@ bats-timeout: check-bats build-rdd
 # Run specific BATS test file
 # Usage: make bats-file FILE=bats/tests/31-rdd-controllers/configmapreplicaset.bats
 bats-file: check-bats build-rdd build-all-controllers
-	@if [ -z "$(FILE)" ]; then \
+	@if [ -z "$(FILE:bats/%=%)" ]; then \
 		echo "Usage: make bats-file FILE=path/to/test.bats"; \
 		exit 1; \
 	fi
-	$(BATS_CORE) "$(FILE)"
+	$(BATS_CORE) "$(FILE:bats/%=%)"
 .PHONY: bats-file
 
 # Run BATS tests with trace output for debugging

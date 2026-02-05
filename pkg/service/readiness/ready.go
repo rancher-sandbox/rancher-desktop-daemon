@@ -168,66 +168,37 @@ func waitForCRDsEstablished(ctx context.Context, config *rest.Config, controller
 	establishedCRDs := sets.New[string]()
 
 	// First, check if any CRDs are already established
-	for _, crdName := range expectedCRDNames {
-		crd, err := crdClient.Get(ctx, crdName, metav1.GetOptions{})
-		if err != nil {
-			logger.V(2).Info("CRD not yet available, will watch for it", "crd", crdName)
-			continue // Will catch it in the watch
-		}
+	var initialCRDs *apiextensionsv1.CustomResourceDefinitionList
+	initialCRDs, err = crdClient.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list CRDs: %w", err)
+	}
 
-		if isCRDEstablished(crd) {
-			establishedCRDs.Insert(crdName)
-			logger.V(1).Info("CRD already established", "crd", crdName)
+	for _, crd := range initialCRDs.Items {
+		if expectedCRDs.Has(crd.Name) && isCRDEstablished(&crd) {
+			establishedCRDs.Insert(crd.Name)
+			logger.V(1).Info("CRD already established", "crd", crd.Name)
 		}
 	}
 
 	// Check if all are already established
-	allEstablished := establishedCRDs.IsSuperset(expectedCRDs)
-
-	if allEstablished {
+	if establishedCRDs.IsSuperset(expectedCRDs) {
 		logger.Info("All CRDs are already established")
 		return nil
 	}
 
 	// Watch for CRD changes
-	watchCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	const timeout = time.Minute
+	watchCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	watcher, err := crdClient.Watch(watchCtx, metav1.ListOptions{})
+	watcher, err := crdClient.Watch(watchCtx, metav1.ListOptions{ResourceVersion: initialCRDs.ResourceVersion})
 	if err != nil {
 		return fmt.Errorf("failed to start CRD watch: %w", err)
 	}
 	defer watcher.Stop()
 
-	klog.InfoS("Starting CRD watch", "timeout", "60s", "expected", expectedCRDNames)
-
-	// After starting the watch, do one more check to catch any CRDs that
-	// became established in the brief window between the initial check and watch start
-	for _, crdName := range expectedCRDNames {
-		if establishedCRDs.Has(crdName) {
-			continue // Already marked as established
-		}
-
-		crd, err := crdClient.Get(ctx, crdName, metav1.GetOptions{})
-		if err != nil {
-			continue // Will catch it in the watch
-		}
-
-		if isCRDEstablished(crd) {
-			wasNew := !establishedCRDs.Has(crdName)
-			establishedCRDs.Insert(crdName)
-			allEstablished = establishedCRDs.IsSuperset(expectedCRDs)
-
-			if wasNew {
-				logger.Info("CRD became established during watch setup", "crd", crdName)
-			}
-
-			if allEstablished {
-				logger.Info("All CRDs are established after watch setup")
-				return nil
-			}
-		}
-	}
+	klog.InfoS("Starting CRD watch", "timeout", timeout, "expected", expectedCRDNames)
 
 	for {
 		select {
@@ -252,16 +223,11 @@ func waitForCRDsEstablished(ctx context.Context, config *rest.Config, controller
 			}
 
 			if event.Type == watch.Added || event.Type == watch.Modified {
-				if isCRDEstablished(crd) {
-					wasNew := !establishedCRDs.Has(crd.Name)
+				if !establishedCRDs.Has(crd.Name) && isCRDEstablished(crd) {
+					logger.Info("CRD became established", "crd", crd.Name)
 					establishedCRDs.Insert(crd.Name)
-					allEstablished := establishedCRDs.IsSuperset(expectedCRDs)
 
-					if wasNew {
-						logger.Info("CRD became established", "crd", crd.Name)
-					}
-
-					if allEstablished {
+					if establishedCRDs.IsSuperset(expectedCRDs) {
 						logger.Info("All CRDs are established")
 						return nil
 					}

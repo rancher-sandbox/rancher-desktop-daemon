@@ -2,52 +2,51 @@ load '../../helpers/load'
 
 # Controller testing using CRD presence validation
 
-assert_rdd_controllers() {
-    run -0 rdd ctl get CustomResourceDefinition notaries.rdd.rancherdesktop.io
-    assert_output --partial "notaries.rdd.rancherdesktop.io"
+CRD_GROUP=customresourcedefinition.apiextensions.k8s.io # spellchecker:ignore
 
-    run -0 rdd ctl get CustomResourceDefinition configmapreplicasets.rdd.rancherdesktop.io
-    assert_output --partial "configmapreplicasets.rdd.rancherdesktop.io"
+get_controllers() {
+    run -0 rdd ctl get CustomResourceDefinition --output=name
+    # If `$output` is empty, `refute_lines` will fail because `$lines` is unset.
+    if [[ -z "${output}" ]]; then
+        run -0 echo '<no output>'
+    fi
 }
 
-assert_app_controllers() {
-    run -0 rdd ctl get CustomResourceDefinition demos.app.rancherdesktop.io
-    assert_output --partial "demos.app.rancherdesktop.io"
+check_rdd_controllers() {
+    local assert=$1
+    "${assert}_line" "${CRD_GROUP}/notaries.rdd.rancherdesktop.io"
+    "${assert}_line" "${CRD_GROUP}/configmapreplicasets.rdd.rancherdesktop.io"
 }
 
-refute_rdd_controllers() {
-    run -1 rdd ctl get CustomResourceDefinition notaries.rdd.rancherdesktop.io
-    assert_output --partial "NotFound"
-
-    run -1 rdd ctl get CustomResourceDefinition configmapreplicasets.rdd.rancherdesktop.io
-    assert_output --partial "NotFound"
-}
-
-refute_app_controllers() {
-    run -1 rdd ctl get CustomResourceDefinition demos.app.rancherdesktop.io
-    assert_output --partial "NotFound"
+check_app_controllers() {
+    local assert=$1
+    "${assert}_line" "${CRD_GROUP}/demos.app.rancherdesktop.io"
 }
 
 assert_only_rdd_controllers() {
-    assert_rdd_controllers
-    refute_app_controllers
+    get_controllers
+    check_rdd_controllers assert
+    check_app_controllers refute
 }
 
 assert_only_app_controllers() {
-    assert_app_controllers
-    refute_rdd_controllers
+    get_controllers
+    check_app_controllers assert
+    check_rdd_controllers refute
 }
 
 assert_all_controllers() {
-    assert_rdd_controllers
-    assert_app_controllers
+    get_controllers
+    check_rdd_controllers assert
+    check_app_controllers assert
 }
 
 assert_no_controllers() {
     # Essential APIs should work but no controllers
     run -0 rdd ctl get namespaces
-    refute_rdd_controllers
-    refute_app_controllers
+    get_controllers
+    check_rdd_controllers refute
+    check_app_controllers refute
 }
 
 @test 'test instance with no controllers parameter' {
