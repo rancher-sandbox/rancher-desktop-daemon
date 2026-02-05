@@ -9,8 +9,15 @@
 // BSD `tail` program. The library supports truncation/move detection as it is
 // designed to work with log rotation tools.
 //
-// This is a vendored copy of github.com/nxadm/tail with fixes from
-// nxadm/tail#70 and nxadm/tail#71 applied (via github.com/pulumi/pulumi).
+// This is a vendored copy of github.com/nxadm/tail. The upstream library has
+// race conditions in StopAtEOF handling that remain unmerged. Pulumi vendored
+// the library (pulumi/pulumi#18044) and applied the following upstream fixes:
+//
+//   - nxadm/tail#70: fix a race when StopAtEOF is called
+//   - nxadm/tail#71: StopAtEOF: keep sending lines until EOF
+//
+// We copied the patched code from pulumi to avoid depending on the full
+// pulumi SDK for this single package.
 package nxadmtail
 
 import (
@@ -60,7 +67,7 @@ type logger interface {
 
 // Config is used to specify how a file must be tailed.
 type Config struct {
-	// File-specifc
+	// File-specific
 	Location  *SeekInfo // Tail from this location. If nil, start at the beginning of the file
 	ReOpen    bool      // Reopen recreated files (tail -F)
 	MustExist bool      // Fail early if the file does not exist
@@ -78,9 +85,9 @@ type Config struct {
 }
 
 type Tail struct {
-	Filename string    // The filename
+	Filename string     // The filename
 	Lines    chan *Line // A consumable channel of *Line
-	Config             // Tail.Configuration
+	Config              // Tail.Configuration
 
 	file    *os.File
 	reader  *bufio.Reader
@@ -97,9 +104,9 @@ type Tail struct {
 }
 
 var (
-	// DefaultLogger logs to os.Stderr and it is used when Config.Logger == nil
+	// DefaultLogger logs to os.Stderr and it is used when Config.Logger == nil.
 	DefaultLogger = log.New(os.Stderr, "", log.LstdFlags)
-	// DiscardingLogger can be used to disable logging output
+	// DiscardingLogger can be used to disable logging output.
 	DiscardingLogger = log.New(io.Discard, "", 0)
 )
 
@@ -175,8 +182,7 @@ func (tail *Tail) Stop() error {
 	return tail.Wait()
 }
 
-// StopAtEOF stops tailing as soon as the end of the file is reached. The function
-// returns an error,
+// StopAtEOF stops tailing as soon as the end of the file is reached.
 func (tail *Tail) StopAtEOF() error {
 	tail.Kill(errStopAtEOF)
 	return tail.Wait()
@@ -209,14 +215,14 @@ func (tail *Tail) reopen() error {
 			if os.IsNotExist(err) {
 				tail.Logger.Printf("Waiting for %s to appear...", tail.Filename)
 				if err := tail.watcher.BlockUntilExists(&tail.Tomb); err != nil {
-					if err == tomb.ErrDying {
+					if errors.Is(err, tomb.ErrDying) {
 						return err
 					}
-					return fmt.Errorf("Failed to detect creation of %s: %s", tail.Filename, err)
+					return fmt.Errorf("failed to detect creation of %s: %w", tail.Filename, err)
 				}
 				continue
 			}
-			return fmt.Errorf("Unable to open file %s: %s", tail.Filename, err)
+			return fmt.Errorf("unable to open file %s: %w", tail.Filename, err)
 		}
 		break
 	}
@@ -262,7 +268,7 @@ func (tail *Tail) tailFileSync() {
 		// deferred first open.
 		err := tail.reopen()
 		if err != nil {
-			if err != tomb.ErrDying {
+			if !errors.Is(err, tomb.ErrDying) {
 				tail.Kill(err)
 			}
 			return
@@ -302,7 +308,7 @@ func (tail *Tail) tailFileSync() {
 				// file when rate limit is reached.
 				msg := ("Too much log activity; waiting a second before resuming tailing")
 				offset, _ := tail.Tell()
-				tail.Lines <- &Line{msg, tail.lineNum, SeekInfo{Offset: offset}, time.Now(), errors.New(msg)}
+				tail.Lines <- &Line{msg, tail.lineNum, SeekInfo{Offset: offset}, time.Now(), errors.New(msg)} //nolint:staticcheck // upstream code uses capitalized error string
 				select {
 				case <-time.After(time.Second):
 				case <-tail.Dying():
@@ -313,7 +319,7 @@ func (tail *Tail) tailFileSync() {
 					return
 				}
 			}
-		} else if err == io.EOF {
+		} else if errors.Is(err, io.EOF) {
 			if !tail.Follow {
 				if line != "" {
 					tail.sendLine(line)
@@ -344,11 +350,11 @@ func (tail *Tail) tailFileSync() {
 				// notified us about.  Continue
 				// reading until we found an EOF
 				// again, and then exit.
-				if err == ErrStop && tail.Err() == errStopAtEOF {
+				if errors.Is(err, ErrStop) && errors.Is(tail.Err(), errStopAtEOF) {
 					stopOnNextEOF = true
 					continue
 				}
-				if err != ErrStop {
+				if !errors.Is(err, ErrStop) {
 					tail.Kill(err)
 				}
 				return
@@ -361,7 +367,7 @@ func (tail *Tail) tailFileSync() {
 
 		select {
 		case <-tail.Dying():
-			if tail.Err() == errStopAtEOF {
+			if errors.Is(tail.Err(), errStopAtEOF) {
 				continue
 			}
 			return
@@ -434,7 +440,7 @@ func (tail *Tail) seekEnd() error {
 func (tail *Tail) seekTo(pos SeekInfo) error {
 	_, err := tail.file.Seek(pos.Offset, pos.Whence)
 	if err != nil {
-		return fmt.Errorf("Seek error on %s: %s", tail.Filename, err)
+		return fmt.Errorf("seek error on %s: %w", tail.Filename, err)
 	}
 	// Reset the read buffer whenever the file is re-seek'ed
 	tail.reader.Reset(tail.file)
@@ -465,7 +471,7 @@ func (tail *Tail) sendLine(line string) bool {
 			// not have a chance to send the line.  If StopAtEOF is sent, we
 			// continue sending lines, and expect the reader to read them all
 			// to avoid a deadlock.
-			if tail.Err() == errStopAtEOF {
+			if errors.Is(tail.Err(), errStopAtEOF) {
 				tail.Lines <- &Line{line, tail.lineNum, SeekInfo{Offset: offset}, now, nil}
 			}
 		}

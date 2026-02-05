@@ -5,9 +5,11 @@ cpanminus
 ltag
 maxdepth
 mindepth
+mkfifo
 mktemp
 moby
 netcat
+pulumi
 Trivy
 
 # golangci-lint & its linter / formatter names
@@ -54,6 +56,7 @@ batslib
 
 # C & compilers
 ALLOCA
+ftell
 ldflags
 sprintf
 

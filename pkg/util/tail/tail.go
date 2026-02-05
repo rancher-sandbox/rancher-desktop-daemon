@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/nxadmtail"
 	"github.com/sirupsen/logrus"
+
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/nxadmtail"
 )
 
 // TailFile prints out all of the given file into the given writer.  If follow

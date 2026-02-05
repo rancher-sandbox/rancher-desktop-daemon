@@ -1,13 +1,18 @@
 # Generic technical terms
 backgrounding
+cooloff
 backquotes
 crt
+filewatcher
 FQDNs
 gui
 hyperlinks
 lte
+NONINFRINGEMENT
 OIDC
 remoting
+seek'ed
+vendored
 vms
 
 # Architectures

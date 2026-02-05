@@ -22,6 +22,7 @@ serviceaccount
 
 # Library functions
 Debugf
+Killf
 Eventf
 Infof
 RLock
