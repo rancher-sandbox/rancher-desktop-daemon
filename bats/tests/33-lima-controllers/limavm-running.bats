@@ -37,8 +37,10 @@ local_teardown_file() {
 
 local_setup() {
     skip_on_windows
+    # The guestagent binary is installed by Lima (brew install lima). This is a
+    # workaround until we bundle our own guestagent.
     if [[ ! -f "/usr/local/share/lima/lima-guestagent.Linux-${ARCH}.gz" ]]; then
-        skip "Running tests require lima-guestagent.Linux-${ARCH}.gz"
+        skip "Running tests require lima-guestagent.Linux-${ARCH}.gz (install Lima: brew install lima)"
     fi
 }
 
@@ -59,6 +61,14 @@ spec:
     namespace: ${NAMESPACE}
   running: ${running}
 EOF
+}
+
+assert_instance_created_condition() {
+    local name=$1
+    local expected=$2
+    run -0 rdd ctl get limavm "${name}" --namespace "${NAMESPACE}" \
+        --output jsonpath='{.status.conditions[?(@.type=="InstanceCreated")].status}'
+    assert_output "${expected}"
 }
 
 assert_instance_running_condition() {
@@ -82,12 +92,17 @@ lima_instance_running() {
     assert_file_exists "${LIMA_HOME}/${name}/ha.pid"
 }
 
-assert_instance_created_condition() {
+get_instance_running_transition_time() {
     local name=$1
-    local expected=$2
-    run -0 rdd ctl get limavm "${name}" --namespace "${NAMESPACE}" \
-        --output jsonpath='{.status.conditions[?(@.type=="InstanceCreated")].status}'
-    assert_output "${expected}"
+    rdd ctl get limavm "${name}" --namespace "${NAMESPACE}" \
+        --output jsonpath='{.status.conditions[?(@.type=="InstanceRunning")].lastTransitionTime}'
+}
+
+assert_recovery_completed() {
+    local before_time=$1
+    run -0 get_instance_running_transition_time "${VM_NAME}"
+    refute_output "${before_time}"
+    assert_instance_running_reason "${VM_NAME}" "Started"
 }
 
 assert_limavm_not_exists() {
@@ -188,12 +203,18 @@ assert_limavm_not_exists() {
 }
 
 @test "trigger reconcile and verify recovery from broken state" {
+    # Capture the lastTransitionTime before triggering reconcile
+    run -0 get_instance_running_transition_time "${VM_NAME}"
+    assert_output
+    before_time=${output}
+
     # Annotate to trigger a reconcile while spec.running is still true
     rdd ctl annotate limavm "${VM_NAME}" --namespace "${NAMESPACE}" \
         reconcile-trigger="$(date +%s)"
 
-    # The reconciler should detect broken state, force stop, then restart
-    try --max 600 --delay 5 -- assert_instance_running_reason "${VM_NAME}" "Started"
+    # The reconciler should detect broken state, force stop, then restart.
+    # Verify the condition was actually updated by checking lastTransitionTime changed.
+    try --max 600 --delay 5 -- assert_recovery_completed "${before_time}"
 }
 
 @test "verify hostagent is alive after recovery" {

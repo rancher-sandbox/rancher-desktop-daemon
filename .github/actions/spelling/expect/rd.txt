@@ -19,6 +19,7 @@ cmrs
 
 # Lima
 basedisk
+cidata
 diffdisk
 guestagent
 limactl

@@ -75,7 +75,7 @@ jobs:
       if: runner.os == 'macOS'
       working-directory: ${{ runner.temp }}
       run: |
-        brew install bash
+        brew install bash lima
 
         # Set up run-in-wsl helper script (as a symlink to bash)
         mkdir -p bin

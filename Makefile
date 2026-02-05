@@ -50,7 +50,7 @@ build: build-rdd build-all-controllers
 # On other platforms, this is a no-op
 ifeq ($(shell uname -s),Darwin)
 define SIGN_BINARY
-codesign -f -v --entitlements macos-entitlements.plist -s - $(1)
+codesign --force --verbose --entitlements macos-entitlements.plist --sign - $(1)
 endef
 else
 define SIGN_BINARY

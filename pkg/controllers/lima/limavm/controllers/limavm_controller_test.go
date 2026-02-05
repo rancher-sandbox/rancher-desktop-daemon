@@ -5,8 +5,6 @@
 package controllers
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -287,59 +285,5 @@ func TestSetCondition(t *testing.T) {
 		r.setCondition(limaVM, ConditionInstanceRunning, metav1.ConditionFalse, ReasonStopped, "stopped")
 
 		assert.Equal(t, len(limaVM.Status.Conditions), 2, "expected 2 conditions")
-	})
-}
-
-func TestSentinelFunctions(t *testing.T) {
-	// Create a temporary directory to use as LIMA_HOME
-	tempDir := t.TempDir()
-	instanceName := "test-instance"
-	instanceDir := filepath.Join(tempDir, instanceName)
-
-	// Create the instance directory
-	err := os.MkdirAll(instanceDir, 0o755)
-	assert.NilError(t, err, "failed to create instance directory")
-
-	// Override sentinelPath for testing by creating the sentinel in our temp dir
-	sentinelFile := filepath.Join(instanceDir, preparingSentinel)
-
-	t.Run("hasSentinel returns false when sentinel does not exist", func(t *testing.T) {
-		_, err := os.Stat(sentinelFile)
-		if !os.IsNotExist(err) {
-			t.Skip("Sentinel file already exists")
-		}
-		// hasSentinel uses instance.LimaHome() which we can't easily override,
-		// so we test the file operations directly
-		if _, err := os.Stat(sentinelFile); !os.IsNotExist(err) {
-			t.Errorf("Expected sentinel to not exist")
-		}
-	})
-
-	t.Run("create and check sentinel", func(t *testing.T) {
-		// Create sentinel
-		err := os.WriteFile(sentinelFile, nil, 0o644)
-		assert.NilError(t, err, "failed to create sentinel")
-
-		// Verify it exists
-		_, err = os.Stat(sentinelFile)
-		assert.NilError(t, err, "expected sentinel to exist")
-	})
-
-	t.Run("remove sentinel", func(t *testing.T) {
-		// Remove sentinel
-		err := os.Remove(sentinelFile)
-		assert.NilError(t, err, "failed to remove sentinel")
-
-		// Verify it's gone
-		_, err = os.Stat(sentinelFile)
-		assert.Assert(t, os.IsNotExist(err), "expected sentinel to not exist after removal")
-	})
-
-	t.Run("remove non-existent sentinel succeeds", func(t *testing.T) {
-		// removeSentinel should not error when file doesn't exist
-		err := os.Remove(sentinelFile)
-		if err != nil && !os.IsNotExist(err) {
-			t.Errorf("Expected no error or IsNotExist, got: %v", err)
-		}
 	})
 }

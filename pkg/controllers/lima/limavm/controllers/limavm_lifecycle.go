@@ -16,7 +16,6 @@ import (
 	"github.com/lima-vm/lima/v2/pkg/limatype"
 	"github.com/lima-vm/lima/v2/pkg/limatype/filenames"
 	"github.com/lima-vm/lima/v2/pkg/store"
-	"github.com/sirupsen/logrus"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +30,9 @@ import (
 func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.LimaVM) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Stop and delete the Lima instance
+	// Stop and delete the Lima instance.
+	// Inspect may fail if the instance doesn't exist, which is fine during
+	// deletion - we just proceed to remove the finalizer.
 	existingInst, err := store.Inspect(ctx, limaVM.Name)
 	if err != nil {
 		logger.Error(err, "Failed to inspect Lima instance for deletion")
@@ -191,7 +192,7 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 		return ctrl.Result{}, err
 	}
 
-	// Prepare the instance (disk setup, downloads, etc.)
+	// Instance was already prepared as part of creation, but still need to update cidata.iso
 	prepared, err := limainstance.Prepare(ctx, inst, guestAgentPath())
 	if err != nil {
 		logger.Error(err, "Failed to prepare Lima instance")
@@ -208,35 +209,19 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 	haStderrPath := filepath.Join(inst.Dir, filenames.HostAgentStderrLog)
 
 	var args []string
-	if logrus.GetLevel() >= logrus.DebugLevel {
+	if logger.V(1).Enabled() {
 		args = append(args, "--debug")
 	}
 	args = append(args,
 		"hostagent",
 		"--pidfile", haPIDPath,
 		"--socket", haSockPath)
-	if prepared.Driver.Info().Features.CanRunGUI {
-		args = append(args, "--run-gui")
-	}
 	if prepared.GuestAgent != "" {
 		args = append(args, "--guestagent", prepared.GuestAgent)
 	}
-	if prepared.NerdctlArchiveCache != "" {
-		args = append(args, "--nerdctl-archive", prepared.NerdctlArchiveCache)
-	}
 	args = append(args, inst.Name)
 
-	// Clear old log files
-	if err := os.RemoveAll(haStdoutPath); err != nil {
-		logger.Error(err, "Failed to remove old stdout log")
-		return ctrl.Result{}, err
-	}
-	if err := os.RemoveAll(haStderrPath); err != nil {
-		logger.Error(err, "Failed to remove old stderr log")
-		return ctrl.Result{}, err
-	}
-
-	// Create log files for hostagent output
+	// Create log files for hostagent output (os.Create truncates existing files)
 	haStdoutW, err := os.Create(haStdoutPath)
 	if err != nil {
 		logger.Error(err, "Failed to create stdout log file")
@@ -245,15 +230,16 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 		}
 		return ctrl.Result{}, err
 	}
+	defer haStdoutW.Close()
 	haStderrW, err := os.Create(haStderrPath)
 	if err != nil {
-		haStdoutW.Close()
 		logger.Error(err, "Failed to create stderr log file")
 		if updateErr := r.updateCondition(ctx, limaVM, ConditionInstanceRunning, metav1.ConditionFalse, ReasonStartFailed, err.Error()); updateErr != nil {
 			logger.Error(updateErr, "Failed to update status after log file creation failure")
 		}
 		return ctrl.Result{}, err
 	}
+	defer haStderrW.Close()
 	// Start hostagent in background
 	haCmd := exec.CommandContext(ctx, rddPath, args...)
 	process.SetGroup(haCmd)
@@ -261,8 +247,6 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 	haCmd.Stderr = haStderrW
 
 	if err := haCmd.Start(); err != nil {
-		haStdoutW.Close()
-		haStderrW.Close()
 		logger.Error(err, "Failed to start hostagent")
 		if updateErr := r.updateCondition(ctx, limaVM, ConditionInstanceRunning, metav1.ConditionFalse, ReasonStartFailed, err.Error()); updateErr != nil {
 			logger.Error(updateErr, "Failed to update status after hostagent start failure")
@@ -276,8 +260,6 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 		if err := haCmd.Wait(); err != nil {
 			logger.Error(err, "Hostagent process exited with error")
 		}
-		haStdoutW.Close()
-		haStderrW.Close()
 	}()
 
 	// Wait for PID file to be created (indicates hostagent has started)
