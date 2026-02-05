@@ -6,11 +6,12 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/k3s-io/kine v1.14.2
 	github.com/lima-vm/lima/v2 v2.0.3
 	github.com/moby/moby/api v1.53.0
 	github.com/muesli/reflow v0.3.0
-	github.com/pulumi/pulumi/sdk/v3 v3.217.1
+	github.com/pulumi/pulumi/sdk/v3 v3.218.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
@@ -187,7 +188,6 @@ require (
 	github.com/google/renameio/v2 v2.0.0 // indirect
 	github.com/google/yamlfmt v0.20.0 // indirect
 	github.com/gordonklaus/ineffassign v0.2.0 // indirect
-	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/gostaticanalysis/analysisutil v0.7.1 // indirect
 	github.com/gostaticanalysis/comment v1.5.0 // indirect
 	github.com/gostaticanalysis/forcetypeassert v0.2.0 // indirect
