@@ -10,7 +10,7 @@ updates:
     interval: "daily"
   cooldown:
     default-days: 7
-  open-pull-requests-limit: 12
+  open-pull-requests-limit: 0
   labels: ["component/dependencies"]
 
 # Maintain dependencies for npm
@@ -20,7 +20,7 @@ updates:
     interval: "daily"
   cooldown:
     default-days: 7
-  open-pull-requests-limit: 12
+  open-pull-requests-limit: 0
   labels: ["component/dependencies"]
   ignore:
   - # Needs to be updated along with NodeJS version.
@@ -41,7 +41,7 @@ updates:
     interval: "daily"
   cooldown:
     default-days: 7
-  open-pull-requests-limit: 12
+  open-pull-requests-limit: 0
   labels: ["component/dependencies"]
   ignore:
   - # Swagger dependencies must match whatever the CLI generate.
