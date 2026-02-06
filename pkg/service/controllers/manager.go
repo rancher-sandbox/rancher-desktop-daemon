@@ -114,7 +114,7 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 
 	// Clean up unused resources from previous controller runs
 	if err := scm.cleanupUnusedResources(ctx); err != nil {
-		log.Error(err, "Failed to cleanup unused resources, continuing with startup")
+		return fmt.Errorf("failed to cleanup unused resources: %w", err)
 	}
 
 	// Clean up stale discovery configmap to prevent readiness check confusion
@@ -541,7 +541,8 @@ func (scm *SharedControllerManager) cleanupUnusedResources(ctx context.Context) 
 	return nil
 }
 
-// cleanupUnusedCRDs removes CRDs for controllers that are not currently running.
+// cleanupUnusedCRDs removes CRDs for controllers that are not currently running
+// and waits for the deletions to complete.
 func (scm *SharedControllerManager) cleanupUnusedCRDs(ctx context.Context, controllersToCleanup []base.Controller) error {
 	if len(controllersToCleanup) == 0 {
 		return nil
@@ -554,14 +555,14 @@ func (scm *SharedControllerManager) cleanupUnusedCRDs(ctx context.Context, contr
 
 	crdClient := apiextensionsClient.ApiextensionsV1().CustomResourceDefinitions()
 
-	// For each controller to cleanup, extract and delete its CRD
+	var deletedCRDNames []string
+
 	for _, controller := range controllersToCleanup {
 		crdData := controller.GetCRDData()
 		if crdData == "" {
-			continue // Controller doesn't have a CRD
+			continue
 		}
 
-		// Parse the CRD to get its name
 		decoder := yaml.NewYAMLToJSONDecoder(bytes.NewBufferString(crdData))
 		for {
 			var crd apiextensionsv1.CustomResourceDefinition
@@ -577,23 +578,49 @@ func (scm *SharedControllerManager) cleanupUnusedCRDs(ctx context.Context, contr
 			}
 
 			existingCRD, err := crdClient.Get(ctx, crd.Name, metav1.GetOptions{})
-			if err == nil && existingCRD.Labels != nil {
-				existingOwner := existingCRD.Labels[crdOwnerLabel]
-				if existingOwner != scm.name {
-					klog.V(2).InfoS("Skipping CRD owned by different controller manager", "crd", crd.Name, "manager", existingOwner)
-					continue
-				}
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return fmt.Errorf("failed to check CRD %s: %w", crd.Name, err)
+			}
+			if existingCRD.Labels != nil && existingCRD.Labels[crdOwnerLabel] != scm.name {
+				klog.V(2).InfoS("Skipping CRD owned by different controller manager", "crd", crd.Name, "manager", existingCRD.Labels[crdOwnerLabel])
+				continue
 			}
 
 			klog.InfoS("Deleting unused CRD", "crd", crd.Name, "controller", controller.GetName())
-			err = crdClient.Delete(ctx, crd.Name, metav1.DeleteOptions{})
-			if err != nil && !apierrors.IsNotFound(err) {
-				klog.ErrorS(err, "Failed to delete unused CRD", "crd", crd.Name, "controller", controller.GetName())
+			if err := crdClient.Delete(ctx, crd.Name, metav1.DeleteOptions{}); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				return fmt.Errorf("failed to delete CRD %s: %w", crd.Name, err)
 			}
+			deletedCRDNames = append(deletedCRDNames, crd.Name)
 		}
 	}
 
-	return nil
+	if len(deletedCRDNames) == 0 {
+		return nil
+	}
+
+	// Wait for all deleted CRDs to be fully removed. CRD finalization is
+	// event-driven and completes in milliseconds when no instances exist,
+	// but the API server must process the finalizer before the CRD disappears.
+	klog.InfoS("Waiting for CRD deletions to complete", "count", len(deletedCRDNames))
+	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
+		for _, name := range deletedCRDNames {
+			_, err := crdClient.Get(ctx, name, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			if err != nil {
+				return false, fmt.Errorf("failed to check CRD %s: %w", name, err)
+			}
+			return false, nil // CRD still exists
+		}
+		return true, nil
+	})
 }
 
 // setupSharedWebhookCertificates generates webhook certificates for all controllers that need them.
