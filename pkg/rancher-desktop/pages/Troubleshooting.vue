@@ -86,6 +86,7 @@
 
 import _ from 'lodash';
 
+import { State } from '@pkg/backend/k8s';
 import TroubleshootingLineItem from '@pkg/components/TroubleshootingLineItem.vue';
 import RdCheckbox from '@pkg/components/form/RdCheckbox.vue';
 import { defaultSettings } from '@pkg/config/settings';
@@ -96,7 +97,7 @@ export default {
   title:      'Troubleshooting',
   components: { TroubleshootingLineItem, RdCheckbox },
   data:       () => ({
-    state:           ipcRenderer.sendSync('k8s-state'),
+    state:           State.STARTED,
     settings:        defaultSettings,
     debugLocked:     false,
     isDebugging:     false,

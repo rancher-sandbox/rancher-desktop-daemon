@@ -1,7 +1,6 @@
 import { State as EngineStates } from '@pkg/backend/k8s';
-import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 
-export const state = () => ({ k8sState: ipcRenderer.sendSync('k8s-state') });
+export const state = () => ({ k8sState: EngineStates.DISABLED });
 
 export const mutations = {
   SET_K8S_STATE(state, k8sState) {

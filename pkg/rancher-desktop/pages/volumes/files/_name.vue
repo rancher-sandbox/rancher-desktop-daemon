@@ -164,7 +164,6 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapGetters('k8sManager', { isK8sReady: 'isReady' }),
     ...mapTypedState('preferences', { settings: 'initialPreferences' }),
     volumeName(): string {
       return Array.isArray(this.$route.params.name) ? this.$route.params.name.join('.') : this.$route.params.name || '';
@@ -236,7 +235,7 @@ export default defineComponent({
       await this.initializeFileBrowser();
     },
     async initializeFileBrowser() {
-      if (window.ddClient && this.isK8sReady && this.settings) {
+      if (window.ddClient && this.settings) {
         this.ddClient = window.ddClient;
         await this.checkVolumeExists();
         if (this.volumeExists) {

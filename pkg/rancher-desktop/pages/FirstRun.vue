@@ -166,6 +166,7 @@ export default defineComponent({
       this.$data.settings = settings;
     });
     ipcRenderer.send('settings-read');
+    /*
     ipcRenderer.on('k8s-versions', (event, versions, cachedVersionsOnly) => {
       this.versions = versions;
       this.cachedVersionsOnly = cachedVersionsOnly;
@@ -177,11 +178,12 @@ export default defineComponent({
       // "dialog/populate" event.
       ipcRenderer.send('dialog/ready');
     });
+    */
     ipcRenderer.on('settings-update', (event, config) => {
       this.settings.containerEngine.name = config.containerEngine.name;
       this.settings.kubernetes.enabled = config.kubernetes.enabled;
     });
-    ipcRenderer.send('k8s-versions');
+    // ipcRenderer.send('k8s-versions');
     if (this.pathManagementRelevant) {
       this.setPathManagementStrategy(PathManagementStrategy.RcFiles);
     }

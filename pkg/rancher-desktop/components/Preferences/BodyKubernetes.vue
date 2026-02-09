@@ -64,14 +64,6 @@ export default defineComponent({
         this.preferences.experimental.kubernetes.options.spinkube;
     },
   },
-  beforeMount() {
-    ipcRenderer.on('k8s-versions', (event, versions, cachedVersionsOnly) => {
-      this.versions = versions;
-      this.cachedVersionsOnly = cachedVersionsOnly;
-    });
-
-    ipcRenderer.send('k8s-versions');
-  },
   methods: {
     /**
      * Get the display name of a given version.
@@ -86,7 +78,7 @@ export default defineComponent({
 
       return `v${ version.version }`;
     },
-    onChange<P extends keyof RecursiveTypes<Settings>>(property: P, value: RecursiveTypes<Settings>[P]) {
+    onChange<P extends keyof RecursiveTypes<Settings>>(property: P, value: RecursiveTypes<Settings>[P] | null) {
       this.$store.dispatch('preferences/updatePreferencesData', { property, value });
     },
     castToNumber(val: string): number | null {
@@ -194,7 +186,7 @@ export default defineComponent({
             Spin operator requires
             <a
               href="#"
-              @click.prevent="$root.navigate('Container Engine', 'general')"
+              @click.prevent="($root as any).navigate('Container Engine', 'general')"
             >WebAssembly</a>
             to be enabled.
           </banner>

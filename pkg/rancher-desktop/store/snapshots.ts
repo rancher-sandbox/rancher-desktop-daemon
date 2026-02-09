@@ -1,6 +1,5 @@
 import { GetterTree, MutationTree } from 'vuex';
 
-import { fetchAPI } from './credentials';
 import { ActionTree, MutationsType } from './ts-helpers';
 
 import { Snapshot } from '@pkg/main/snapshots/types';
@@ -19,7 +18,9 @@ export const mutations = {
 
 export const actions = {
   async fetch({ commit, rootState }) {
-    const response = await fetchAPI('/v1/snapshots', rootState);
+    const response = { ok: false, status: -1, statusText: '' } as any; // TODO
+
+    return;
 
     if (!response.ok) {
       console.log(`fetchSnapshots: failed: status: ${ response.status }:${ response.statusText }`);
@@ -36,7 +37,7 @@ export const actions = {
   async create({ rootState, dispatch }, snapshot: Snapshot) {
     const body = JSON.stringify(snapshot ?? {});
 
-    const response = await fetchAPI('/v1/snapshots', rootState, { method: 'POST', body });
+    const response = { ok: false, status: -1, statusText: '' } as any; // TODO
 
     if (!response.ok) {
       console.log(`createSnapshot: failed: status: ${ response.status }:${ response.statusText }`);
@@ -50,7 +51,7 @@ export const actions = {
   },
 
   async delete({ rootState, dispatch }, name: string) {
-    const response = await fetchAPI(`/v1/snapshots?name=${ encodeURIComponent(name) }`, rootState, { method: 'DELETE' });
+    const response = { ok: false, status: -1, statusText: '' } as any; // TODO
 
     if (!response.ok) {
       console.log(`deleteSnapshot: failed: status: ${ response.status }:${ response.statusText }`);
@@ -64,7 +65,7 @@ export const actions = {
   },
 
   async restore({ rootState }, name: string) {
-    const response = await fetchAPI(`/v1/snapshot/restore?name=${ encodeURIComponent(name) }`, rootState, { method: 'POST' });
+    const response = { ok: false, status: -1, statusText: '' } as any; // TODO
 
     if (!response.ok) {
       console.log(`restoreSnapshot: failed: status: ${ response.status }:${ response.statusText }`);

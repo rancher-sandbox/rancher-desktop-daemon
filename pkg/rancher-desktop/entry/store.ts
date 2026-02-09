@@ -3,12 +3,10 @@ import { createStore, mapActions, mapGetters, mapMutations, mapState, ModuleTree
 import * as ActionMenu from '../store/action-menu';
 import * as ApplicationSettings from '../store/applicationSettings';
 import * as ContainerEngine from '../store/container-engine';
-import * as Credentials from '../store/credentials';
 import * as Diagnostics from '../store/diagnostics';
 import * as Extensions from '../store/extensions';
 import * as I18n from '../store/i18n';
 import * as ImageManager from '../store/imageManager';
-import * as K8sManager from '../store/k8sManager';
 import * as Page from '../store/page';
 import * as Preferences from '../store/preferences';
 import * as Prefs from '../store/prefs';
@@ -20,12 +18,10 @@ const modules = {
   'action-menu':       ActionMenu,
   applicationSettings: ApplicationSettings,
   'container-engine':  ContainerEngine,
-  credentials:         Credentials,
   diagnostics:         Diagnostics,
   extensions:          Extensions,
   i18n:                I18n,
   imageManager:        ImageManager,
-  k8sManager:          K8sManager,
   page:                Page,
   preferences:         Preferences,
   prefs:               Prefs,

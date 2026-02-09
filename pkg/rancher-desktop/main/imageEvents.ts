@@ -26,8 +26,6 @@ const ipcMainProxy = getIpcMainProxy(console);
 
 export class ImageEventHandler {
   imageProcessor: ImageProcessor;
-  #lastBuildDirectory = '';
-  #mountCount = 0;
 
   constructor(imageProcessor: ImageProcessor) {
     this.imageProcessor = imageProcessor;
@@ -35,10 +33,11 @@ export class ImageEventHandler {
   }
 
   protected onImagesChanged(images: ImageType[]) {
-    window.send('images-changed', images);
+    // window.send('images-changed', images);
   }
 
   protected initEventHandlers() {
+    /*
     ipcMainProxy.handle('images-mounted', (_, mounted) => {
       this.#mountCount += mounted ? 1 : -1;
       if (this.#mountCount < 1) {
@@ -192,5 +191,6 @@ export class ImageEventHandler {
     ipcMainProxy.handle('images-check-state', () => {
       return this.imageProcessor.isReady;
     });
+    */
   }
 }

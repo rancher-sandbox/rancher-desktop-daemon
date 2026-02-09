@@ -64,6 +64,7 @@ export default defineComponent({
   },
 
   mounted() {
+    /*
     ipcRenderer.on('k8s-progress', (event, progress) => {
       this.progress = progress;
       if (this.progress.transitionTime) {
@@ -84,6 +85,7 @@ export default defineComponent({
     ipcRenderer.invoke('k8s-progress').then((progress) => {
       this.progress = progress;
     });
+    */
   },
 
   methods: {

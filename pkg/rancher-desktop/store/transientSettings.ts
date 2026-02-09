@@ -49,36 +49,10 @@ export const actions = {
     commit('SET_PREFERENCES', _.cloneDeep(preferences));
   },
   async fetchTransientSettings({ commit, rootState }) {
-    const { port, user, password } = rootState.credentials.credentials;
-
-    const response = await fetch(
-      uri(port),
-      {
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-      });
-    const transientSettings: TransientSettings = await response.json();
-
-    commit('SET_PREFERENCES', _.cloneDeep(transientSettings.preferences));
+    await new Promise<void>(resolve => resolve());
   },
   async commitPreferences({ state, dispatch, rootState }, args: CommitArgs) {
-    const { port, user, password } = rootState.credentials.credentials;
-    const { payload } = args;
-
-    await fetch(
-      uri(port),
-      {
-        method:  'PUT',
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-        body: JSON.stringify(payload ?? state.preferences),
-      });
-
-    await dispatch('fetchTransientSettings', args);
+    await new Promise<void>(resolve => resolve());
   },
   async navigatePrefDialog(context, args: NavigatePrefsDialogArgs) {
     const commitArgs = _.omit(args, 'navItem', 'tab');

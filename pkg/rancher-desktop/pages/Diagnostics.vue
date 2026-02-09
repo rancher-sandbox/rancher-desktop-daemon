@@ -11,7 +11,6 @@ export default defineComponent({
 
   computed: mapTypedState('diagnostics', ['diagnostics', 'timeLastRun']),
   async beforeMount() {
-    await this.$store.dispatch('credentials/fetchCredentials');
     await this.$store.dispatch('preferences/fetchPreferences');
     await this.$store.dispatch('diagnostics/fetchDiagnostics');
   },

@@ -135,7 +135,6 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapTypedGetters('k8sManager', { isK8sReady: 'isReady' }),
     ...mapTypedState('container-engine', ['namespaces', 'volumes']),
     ...mapTypedGetters('container-engine', ['namespace', 'supportsNamespaces', 'error']),
     rows(): RowItem[] {
@@ -208,7 +207,7 @@ export default defineComponent({
     async subscribe() {
       clearTimeout(this.subscribeTimer);
       try {
-        if (!window.ddClient || !this.isK8sReady || !this.settings) {
+        if (!window.ddClient || !this.settings) {
           setTimeout(() => this.subscribe(), 1_000);
           return;
         }

@@ -102,7 +102,6 @@ const subscribeTimer = ref<ReturnType<typeof setTimeout>>();
 const searchTerm = ref('');
 
 // Vuex integration
-const isK8sReady = computed(() => store.getters['k8sManager/isReady']);
 const containers = computed(() => store.state['container-engine'].containers);
 
 // Computed properties
@@ -145,7 +144,7 @@ const subscribe = async() => {
     clearTimeout(subscribeTimer.value);
   }
   try {
-    if (!window.ddClient || !isK8sReady.value || !settings.value) {
+    if (!window.ddClient || !settings.value) {
       subscribeTimer.value = setTimeout(subscribe, 1_000);
       return;
     }

@@ -36,9 +36,6 @@ export default defineComponent({
       return this.getActiveTab || 'behavior';
     },
   },
-  async beforeMount() {
-    await this.$store.dispatch('credentials/fetchCredentials');
-  },
   methods: {
     async tabSelected({ tab }: { tab: Component }) {
       if (this.activeTab !== tab.name) {

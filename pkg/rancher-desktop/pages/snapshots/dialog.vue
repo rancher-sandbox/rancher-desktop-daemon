@@ -15,7 +15,7 @@ export default defineComponent({
     return {
       header:            '',
       message:           '',
-      snapshot:          null,
+      snapshot:          null as any,
       info:              '',
       bodyStyle:         {},
       error:             '',
@@ -33,12 +33,6 @@ export default defineComponent({
         port:     0,
       },
     };
-  },
-
-  async beforeMount() {
-    this.credentials = await this.$store.dispatch(
-      'credentials/fetchCredentials',
-    );
   },
 
   mounted() {
@@ -109,7 +103,7 @@ export default defineComponent({
       return { height: `${ type === 'question' ? 265 : 400 }px` };
     },
     showLogs() {
-      ipcRenderer.send('show-logs');
+      console.log('show-logs');
     },
     quit() {
       fetch(
@@ -138,7 +132,7 @@ export default defineComponent({
           }),
         },
       );
-      ipcRenderer.send('snapshot/cancel');
+      console.log('snapshot/cancel');
     },
   },
 });

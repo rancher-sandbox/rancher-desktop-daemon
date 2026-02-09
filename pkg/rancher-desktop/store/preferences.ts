@@ -27,8 +27,6 @@ interface PreferencesState {
   canApply:           boolean;
 }
 
-type Credentials = Omit<ServerState, 'pid'>;
-
 interface CommitArgs {
   payload?: RecursivePartial<Settings>;
 }
@@ -133,65 +131,19 @@ export const actions = {
     commit('SET_INITIAL_PREFERENCES', _.cloneDeep(preferences));
   },
   async fetchPreferences({ dispatch, commit, rootState }) {
-    const { port, user, password } = rootState.credentials.credentials;
+    commit('SET_HAS_ERROR', true);
 
-    const response = await fetch(
-      settingsUri(port),
-      {
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-      });
-
-    if (!response.ok) {
-      commit('SET_HAS_ERROR', true);
-
-      return;
-    }
-
-    const settings: Settings = await response.json();
-
-    dispatch('preferences/initializePreferences', settings, { root: true });
+    await new Promise<void>(resolve => resolve());
   },
   async fetchLocked({ commit, rootState }) {
-    const { port, user, password } = rootState.credentials.credentials;
+    commit('SET_HAS_ERROR', true);
 
-    const response = await fetch(
-      lockedUri(port),
-      {
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-      });
-
-    if (!response.ok) {
-      commit('SET_HAS_ERROR', true);
-
-      return;
-    }
-
-    const settings: Settings = await response.json();
-
-    commit('SET_LOCKED_PREFERENCES', settings);
+    await new Promise<void>(resolve => resolve());
   },
-  async commitPreferences({ dispatch, getters, rootState }, args: CommitArgs = {}) {
-    const { port, user, password } = rootState.credentials.credentials;
-    const { payload } = args;
+  async commitPreferences({ commit }, args: CommitArgs = {}) {
+    commit('SET_HAS_ERROR', true);
 
-    await fetch(
-      settingsUri(port),
-      {
-        method:  'PUT',
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-        body: JSON.stringify(payload ?? normalizePreferences(getters.getPreferences, 'submit')),
-      });
-
-    await dispatch('preferences/fetchPreferences', {}, { root: true });
+    await new Promise<void>(resolve => resolve());
   },
 
   /**
@@ -210,7 +162,7 @@ export const actions = {
 
     await dispatch(
       'preferences/proposePreferences',
-      { ...rootState.credentials.credentials as Credentials },
+      { },
       { root: true },
     );
   },
@@ -249,34 +201,13 @@ export const actions = {
     { commit, state, getters, rootState },
     { preferences }: ProposePreferencesPayload = {},
   ): Promise<Severities> {
-    const proposal = preferences ?? normalizePreferences(getters.getPreferences, 'submit');
-    const { user, password, port } = rootState.credentials.credentials;
+    commit('SET_HAS_ERROR', true);
 
-    const result = await fetch(
-      proposedSettings(port),
-      {
-        method:  'PUT',
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-        body: JSON.stringify(proposal),
-      });
+    await new Promise<void>(resolve => resolve());
 
-    if (!result.ok) {
-      const severities = { ...state.severities, error: true };
-
-      commit('SET_SEVERITIES', severities);
-      commit('SET_PREFERENCES_ERROR', await result.text());
-
-      return severities;
-    }
-
-    const changes: Record<string, { severity: 'reset' | 'restart' }> = await result.json();
-    const values = Object.values(changes).map(v => v.severity);
     const severities: Severities = {
-      reset:   values.includes('reset'),
-      restart: values.includes('restart'),
+      reset:   true,
+      restart: true,
       error:   false,
     };
 

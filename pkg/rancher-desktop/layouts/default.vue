@@ -82,7 +82,6 @@ export default {
     extensionUpgradeCount() {
       return this.installedExtensions.filter(ext => ext.canUpgrade).length;
     },
-    ...mapState('credentials', ['credentials']),
     ...mapTypedState('diagnostics', ['diagnostics']),
     ...mapGetters('extensions', ['installedExtensions']),
   },
@@ -108,9 +107,6 @@ export default {
 
     ipcRenderer.send('backend-state-check');
 
-    ipcRenderer.on('k8s-check-state', (event, state) => {
-      this.$store.dispatch('k8sManager/setK8sState', state);
-    });
     ipcRenderer.on('route', (event, args) => {
       this.goToRoute(args);
     });
@@ -140,7 +136,6 @@ export default {
   },
 
   mounted() {
-    this.$store.dispatch('credentials/fetchCredentials').catch(console.error);
     this.$store.dispatch('i18n/init').catch(ex => console.error(ex));
   },
 
@@ -154,12 +149,7 @@ export default {
 
   methods: {
     async fetch() {
-      await this.$store.dispatch('credentials/fetchCredentials');
-      if (!this.credentials.port || !this.credentials.user || !this.credentials.password) {
-        console.log(`Credentials aren't ready for getting diagnostics -- will try later`);
-
-        return;
-      }
+      return;
       await this.$store.dispatch('preferences/fetchPreferences');
       await this.$store.dispatch('diagnostics/fetchDiagnostics');
     },

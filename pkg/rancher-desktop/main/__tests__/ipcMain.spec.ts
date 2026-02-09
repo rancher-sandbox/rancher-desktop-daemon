@@ -131,13 +131,13 @@ describe('IpcMainProxy', () => {
   });
 
   it('should reject missing handlers', async() => {
-    const topic = 'api-get-credentials' as const;
+    const topic = 'host/isArm' as const;
 
     await expect(emitter.invoke(topic)).rejects.toThrow(topic);
   });
 
   it('should allow adding event handlers', async() => {
-    const topic = 'api-get-credentials' as const;
+    const topic = 'host/isArm' as const;
 
     type cbType = Parameters<typeof subject.handle<typeof topic>>[1];
     const cb = jest.fn().mockImplementation(() => Promise.resolve(1)) as cbType;
@@ -149,7 +149,7 @@ describe('IpcMainProxy', () => {
   });
 
   it('should allow removing event handlers', async() => {
-    const topic = 'api-get-credentials' as const;
+    const topic = 'host/isArm' as const;
 
     type cbType = Parameters<typeof subject.handle<typeof topic>>[1];
     const cb = jest.fn().mockImplementation(() => Promise.resolve(1)) as cbType;
@@ -162,7 +162,7 @@ describe('IpcMainProxy', () => {
   });
 
   it('should allow single-use event handlers', async() => {
-    const topic = 'api-get-credentials' as const;
+    const topic = 'host/isArm' as const;
 
     type cbType = Parameters<typeof subject.handle<typeof topic>>[1];
     const cb = jest.fn().mockImplementation(() => Promise.resolve(1)) as cbType;

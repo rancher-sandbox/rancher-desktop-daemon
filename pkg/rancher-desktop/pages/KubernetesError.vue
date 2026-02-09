@@ -114,7 +114,7 @@ export default defineComponent({
       window.close();
     },
     showLogs() {
-      ipcRenderer.send('show-logs');
+      console.error('show-logs');
     },
   },
 });

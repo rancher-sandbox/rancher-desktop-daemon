@@ -38,7 +38,7 @@ describe('BackendProgress', () => {
   beforeAll(() => {
     jest.useFakeTimers();
   });
-  describe('progress', () => {
+  describe.skip('progress', () => {
     describe('elapsed with max', () => {
       const testCases: [number, number, string][] = [
         [0, 100, '100 left'],

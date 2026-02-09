@@ -33,17 +33,10 @@ export default defineComponent({
     },
   },
   async beforeMount() {
-    await this.$store.dispatch('credentials/fetchCredentials');
     await this.$store.dispatch('preferences/fetchPreferences');
     await this.$store.dispatch('preferences/fetchLocked');
     await this.$store.dispatch('transientSettings/fetchTransientSettings');
     this.preferencesLoaded = true;
-
-    ipcRenderer.on('k8s-integrations', (_, integrations: Record<string, string | boolean>) => {
-      this.$store.dispatch('preferences/setWslIntegrations', integrations);
-    });
-
-    ipcRenderer.send('k8s-integrations');
 
     this.$store.dispatch('preferences/setPlatformWindows', os.platform().startsWith('win'));
 

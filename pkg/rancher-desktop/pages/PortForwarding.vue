@@ -22,7 +22,7 @@
 import clone from 'lodash/cloneDeep';
 import { defineComponent } from 'vue';
 
-import type { ServiceEntry } from '@pkg/backend/k8s';
+import { State, type ServiceEntry } from '@pkg/backend/k8s';
 import PortForwarding from '@pkg/components/PortForwarding.vue';
 import { defaultSettings, Settings } from '@pkg/config/settings';
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
@@ -32,11 +32,11 @@ export default defineComponent({
   components: { PortForwarding },
   data() {
     return {
-      state:              ipcRenderer.sendSync('k8s-state'),
+      state:              State.STARTED,
       settings:           defaultSettings,
       services:           [] as ServiceEntry[],
-      errorMessage:       null as string | null,
-      serviceBeingEdited: null as ServiceEntry | null,
+      errorMessage:       undefined as string | undefined,
+      serviceBeingEdited: undefined as ServiceEntry | undefined,
     };
   },
 
@@ -60,16 +60,6 @@ export default defineComponent({
       'page/setHeader',
       { title: this.t('portForwarding.title') },
     );
-    ipcRenderer.on('k8s-check-state', (event, state) => {
-      this.$data.state = state;
-    });
-    ipcRenderer.on('service-changed', (event, services) => {
-      this.$data.services = services;
-    });
-    ipcRenderer.on('service-error', (event, problemService, errorMessage) => {
-      ipcRenderer.invoke('service-forward', problemService, false);
-      this.$data.errorMessage = errorMessage;
-    });
     ipcRenderer.invoke('service-fetch')
       .then((services) => {
         this.$data.services = services;
@@ -118,7 +108,7 @@ export default defineComponent({
     },
 
     handleEditPortForward(service: ServiceEntry): void {
-      this.errorMessage = null;
+      this.errorMessage = undefined;
       if (this.serviceBeingEdited) {
         ipcRenderer.invoke('service-forward', this.serviceBeingEdited, false);
       }
@@ -129,26 +119,26 @@ export default defineComponent({
     },
 
     handleCancelEditPortForward(service: ServiceEntry): void {
-      this.errorMessage = null;
+      this.errorMessage = undefined;
       ipcRenderer.invoke('service-forward', service, false);
-      this.serviceBeingEdited = null;
+      this.serviceBeingEdited = undefined;
     },
 
     handleCancelPortForward(service: ServiceEntry): void {
-      this.errorMessage = null;
+      this.errorMessage = undefined;
       ipcRenderer.invoke('service-forward', service, false);
     },
 
     handleUpdatePortForward(): void {
-      this.errorMessage = null;
+      this.errorMessage = undefined;
       if (this.serviceBeingEdited) {
         ipcRenderer.invoke('service-forward', clone(this.serviceBeingEdited), true);
       }
-      this.serviceBeingEdited = null;
+      this.serviceBeingEdited = undefined;
     },
 
     handleCloseError(): void {
-      this.errorMessage = null;
+      this.errorMessage = undefined;
     },
   },
 });

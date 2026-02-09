@@ -33,7 +33,6 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapGetters('k8sManager', { getK8sState: 'getK8sState' }),
     snapshot(): Snapshot & { formattedCreateDate: { date: string, time: string } | null } {
       return {
         ...this.value,
@@ -41,9 +40,7 @@ export default defineComponent({
       };
     },
     isRestoreDisabled(): boolean {
-      const k8sState = this.getK8sState;
-
-      return ![EngineStates.STARTED, EngineStates.DISABLED, EngineStates.ERROR].includes(k8sState);
+      return true;
     },
   },
 
@@ -52,6 +49,7 @@ export default defineComponent({
       const ok = await this.showConfirmationDialog('restore');
 
       /** Clear old event on Snapshots page */
+      /*
       ipcRenderer.send('snapshot', null);
 
       let snapshotCancelled = false;
@@ -68,6 +66,7 @@ export default defineComponent({
           },
         );
       });
+      */
 
       if (ok) {
         ipcRenderer.send('preferences-close');
@@ -86,6 +85,7 @@ export default defineComponent({
               });
           } else {
             ipcRenderer.send('dialog/close', { dialog: 'SnapshotsDialog', snapshotEventType: 'restore' });
+            /*
             ipcRenderer.send(
               'snapshot',
               {
@@ -95,6 +95,7 @@ export default defineComponent({
                 eventTime:    currentTime(),
               },
             );
+            */
           }
         });
 
@@ -107,6 +108,7 @@ export default defineComponent({
       const ok = await this.showConfirmationDialog('delete');
 
       /** Clear old event on Snapshots page */
+      /*
       ipcRenderer.send('snapshot', null);
 
       if (ok) {
@@ -120,9 +122,11 @@ export default defineComponent({
           eventTime:    currentTime(),
         });
       }
+      */
     },
 
     async showConfirmationDialog(type: 'restore' | 'delete') {
+      /*
       const confirm: { response: number } = await ipcRenderer.invoke(
         'show-snapshots-confirm-dialog',
         {
@@ -144,11 +148,14 @@ export default defineComponent({
       );
 
       return confirm.response;
+      */
+      return await new Promise((resolve) => resolve(true));
     },
 
     async showRestoringSnapshotDialog(type: 'restore' | 'delete') {
       const snapshot = this.snapshot.name.length > 32 ? `${ this.snapshot.name.substring(0, 30) }...` : this.snapshot.name;
 
+      /*
       await ipcRenderer.invoke(
         'show-snapshots-blocking-dialog',
         {
@@ -166,6 +173,8 @@ export default defineComponent({
           },
         },
       );
+      */
+      await new Promise((resolve) => resolve(true));
     },
   },
 });

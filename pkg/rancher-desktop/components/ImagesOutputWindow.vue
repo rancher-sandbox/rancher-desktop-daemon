@@ -75,20 +75,6 @@ export default defineComponent({
     },
   },
 
-  mounted() {
-    ipcRenderer.on('images-process-output', (_event, data) => {
-      this.appendImageManagerOutput(data);
-    });
-
-    ipcRenderer.on('images-process-ended', (_event, status) => {
-      this.handleProcessEnd(status);
-    });
-
-    ipcRenderer.on('images-process-cancelled', () => {
-      this.handleProcessCancelled();
-    });
-  },
-
   methods: {
     closeOutputWindow() {
       this.keepImageManagerOutputWindowOpen = false;

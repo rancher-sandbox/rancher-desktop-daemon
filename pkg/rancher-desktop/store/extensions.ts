@@ -1,7 +1,6 @@
 import semver from 'semver';
 import { GetterTree, MutationTree } from 'vuex';
 
-import { fetchAPI } from './credentials';
 import { ActionTree, MutationsType } from './ts-helpers';
 
 import MARKETPLACE_DATA from '@pkg/assets/extension-data.yaml';
@@ -59,7 +58,7 @@ export const mutations = {
 
 export const actions = {
   async fetch({ commit, rootState }) {
-    const response = await fetchAPI('/v1/extensions', rootState);
+    const response = { ok: false, status: -1, statusText: '' } as any; // TODO
 
     if (!response.ok) {
       console.log(`fetchExtensions: failed: status: ${ response.status }:${ response.statusText }`);
@@ -94,7 +93,7 @@ export const actions = {
    * @returns Error message, or `true` if extension is installed.
    */
   async install({ rootState, dispatch }, { id }: { id: string }) {
-    const r = await fetchAPI(`/v1/extensions/install?id=${ id }`, rootState, { method: 'POST' });
+    const r = { ok: false, status: -1, statusText: '' } as any; // TODO
 
     await dispatch('fetch');
 
@@ -111,7 +110,7 @@ export const actions = {
    * @returns Error message, or `true` if extension is uninstall.
    */
   async uninstall({ rootState, dispatch }, { id }: { id: string }) {
-    const r = await fetchAPI(`/v1/extensions/uninstall?id=${ id }`, rootState, { method: 'POST' });
+    const r = { ok: false, status: -1, statusText: '' } as any; // TODO
 
     await dispatch('fetch');
 

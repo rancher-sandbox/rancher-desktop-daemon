@@ -65,16 +65,7 @@ export default defineComponent({
 
       let snapshotCancelled = false;
 
-      ipcRenderer.once('snapshot/cancel', () => {
-        snapshotCancelled = true;
-
-        this.goBack({
-          type:         'create',
-          result:       'cancel',
-          snapshotName: name,
-          eventTime:    currentTime(),
-        });
-      });
+      await new Promise<void>(resolve => { snapshotCancelled = true; resolve() });
 
       ipcRenderer.on('dialog/mounted', async() => {
         const error = await this.$store.dispatch('snapshots/create', { name, description });
@@ -102,23 +93,9 @@ export default defineComponent({
     async showCreatingSnapshotDialog() {
       const name = this.name.length > 32 ? `${ this.name.substring(0, 30) }...` : this.name;
 
-      await ipcRenderer.invoke(
-        'show-snapshots-blocking-dialog',
-        {
-          window: {
-            buttons: [
-              this.t(`snapshots.dialog.creating.actions.cancel`),
-            ],
-            cancelId: 0,
-          },
-          format: {
-            header:            this.t('snapshots.dialog.creating.header', { snapshot: name }),
-            showProgressBar:   true,
-            message:           this.t('snapshots.dialog.creating.message', { snapshot: escapeHtml(name) }, true),
-            snapshotEventType: 'create',
-          },
-        },
-      );
+      console.log('show-snapshots-blocking-dialog');
+
+      await new Promise(resolve => resolve(name));
     },
   },
 });

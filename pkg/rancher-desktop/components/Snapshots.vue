@@ -44,9 +44,11 @@ export default defineComponent({
     this.$store.dispatch('snapshots/fetch');
     this.pollingStart();
 
+    /*
     ipcRenderer.on('snapshot', (_, event) => {
       this.snapshotEvent = event;
     });
+    */
 
     if (isEmpty(this.$route.params)) {
       return;
@@ -65,7 +67,7 @@ export default defineComponent({
     if (this.snapshotsPollingInterval) {
       clearInterval(this.snapshotsPollingInterval);
     }
-    ipcRenderer.removeAllListeners('snapshot');
+    // ipcRenderer.removeAllListeners('snapshot');
   },
 
   methods: {

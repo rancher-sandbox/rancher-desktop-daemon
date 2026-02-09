@@ -103,7 +103,13 @@ import getImageOutputCuller, { ImageOutputCuller } from '@pkg/utils/imageOutputC
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 import { parseSi } from '@pkg/utils/units';
 
-type Image = Parameters<IpcRendererEvents['images-changed']>[0][number];
+interface Image {
+  imageName: string;
+  tag:       string;
+  imageID:   string;
+  size:      number;
+  digest:    string;
+};
 
 type RowItem = Image & {
   availableActions: {
@@ -336,7 +342,6 @@ export default {
       this.currentCommand = `delete ${ this.imageIdsToDelete }`;
       this.mainWindowScroll = this.main.scrollTop;
       this.startRunningCommand('delete');
-      ipcRenderer.send('do-image-deletion-batch', this.imageIdsToDelete);
       this.startImageManagerOutput();
     },
     async deleteImage(obj: Image) {
@@ -357,15 +362,12 @@ export default {
       this.mainWindowScroll = this.main.scrollTop;
       this.startRunningCommand('delete');
 
-      ipcRenderer.send('do-image-deletion', obj.imageName.trim(), this.getTaggedImage(obj));
-
       this.startImageManagerOutput();
     },
     doPush(obj: Image) {
       this.currentCommand = `push ${ obj.imageName }:${ obj.tag }`;
       this.mainWindowScroll = this.main.scrollTop;
       this.startRunningCommand('push');
-      ipcRenderer.send('do-image-push', obj.imageName.trim(), obj.imageID.trim(), obj.tag.trim());
     },
     scanImage(obj: Image) {
       const taggedImageName = `${ obj.imageName.trim() }:${ this.imageTag(obj.tag) }`;

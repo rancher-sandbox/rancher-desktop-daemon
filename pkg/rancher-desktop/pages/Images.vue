@@ -29,7 +29,11 @@ import { mapTypedActions, mapTypedGetters, mapTypedMutations, mapTypedState } fr
 import { IpcRendererEvents } from '@pkg/typings/electron-ipc';
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 
-type Image = Parameters<IpcRendererEvents['images-changed']>[0][number];
+interface Image {
+  imageName: string;
+  tag:       string;
+  imageID:   string;
+}
 
 enum ImageManagerStates {
   UNREADY = 'IMAGE_MANAGER_UNREADY',
@@ -54,10 +58,6 @@ export default defineComponent({
         return ImageManagerStates.READY;
       }
 
-      if (![K8sState.STARTED, K8sState.DISABLED].includes(this.k8sState)) {
-        return ImageManagerStates.UNREADY;
-      }
-
       return this.imageManagerState ? ImageManagerStates.READY : ImageManagerStates.UNREADY;
     },
     rancherImages(): string[] {
@@ -77,7 +77,6 @@ export default defineComponent({
       ];
     },
     ...mapTypedState('imageManager', ['imageManagerState']),
-    ...mapTypedGetters('k8sManager', { k8sState: 'getK8sState' }),
     ...mapTypedGetters('extensions', ['installedExtensions']),
   },
 
@@ -97,50 +96,11 @@ export default defineComponent({
   },
 
   mounted() {
-    ipcRenderer.on('images-changed', async(event, images) => {
-      if ((window as any).imagesListMock) {
-        // Override for screenshots
-        images = await (window as any).imagesListMock();
-      }
-      if (_.isEqual(images, this.images)) {
-        return;
-      }
-
-      this.images = images;
-
-      if (this.supportsNamespaces && this.imageNamespaces.length === 0) {
-        // This happens if the user clicked on the Images panel before data was ready,
-        // so no namespaces were available when it initially asked for them.
-        // When the data is ready, images are pushed in, but namespaces aren't.
-        ipcRenderer.send('images-namespaces-read');
-      }
-    });
-
-    ipcRenderer.on('images-check-state', (event, state) => {
-      this.setImageManagerState(state);
-    });
-
-    ipcRenderer.invoke('images-check-state').then((state) => {
-      this.setImageManagerState(state);
-    });
-
     ipcRenderer.on('settings-update', (event, settings) => {
       // TODO: put in a status bar
       this.$data.settings = settings;
       this.checkSelectedNamespace();
     });
-
-    (async() => {
-      this.images = await ipcRenderer.invoke('images-mounted', true);
-    })();
-
-    ipcRenderer.on('images-namespaces', (event, namespaces) => {
-      // TODO: Use a specific message to indicate whether or not messages are supported.
-      this.imageNamespaces = namespaces;
-      this.supportsNamespaces = namespaces.length > 0;
-      this.checkSelectedNamespace();
-    });
-    ipcRenderer.send('images-namespaces-read');
     ipcRenderer.on('settings-read', (event, settings) => {
       this.settings = settings;
     });
@@ -150,8 +110,6 @@ export default defineComponent({
     this.fetchExtensions();
   },
   beforeUnmount() {
-    ipcRenderer.invoke('images-mounted', false);
-    ipcRenderer.removeAllListeners('images-changed');
     ipcRenderer.removeListener('extensions/changed', this.fetchExtensions);
   },
 

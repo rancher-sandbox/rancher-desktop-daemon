@@ -82,61 +82,14 @@ export const mutations = {
 
 export const actions = {
   async fetchDiagnostics({ commit, rootState }) {
-    try {
-      const { port, user, password } = rootState.credentials.credentials;
-      const response = await fetch(
-        uri(port, 'diagnostic_checks'),
-        {
-          headers: new Headers({
-            Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          }),
-        });
-
-      if (!response.ok) {
-        console.log(`fetchDiagnostics: failed: status: ${ response.status }:${ response.statusText }`);
-        commit('SET_IN_ERROR', true);
-
-        return;
-      }
-      const result: DiagnosticsResultCollection = await response.json();
-
-      const mutedChecks = rootState.preferences.preferences.diagnostics.mutedChecks;
-      const checks = mapMutedDiagnostics(result.checks, mutedChecks);
-
-      commit('SET_DIAGNOSTICS', await mapMarkdownToDiagnostics(checks));
-      commit('SET_TIME_LAST_RUN', new Date(result.last_update));
-      commit('SET_IN_ERROR', false);
-    } catch (ex) {
-      console.error(`fetchDiagnostics failed:`, ex);
-      commit('SET_IN_ERROR', true);
-    }
+    console.error(`fetchDiagnostics failed:`, new Error('not implemented'));
+    commit('SET_IN_ERROR', true);
+    await new Promise<void>(resolve => resolve());
   },
   async runDiagnostics({ commit, rootState }) {
-    const { port, user, password } = rootState.credentials.credentials;
-    const response = await fetch(
-      uri(port, 'diagnostic_checks'),
-      {
-        headers: new Headers({
-          Authorization:  `Basic ${ window.btoa(`${ user }:${ password }`) }`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        }),
-        method: 'POST',
-      });
-
-    if (!response.ok) {
-      console.log(`runDiagnostics: failed: status: ${ response.status }:${ response.statusText }`);
-      commit('SET_IN_ERROR', true);
-
-      return;
-    }
-    const result: DiagnosticsResultCollection = await response.json();
-
-    const mutedChecks = rootState.preferences.preferences.diagnostics.mutedChecks;
-    const checks = mapMutedDiagnostics(result.checks, mutedChecks);
-
-    commit('SET_DIAGNOSTICS', await mapMarkdownToDiagnostics(checks));
-    commit('SET_TIME_LAST_RUN', new Date(result.last_update));
+    console.log(`runDiagnostics: failed: not implemented`);
+    commit('SET_IN_ERROR', true);
+    await new Promise<void>(resolve => resolve());
   },
   async updateDiagnostic({
     commit, state, dispatch,

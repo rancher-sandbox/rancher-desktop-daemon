@@ -215,7 +215,6 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapGetters('k8sManager', { isK8sReady: 'isReady' }),
     ...mapTypedState('container-engine', ['containers', 'namespaces']),
     ...mapTypedGetters('container-engine', ['namespace', 'supportsNamespaces', 'error']),
     /** @returns {RowItem[]} */

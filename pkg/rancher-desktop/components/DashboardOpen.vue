@@ -8,12 +8,11 @@ export default defineComponent({
   name:     'dashboard-open',
   computed: {
     ...mapGetters('preferences', ['getPreferences']),
-    ...mapGetters('k8sManager', { k8sState: 'getK8sState' }),
     kubernetesEnabled(): boolean {
       return this.getPreferences.kubernetes.enabled;
     },
     kubernetesStarted(): boolean {
-      return this.k8sState === K8sState.STARTED;
+      return false;
     },
   },
   methods: {
