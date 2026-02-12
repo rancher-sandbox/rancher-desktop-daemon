@@ -33,8 +33,8 @@ local_setup_file() {
 local_teardown_file() {
     # Clean up any remaining Lima instances
     for vm in "${VM_NAME}" "invalid-vm"; do
-        if [[ -d "${LIMA_HOME}/${vm}" ]]; then
-            rm -rf "${LIMA_HOME:?}/${vm}"
+        if [[ -d "${RDD_LIMA_HOME}/${vm}" ]]; then
+            rm -rf "${RDD_LIMA_HOME:?}/${vm}"
         fi
     done
 }
@@ -63,7 +63,7 @@ EOF
 
 lima_instance_exists() {
     local name=$1
-    [[ -d "${LIMA_HOME}/${name}" ]]
+    [[ -d "${RDD_LIMA_HOME}/${name}" ]]
 }
 
 assert_instance_created() {
@@ -108,7 +108,7 @@ assert_instance_create_failed() {
 }
 
 @test "verify Lima instance has lima.yaml file" {
-    assert_file_exists "${LIMA_HOME}/${VM_NAME}/lima.yaml"
+    assert_file_exists "${RDD_LIMA_HOME}/${VM_NAME}/lima.yaml"
 }
 
 @test "verify Created condition has correct reason" {
@@ -142,10 +142,10 @@ assert_instance_create_failed() {
 @test "create fake leftover Lima instance" {
     # Create a fake instance directory to simulate a leftover from a failed deletion.
     # The reconciler should clean this up before creating the real instance.
-    echo -n | create_file "${LIMA_HOME}/${VM_NAME}/lima.yaml"
-    echo -n | create_file "${LIMA_HOME}/${VM_NAME}/.fake-leftover"
-    echo "0.0.0" | create_file "${LIMA_HOME}/${VM_NAME}/lima-version"
-    assert_file_exists "${LIMA_HOME}/${VM_NAME}/.fake-leftover"
+    echo -n | create_file "${RDD_LIMA_HOME}/${VM_NAME}/lima.yaml"
+    echo -n | create_file "${RDD_LIMA_HOME}/${VM_NAME}/.fake-leftover"
+    echo "0.0.0" | create_file "${RDD_LIMA_HOME}/${VM_NAME}/lima-version"
+    assert_file_exists "${RDD_LIMA_HOME}/${VM_NAME}/.fake-leftover"
 }
 
 @test "create LimaVM with leftover instance present" {
@@ -160,9 +160,9 @@ assert_instance_create_failed() {
 
 @test "verify leftover was replaced with real instance" {
     # The fake leftover had a .fake-leftover sentinel file
-    assert_file_not_exists "${LIMA_HOME}/${VM_NAME}/.fake-leftover"
+    assert_file_not_exists "${RDD_LIMA_HOME}/${VM_NAME}/.fake-leftover"
     # Real instance should have images from template
-    run -0 cat "${LIMA_HOME}/${VM_NAME}/lima.yaml"
+    run -0 cat "${RDD_LIMA_HOME}/${VM_NAME}/lima.yaml"
     assert_output --partial "alpine-lima"
 }
 

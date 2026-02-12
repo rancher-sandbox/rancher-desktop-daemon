@@ -52,7 +52,7 @@ is_port_available() {
         skip "Port ${expected_port} is not available for testing"
     fi
 
-    ARGS_JSON="${PATH_ARGS_FILE}"
+    ARGS_JSON="${RDD_ARGS_FILE}"
     assert_file_exist "${ARGS_JSON}"
     assert_file_contains "${ARGS_JSON}" '"--secure-port"'
     assert_file_contains "${ARGS_JSON}" "\"${expected_port}\""
@@ -177,7 +177,7 @@ is_port_available() {
     rdd svc create --secure-port 7777 --controllers="rdd"
 
     # Verify the port is saved in args.json
-    ARGS_JSON="${PATH_ARGS_FILE}"
+    ARGS_JSON="${RDD_ARGS_FILE}"
     assert_file_exist "${ARGS_JSON}"
     assert_file_contains "${ARGS_JSON}" '"--secure-port"'
     assert_file_contains "${ARGS_JSON}" '"7777"'

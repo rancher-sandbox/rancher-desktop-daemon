@@ -22,9 +22,3 @@ if is_windows; then
 else
     source <("${PATH_REPO_ROOT}/bin/rdd" svc paths --shell)
 fi
-
-PATH_APP_HOME="${RDD_DIR}"
-PATH_ARGS_FILE="${RDD_ARGS_FILE}"
-PATH_LOGS="${RDD_LOG_DIR}"
-PATH_RD="${RDD_SHORT_DIR}"
-LIMA_HOME="${RDD_LIMA_HOME}"

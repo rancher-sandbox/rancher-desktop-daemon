@@ -23,9 +23,9 @@ import (
 func logrusLevelToKlog() string {
 	switch logrus.GetLevel() {
 	case logrus.DebugLevel:
-		return "1"
-	case logrus.TraceLevel:
 		return "2"
+	case logrus.TraceLevel:
+		return "4"
 	default:
 		return "0"
 	}

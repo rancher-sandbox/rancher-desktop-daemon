@@ -2,7 +2,7 @@ load '../../helpers/load'
 
 assert_klog_level() {
     local level=$1
-    run -0 jq --compact-output . "${PATH_ARGS_FILE}"
+    run -0 jq --compact-output . "${RDD_ARGS_FILE}"
     assert_line --partial "\"-v\",\"${level}\""
 }
 
@@ -44,16 +44,16 @@ assert_klog_level() {
 }
 
 # Test log level persistence in service configuration
-@test 'debug log level creates service with -v 1' {
+@test 'debug log level creates service with -v 2' {
     rdd svc delete
     run -0 rdd --log-level=debug svc create --controllers=""
-    assert_klog_level 1
+    assert_klog_level 2
 }
 
-@test 'trace log level creates service with -v 2' {
+@test 'trace log level creates service with -v 4' {
     rdd svc delete
     run -0 rdd --log-level=trace svc create --controllers=""
-    assert_klog_level 2
+    assert_klog_level 4
 }
 
 @test 'error log level creates service with -v 0' {
@@ -63,13 +63,13 @@ assert_klog_level() {
 }
 
 # Test default log levels based on developer mode
-@test 'default log level in developer mode creates -v 1' {
+@test 'default log level in developer mode creates -v 2' {
     run -0 rdd svc delete
     # Developer mode should default to debug level
     # shellcheck disable=SC2030,SC2031 # This only applies to the subshell
     export RDD_DEVELOPER_MODE=1
     run -0 rdd svc create --controllers=""
-    assert_klog_level 1
+    assert_klog_level 2
 }
 
 @test 'default log level in non-developer mode creates -v 0' {

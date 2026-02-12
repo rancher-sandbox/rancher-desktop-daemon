@@ -67,12 +67,23 @@ bats-containers: check-bats build-rdd build-mock-controller
 	RDD_INSTANCE=bats-containers-controller $(BATS_CORE) tests/34-containers-controllers/
 .PHONY: bats-containers
 
-# Run all controller tests
-bats-controllers: bats-builtin bats-rdd bats-app bats-lima bats-containers
+# Run all controller tests, continuing past failures.
+bats-controllers:
+	@rc=0; \
+	$(MAKE) bats-builtin || rc=1; \
+	$(MAKE) bats-rdd || rc=1; \
+	$(MAKE) bats-app || rc=1; \
+	$(MAKE) bats-lima || rc=1; \
+	$(MAKE) bats-containers || rc=1; \
+	exit $$rc
 .PHONY: bats-controllers
 
-# Run all BATS tests
-bats-all: bats-helpers bats-cli bats-service bats-controllers
+# Run all BATS tests, continuing past failures so all suites produce logs.
+bats-all: bats-helpers bats-cli
+	@rc=0; \
+	$(MAKE) bats-service || rc=1; \
+	$(MAKE) bats-controllers || rc=1; \
+	exit $$rc
 .PHONY: bats-all
 
 # Run BATS tests with timeout to prevent hanging

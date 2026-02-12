@@ -7,8 +7,8 @@ TEST_DATA_PATH="${PATH_BATS_ROOT}/../pkg/controllers/mock/testdata"
 
 local_setup_file() {
     setup_rdd_control_plane "containers"
-    echo "${PATH_LOGS}/mock-controller.log" >&3
-    "mock-controller${EXE}" &>"${PATH_LOGS}/mock-controller.log" &
+    echo "${RDD_LOG_DIR}/mock-controller.log" >&3
+    "mock-controller${EXE}" &>"${RDD_LOG_DIR}/mock-controller.log" &
     echo "$!" >"${BATS_FILE_TMPDIR}/controller_pid"
 }
 

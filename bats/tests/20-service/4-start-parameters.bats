@@ -61,7 +61,7 @@ assert_no_controllers() {
     run -0 rdd svc create --controllers="rdd"
 
     # Verify parameters were saved
-    ARGS_JSON="${PATH_ARGS_FILE}"
+    ARGS_JSON="${RDD_ARGS_FILE}"
     assert_file_exist "${ARGS_JSON}"
     assert_file_contains "${ARGS_JSON}" '"--controllers"'
     assert_file_contains "${ARGS_JSON}" '"rdd"'

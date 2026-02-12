@@ -92,7 +92,7 @@ setup() {
     # Write test markers to RDD log files for easier debugging.
     # The append may fail if the service is not running; that's fine.
     local log
-    for log in "${PATH_LOGS}"/rdd.stderr.log "${PATH_LOGS}"/rdd.stdout.log; do
+    for log in "${RDD_LOG_DIR}"/rdd.stderr.log "${RDD_LOG_DIR}"/rdd.stdout.log; do
         echo "=== BATS: ${BATS_TEST_DESCRIPTION} ===" >>"${log}" 2>/dev/null || true
     done
 
