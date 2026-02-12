@@ -161,14 +161,10 @@ jobs:
       env:
         RDD_TRACE: true
 
-    - name: Collect RDD service logs
+    - name: Collect RDD logs
       if: always()
       shell: run-in-wsl {0}
-      run: |
-        mkdir -p rdd-logs
-        for instance in $(make --no-print-directory -C bats bats-instances); do
-          RDD_INSTANCE="$instance" bin/rdd svc log > "rdd-logs/${instance}.log" || true
-        done
+      run: scripts/collect-logs.sh
 
     - name: Upload RDD service logs
       if: always()

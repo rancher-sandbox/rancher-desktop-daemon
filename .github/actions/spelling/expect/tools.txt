@@ -49,6 +49,7 @@ RLENGTH
 RSTART
 
 # bash
+euo
 neq
 
 # bats
