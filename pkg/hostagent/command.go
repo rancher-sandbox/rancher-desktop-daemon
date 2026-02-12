@@ -23,6 +23,8 @@ import (
 	"github.com/lima-vm/lima/v2/pkg/store"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/guestagent"
 )
 
 // NewCommand creates a new hostagent cobra command.
@@ -37,7 +39,6 @@ func NewCommand() *cobra.Command {
 	hostagentCommand.Flags().StringP("pidfile", "p", "", "Write PID to file")
 	hostagentCommand.Flags().String("socket", "", "Path of hostagent socket")
 	hostagentCommand.Flags().Bool("run-gui", false, "Run GUI synchronously within hostagent")
-	hostagentCommand.Flags().String("guestagent", "", "Local file path of lima-guestagent")
 	hostagentCommand.Flags().String("nerdctl-archive", "", "Local file path of nerdctl archive")
 	hostagentCommand.Flags().Bool("progress", false, "Show provision script progress")
 	hostagentCommand.Flags().Bool("debug", false, "Enable debug logging")
@@ -93,14 +94,15 @@ func hostagentAction(cmd *cobra.Command, args []string) error {
 	stderr := &syncWriter{w: cmd.ErrOrStderr()}
 
 	initHostagentLogrus(stderr)
-	var opts []hostagent.Opt
-	guestagentBinary, err := cmd.Flags().GetString("guestagent")
+	// Extract the embedded guest agent binary for VM provisioning.
+	gaPath, gaCleanup, err := guestagent.WriteTempFile()
 	if err != nil {
-		return err
+		return fmt.Errorf("extracting embedded guest agent: %w", err)
 	}
-	if guestagentBinary != "" {
-		opts = append(opts, hostagent.WithGuestAgentBinary(guestagentBinary))
-	}
+	defer gaCleanup()
+
+	var opts []hostagent.Opt
+	opts = append(opts, hostagent.WithGuestAgentBinary(gaPath))
 	nerdctlArchive, err := cmd.Flags().GetString("nerdctl-archive")
 	if err != nil {
 		return err

@@ -192,16 +192,6 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 		return ctrl.Result{}, err
 	}
 
-	// Instance was already prepared as part of creation, but still need to update cidata.iso
-	prepared, err := limainstance.Prepare(ctx, inst, guestAgentPath())
-	if err != nil {
-		logger.Error(err, "Failed to prepare Lima instance")
-		if updateErr := r.updateCondition(ctx, limaVM, ConditionInstanceRunning, metav1.ConditionFalse, ReasonStartFailed, err.Error()); updateErr != nil {
-			logger.Error(updateErr, "Failed to update status after prepare failure")
-		}
-		return ctrl.Result{}, err
-	}
-
 	// Build hostagent command arguments
 	haPIDPath := filepath.Join(inst.Dir, filenames.HostAgentPID)
 	haSockPath := filepath.Join(inst.Dir, filenames.HostAgentSock)
@@ -215,9 +205,6 @@ func (r *LimaVMReconciler) startInstance(ctx context.Context, limaVM *v1alpha1.L
 	}
 	if logger.V(1).Enabled() {
 		args = append(args, "--debug")
-	}
-	if prepared.GuestAgent != "" {
-		args = append(args, "--guestagent", prepared.GuestAgent)
 	}
 	args = append(args, inst.Name)
 

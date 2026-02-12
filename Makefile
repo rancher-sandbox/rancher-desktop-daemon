@@ -36,6 +36,9 @@ LDFLAGS := \
 
 TAGS := sqlite_omit_load_extension
 
+GUESTAGENT_BINARY := pkg/guestagent/lima-guestagent
+GUESTAGENT_GZ := $(GUESTAGENT_BINARY).gz
+
 default: build-rdd
 .PHONY: default
 
@@ -60,7 +63,17 @@ endif
 
 GOLANG_SOURCES := $(shell find . -name '*.go') go.mod go.sum
 
-bin/rdd$(EXE): $(GOLANG_SOURCES)
+# Build the Lima guest agent from our Go dependency and compress it for embedding.
+$(GUESTAGENT_BINARY): go.mod go.sum
+	WSLENV=${WSLENV}:CGO_ENABLED:GOOS \
+	CGO_ENABLED=0 GOOS=linux \
+	go$(EXE) build -ldflags="-s -w" -o $@ \
+		github.com/lima-vm/lima/v2/cmd/lima-guestagent
+
+$(GUESTAGENT_GZ): $(GUESTAGENT_BINARY)
+	gzip --to-stdout $< > $@
+
+bin/rdd$(EXE): $(GOLANG_SOURCES) $(GUESTAGENT_GZ)
 	WSLENV=${WSLENV}:CGO_CFLAGS:CGO_ENABLED \
 	CGO_CFLAGS="-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_USE_ALLOCA=1" CGO_ENABLED=1 \
 	go$(EXE) build -tags="$(TAGS)" -gcflags="all=${GCFLAGS}" -ldflags="$(LDFLAGS)" -o $@ ./cmd/rdd
@@ -126,7 +139,7 @@ run: bin/rdd$(EXE)
 	$< service start
 .PHONY: run
 
-test: $(GOLANG_SOURCES)
+test: $(GOLANG_SOURCES) $(GUESTAGENT_GZ)
 	go$(EXE) test ./...
 .PHONY: test
 
@@ -134,7 +147,7 @@ lint-bats:
 	$(MAKE) -C bats lint
 .PHONY: lint-bats
 
-lint-rdd:
+lint-rdd: $(GUESTAGENT_GZ)
 	go$(EXE) tool golangci-lint run
 .PHONY: lint-rdd
 
@@ -168,4 +181,5 @@ check: test lint spelling check-ltag
 
 clean:
 	-rm -r bin
+	-rm $(GUESTAGENT_BINARY) $(GUESTAGENT_GZ)
 .PHONY: clean

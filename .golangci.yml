@@ -86,6 +86,8 @@ linters:
         exclude:
         # Lima driver files use blank imports to register drivers; e.g., drivers_vz.go imports vz driver.
         - "**/limavm/drivers_*.go"
+        # deps_linux.go uses a blank import to keep Linux-only transitive deps in go.sum.
+        - "**/guestagent/deps_linux.go"
       - name: context-as-argument
       - name: context-keys-type
       - name: deep-exit

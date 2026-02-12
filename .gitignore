@@ -1,2 +1,3 @@
 /.github/actions/spelling/expect/golang-generated.txt
 /bin/*
+/pkg/guestagent/lima-guestagent.gz

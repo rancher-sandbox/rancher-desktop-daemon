@@ -5,7 +5,6 @@
 load '../../helpers/load'
 
 # LimaVM running tests verify that Lima instances can be started and stopped.
-# These tests require a guestagent binary at /usr/local/share/lima/lima-guestagent.Linux-${ARCH}.gz
 
 NAMESPACE="running-test-ns"
 VM_NAME="alpine-running"
@@ -37,11 +36,6 @@ local_teardown_file() {
 
 local_setup() {
     skip_on_windows
-    # The guestagent binary is installed by Lima (brew install lima). This is a
-    # workaround until we bundle our own guestagent.
-    if [[ ! -f "/usr/local/share/lima/lima-guestagent.Linux-${ARCH}.gz" ]]; then
-        skip "Running tests require lima-guestagent.Linux-${ARCH}.gz (install Lima: brew install lima)"
-    fi
 }
 
 create_limavm_running() {

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 
 	limainstance "github.com/lima-vm/lima/v2/pkg/instance"
 	"github.com/lima-vm/lima/v2/pkg/store"
@@ -71,18 +70,6 @@ const (
 	// Its presence indicates that preparation is in progress or failed.
 	preparingSentinel = ".preparing"
 )
-
-// guestAgentPath returns the path to the Lima guest agent binary for the current architecture.
-// TODO This is just a temporary hack until the guestagent binary can be embedded into rdd.
-func guestAgentPath() string {
-	arch := goruntime.GOARCH
-	if arch == "amd64" {
-		arch = "x86_64"
-	} else if arch == "arm64" {
-		arch = "aarch64"
-	}
-	return "/usr/local/share/lima/lima-guestagent.Linux-" + arch + ".gz"
-}
 
 // sentinelPath returns the path to the preparing sentinel file for an instance.
 func sentinelPath(instanceName string) string {
