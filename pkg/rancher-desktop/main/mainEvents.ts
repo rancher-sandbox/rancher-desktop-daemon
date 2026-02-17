@@ -95,15 +95,6 @@ interface MainEventNames {
   'integration-update'(state: Record<string, boolean | string>): void;
 
   /**
-   * Fetch the API credentials that can be used for HTTP basic auth on localhost
-   * to talk to the backend.
-   *
-   * @note These credentials are meant for the UI; using them may require user
-   * interaction.
-   */
-  'api-get-credentials'(): { user: string, password: string, port: number };
-
-  /**
    * Force trigger diagnostics with the given id.
    * This is used when something has changed that might affect whether the given
    * diagnostic needs to be re-run.
