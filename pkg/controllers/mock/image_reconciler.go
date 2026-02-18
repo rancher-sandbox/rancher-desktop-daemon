@@ -103,7 +103,7 @@ func (r *imageReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			templateImage.ObjectMeta.GenerateName = sanitizeKubernetesObjectName(inspect.ID) + "-"
 			for _, tag := range inspect.RepoTags {
 				targetImage := templateImage.DeepCopy()
-				targetImage.Labels["namespace"] = "moby"
+				targetImage.Labels["namespace"] = containerNamespace
 				targetImage.Status.RepoTag = tag
 				if err := r.upsertImage(ctx, targetImage); err != nil {
 					errs = append(errs, err)

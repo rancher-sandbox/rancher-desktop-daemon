@@ -22,9 +22,12 @@ import (
 const (
 	// The reconcilers will trigger on update of a namespace with this name.
 	mockNamespaceName = "rdd-mocks"
+	// The mock controller creates all items in this (container) namespace.
+	containerNamespace = "buildkit"
 
-	apiGroup       = "mock"
-	controllerName = "mock"
+	apiGroup           = "mock"
+	controllerName     = "mock"
+	controllerLongName = controllerName + "-controller"
 )
 
 func init() {
@@ -61,10 +64,19 @@ func (c *controller) GetCRDData() string {
 }
 
 func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) error {
-	mgr.GetLogger().Info("Setting up Mock ContainerReconciler")
-	err := (&containerReconciler{
+	mgr.GetLogger().Info("Setting up Mock NamespaceReconciler")
+	err := (&namespaceReconciler{
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorder(controllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(controllerLongName),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		return err
+	}
+
+	mgr.GetLogger().Info("Setting up Mock ContainerReconciler")
+	err = (&containerReconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorder(controllerLongName),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		return err
@@ -73,7 +85,7 @@ func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) erro
 	mgr.GetLogger().Info("Setting up Mock ImageReconciler")
 	err = (&imageReconciler{
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorder(controllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(controllerLongName),
 	}).SetupWithManager(ctx, mgr)
 	if err != nil {
 		return err
@@ -82,7 +94,7 @@ func (c *controller) setupReconciler(ctx context.Context, mgr ctrl.Manager) erro
 	mgr.GetLogger().Info("Setting up Mock VolumeReconciler")
 	err = (&volumeReconciler{
 		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorder(controllerName + "-controller"),
+		Recorder: mgr.GetEventRecorder(controllerLongName),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		return err

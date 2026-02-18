@@ -72,7 +72,7 @@ func (r *volumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 				Namespace: namespacedName.Namespace,
 				Name:      namespacedName.Name,
 				Labels: map[string]string{
-					"namespace": "moby",
+					"namespace": containerNamespace,
 				},
 				OwnerReferences: []metav1.OwnerReference{
 					*metav1.NewControllerRef(&rddNamespace, gvk),

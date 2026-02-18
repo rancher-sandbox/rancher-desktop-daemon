@@ -68,7 +68,7 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 		namespace, name, _ := strings.Cut(inspect.Name, "/")
 		if namespace == "" {
-			namespace = "moby"
+			namespace = containerNamespace
 		}
 		state := containersv1alpha1.ContainerStatusCreated
 		if inspect.State.Running {
