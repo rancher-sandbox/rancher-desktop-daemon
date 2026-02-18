@@ -17,6 +17,10 @@ import { HttpFile } from '../http/http';
 */
 export class IoRancherdesktopContainersV1alpha1ImagePullRequestSpec {
     /**
+    * Namespace is the container namespace; refers to a `ContainerNamespace` object in the same Kubernetes namespace.  If not specified, the image will be pulled into the default namespace.
+    */
+    'namespace'?: string;
+    /**
     * RepoTag is the image to pull.
     */
     'repoTag': string;
@@ -26,6 +30,12 @@ export class IoRancherdesktopContainersV1alpha1ImagePullRequestSpec {
     static readonly mapping: {[index: string]: string} | undefined = undefined;
 
     static readonly attributeTypeMap: Array<{name: string, baseName: string, type: string, format: string}> = [
+        {
+            "name": "namespace",
+            "baseName": "namespace",
+            "type": "string",
+            "format": ""
+        },
         {
             "name": "repoTag",
             "baseName": "repoTag",

@@ -30,6 +30,14 @@ export class IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec {
     */
     'labels'?: { [key: string]: string; };
     /**
+    * Name of the container to create; if not specified, a random name will be generated.
+    */
+    'name'?: string;
+    /**
+    * Namespace is the container namespace; refers to a `ContainerNamespace` object in the same Kubernetes namespace.  If not specified, the container will be created in the default namespace.
+    */
+    'namespace'?: string;
+    /**
     * Path is the path to the executable (within the image) for the process. Defaults to the image\'s default command if not specified.
     */
     'path'?: string;
@@ -63,6 +71,18 @@ export class IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec {
             "name": "labels",
             "baseName": "labels",
             "type": "{ [key: string]: string; }",
+            "format": ""
+        },
+        {
+            "name": "name",
+            "baseName": "name",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "namespace",
+            "baseName": "namespace",
+            "type": "string",
             "format": ""
         },
         {

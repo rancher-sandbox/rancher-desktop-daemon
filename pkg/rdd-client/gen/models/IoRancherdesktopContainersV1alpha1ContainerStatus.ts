@@ -51,6 +51,14 @@ export class IoRancherdesktopContainersV1alpha1ContainerStatus {
     */
     'labels'?: { [key: string]: string; };
     /**
+    * Name of the container; this is distinct from the container ID.
+    */
+    'name': string;
+    /**
+    * Namespace is the container namespace; refers to a `ContainerNamespace` object in the same Kubernetes namespace.
+    */
+    'namespace': string;
+    /**
     * Path to the executable (within the image) for the process.
     */
     'path': string;
@@ -122,6 +130,18 @@ export class IoRancherdesktopContainersV1alpha1ContainerStatus {
             "name": "labels",
             "baseName": "labels",
             "type": "{ [key: string]: string; }",
+            "format": ""
+        },
+        {
+            "name": "name",
+            "baseName": "name",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "namespace",
+            "baseName": "namespace",
+            "type": "string",
             "format": ""
         },
         {

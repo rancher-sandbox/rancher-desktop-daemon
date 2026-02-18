@@ -20,6 +20,14 @@ export class IoRancherdesktopContainersV1alpha1VolumeCreateRequestSpec {
     * Driver the volume should use.
     */
     'driver': string;
+    /**
+    * Name of the volume to create; if not specified, a random name will be generated.
+    */
+    'name'?: string;
+    /**
+    * Namespace of the volume; refers to a `ContainerNamespace` object in the same Kubernetes namespace.  If not specified, the volume will be created in the default namespace.
+    */
+    'namespace'?: string;
 
     static readonly discriminator: string | undefined = undefined;
 
@@ -29,6 +37,18 @@ export class IoRancherdesktopContainersV1alpha1VolumeCreateRequestSpec {
         {
             "name": "driver",
             "baseName": "driver",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "name",
+            "baseName": "name",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "namespace",
+            "baseName": "namespace",
             "type": "string",
             "format": ""
         }    ];
