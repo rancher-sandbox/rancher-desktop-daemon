@@ -15,7 +15,7 @@ import * as RDDClient from '@rdd-client';
 export interface RDDConnectionState {
   /** config is the Kubernetes configuration to use. */
   config:              RDDClient.KubeConfig;
-  error:               any | undefined;
+  error:               any;
   watch:               RDDClient.Watch;
   disconnectCallbacks: Record<string, () => void>;
 };
@@ -304,8 +304,9 @@ IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
         const watcher = new Watcher(
           r.name,
           r.path,
-          () => {
-            const result = r.list(client, options?.namespace ?? state.namespace);
+          async() => {
+            // If this throws, the `doneFn` callback gets called with the exception.
+            const result = await r.list(client, options?.namespace ?? state.namespace);
             commit('rdd-connection/SET_ERROR', undefined, { root: true });
             return result;
           },
