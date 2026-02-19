@@ -10,6 +10,7 @@ mkfifo
 mktemp
 moby
 netcat
+printenv
 pulumi
 Trivy
 
