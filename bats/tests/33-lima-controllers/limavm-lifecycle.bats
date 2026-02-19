@@ -212,3 +212,83 @@ EOF
     run -0 rdd ctl get configmap test-vm-running-template --namespace "${NAMESPACE}" -o jsonpath='{.data.template}'
     assert_output "${TEMPLATE}"
 }
+
+@test "limavm edit command updates template ConfigMap" {
+    create_limavm "${VM_NAME}" "source-template"
+
+    # Wait for template ConfigMap to be created
+    rdd ctl wait --for=jsonpath='{.status.templateConfigMap}' \
+        "limavm/${VM_NAME}" --namespace "${NAMESPACE}" --timeout="30s"
+
+    # Since we can't interact with the editor in tests, we'll use a fake editor script that modifies the template file directly.
+    # Set EDITOR to a script that modifies the file
+    local editor_script="${BATS_TEST_TMPDIR}/fake-editor.sh"
+    cat >"${editor_script}" <<'SCRIPT'
+#!/bin/bash
+# Replace the template content
+echo 'images: [{"location":"https://bar"}]' > "$1"
+SCRIPT
+
+    chmod +x "${editor_script}"
+
+    # Run edit with fake editor
+    EDITOR="${editor_script}" run -0 rdd limavm edit "${VM_NAME}"
+    assert_output --partial "updated successfully"
+
+    # Verify ConfigMap was updated
+    run -0 rdd ctl get configmap "${TEMPLATE_NAME}" --namespace "${NAMESPACE}" \
+        -o jsonpath='{.data.template}'
+    assert_output "images: [{\"location\":\"https://bar\"}]"
+}
+
+@test "limavm edit aborts when all content is deleted" {
+    # Capture current template
+    run -0 rdd ctl get configmap "${TEMPLATE_NAME}" --namespace "${NAMESPACE}" \
+        -o jsonpath='{.data.template}'
+
+    local original_template="${output}"
+
+    # Deleting editor
+    local editor_script="${BATS_TEST_TMPDIR}/delete-editor.sh"
+    cat >"${editor_script}" <<'SCRIPT'
+#!/bin/bash
+# Delete all content
+echo "" > "$1"
+SCRIPT
+
+    chmod +x "${editor_script}"
+
+    # Run edit aborst
+    EDITOR="${editor_script}" run -1 rdd limavm edit "${VM_NAME}"
+    assert_output --partial "template data was cleared, aborting edit"
+
+    # Verify ConfigMap unchanged
+    run -0 rdd ctl get configmap "${TEMPLATE_NAME}" --namespace "${NAMESPACE}" \
+        -o jsonpath='{.data.template}'
+    assert_output "${original_template}"
+}
+
+@test "limavm edit skips update when no changes made" {
+    # No-op editor
+    local editor_script="${BATS_TEST_TMPDIR}/noop-editor.sh"
+    cat >"${editor_script}" <<'SCRIPT'
+#!/bin/bash
+# Do nothing and exit happy :)
+exit 0
+SCRIPT
+
+    chmod +x "${editor_script}"
+
+    EDITOR="${editor_script}" run -0 rdd limavm edit "${VM_NAME}"
+    assert_output --partial "No changes made to template, skipping update"
+}
+
+@test "limavm edit fails gracefully for nonexistent VM" {
+    run -1 rdd limavm edit "nonexistent-vm"
+    assert_output --partial 'LimaVM \"nonexistent-vm\" not found in any namespace'
+}
+
+@test "limavm edit rejects invalid template" {
+    skip
+    # TODO: Implement test for invalid template edit once validation is wired in.
+}
