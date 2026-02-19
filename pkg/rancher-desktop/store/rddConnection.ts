@@ -15,6 +15,7 @@ import * as RDDClient from '@rdd-client';
 export interface RDDConnectionState {
   /** config is the Kubernetes configuration to use. */
   config:              RDDClient.KubeConfig;
+  error:               any | undefined;
   watch:               RDDClient.Watch;
   disconnectCallbacks: Record<string, () => void>;
 };
@@ -24,6 +25,7 @@ export const state: () => RDDConnectionState = () => {
   const config = new RDDClient.KubeConfig();
   return {
     config,
+    error:               undefined,
     watch:               markRaw(new RDDClient.Watch(config)),
     disconnectCallbacks: {},
   };
@@ -35,6 +37,9 @@ export const mutations = {
     state.config = config;
     state.watch.config = config;
   },
+  SET_ERROR(state, error) {
+    state.error = markRaw(error);
+  },
   SET_DISCONNECT_CALLBACKS(state, callbacks) {
     state.disconnectCallbacks = callbacks;
   },
@@ -43,13 +48,21 @@ export const mutations = {
 /** Vuex actions for managing the RDD connection. */
 export const actions = {
   async fetchConfig({ commit, dispatch }) {
-    const config = await ipcRenderer.invoke('rdd/kube-config');
-    const kubeConfig = new RDDClient.KubeConfig();
-    kubeConfig.loadFromString(config);
-    commit('SET_CONFIG', kubeConfig);
-    await dispatch('notifyDisconnected');
-    commit('SET_DISCONNECT_CALLBACKS', {});
-    return kubeConfig;
+    try {
+      const config = await ipcRenderer.invoke('rdd/kube-config');
+      const kubeConfig = new RDDClient.KubeConfig();
+
+      kubeConfig.loadFromString(config);
+      commit('SET_CONFIG', kubeConfig);
+      await dispatch('notifyDisconnected');
+      commit('SET_DISCONNECT_CALLBACKS', {});
+      commit('SET_ERROR', undefined);
+
+      return kubeConfig;
+    } catch (ex) {
+      commit('SET_ERROR', ex);
+      throw ex;
+    }
   },
   registerDisconnectCallback({ state, commit }, { key, callback }: { key: string, callback?: () => void }) {
     const callbacks = { ...state.disconnectCallbacks };
@@ -272,12 +285,13 @@ type ResourceWatchActionsReturn<R> =
  */
 export function resourceWatchActions<const T extends readonly ResourceTypeLike[]>(resources: T):
 IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
+  type State = ResourceStateReturn<T[number]>;
   return Object.fromEntries(resources.map(r => {
     const watchMethodName = r.name.replace(/^./, c => 'watch' + c.toUpperCase());
     let debounceTimer: ReturnType<typeof setTimeout> | undefined;
     return [
       watchMethodName,
-      async(actionContext: ActionContext<any, ResourceMutationsReturn<any>>, options?: ResourceWatchActionsOptions) => {
+      async(actionContext: ActionContext<any, MutationsType<State>>, options?: ResourceWatchActionsOptions) => {
         const { commit, state, dispatch, rootState } = actionContext;
         const rddState: RDDConnectionState = rootState['rdd-connection'];
 
@@ -290,8 +304,13 @@ IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
         const watcher = new Watcher(
           r.name,
           r.path,
-          () => r.list(client, options?.namespace ?? state.namespace),
+          () => {
+            const result = r.list(client, options?.namespace ?? state.namespace);
+            commit('rdd-connection/SET_ERROR', undefined, { root: true });
+            return result;
+          },
           async(error) => {
+            commit('rdd-connection/SET_ERROR', error, { root: true });
             await dispatch('rdd-connection/notifyDisconnected', null, { root: true });
             if (error) {
               options?.callback?.(error);
@@ -308,7 +327,7 @@ IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
             }, 1_000);
           },
           rootState['rdd-connection'].watch,
-          commit as any);
+          commit);
         commit('SET__WATCHERS', { ...state._watchers, [r.name]: watcher });
         debounceTimer = setTimeout(() => watcher.start(), 500);
         await dispatch('rdd-connection/registerDisconnectCallback',
@@ -337,8 +356,7 @@ class Watcher<
   #notifyDelay: ReturnType<typeof setTimeout> | undefined;
   #commit:      Commit<string, any>;
   #doneFn:      (error?: any) => void;
-
-  private _watcher: RDDClient.ListWatch<T>;
+  #watcher:     RDDClient.ListWatch<T>;
 
   /**
    * Create a new watcher.
@@ -357,14 +375,14 @@ class Watcher<
     this.#namespace = namespace;
     this.#commit = commit;
     this.#doneFn = doneFn;
-    this._watcher = new RDDClient.ListWatch<T>(
+    this.#watcher = new RDDClient.ListWatch<T>(
       path,
       watch,
       listFn,
       false);
-    this._watcher.on('change', this.onChange.bind(this));
-    this._watcher.on('connect', this.onChange.bind(this));
-    this._watcher.on('error', (err) => {
+    this.#watcher.on('change', this.onChange.bind(this));
+    this.#watcher.on('connect', this.onChange.bind(this));
+    this.#watcher.on('error', (err) => {
       if (err.code === 429) {
         // We can get this if we request too early (when the backend restarts),
         // with a message of "storage is (re)initializing".  Just retry.
@@ -384,7 +402,7 @@ class Watcher<
   }
 
   start() {
-    this._watcher.start().catch(err => {
+    this.#watcher.start().catch(err => {
       console.debug(`Watch ${ this.#type } ended:`, err);
       this.#doneFn(err);
     });
@@ -399,12 +417,12 @@ class Watcher<
     this.#notifyDelay = setTimeout(() => {
       const key = `SET_${ UpperSnakeCase(this.#type) }` as `SET_${ UpperSnakeCase<K> }`;
       this.#notifyDelay = undefined;
-      this.#items = this._watcher?.list(this.#namespace) ?? [];
+      this.#items = this.#watcher?.list(this.#namespace) ?? [];
       this.#commit(key, this.#items as any);
     }, 500);
   }
 
   close() {
-    this._watcher.stop();
+    this.#watcher.stop();
   }
 }
