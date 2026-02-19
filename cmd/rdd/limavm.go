@@ -6,9 +6,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -21,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	corev1scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/kubectl/pkg/cmd/util/editor"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -44,8 +47,73 @@ func newLimaVMCommand() *cobra.Command {
 		newLimaVMDeleteCommand(),
 		newLimaVMLogsCommand(),
 		newLimaVMShellCommand(),
+		newLimaVMEditCommand(),
 	)
 	return command
+}
+
+func newLimaVMEditCommand() *cobra.Command {
+	command := &cobra.Command{
+		Use:   "edit NAME",
+		Short: "Edit the Lima template ConfigMap for a VM",
+		Long:  "Open the LimaVM resource manifest in the default editor for editing.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return limaVMEditAction(cmd.Context(), args[0])
+		},
+	}
+	return command
+}
+
+func limaVMEditAction(ctx context.Context, name string) error {
+	c, err := getKubeClient(ctx)
+	if err != nil {
+		return err
+	}
+	limaVM, err := findLimaVM(ctx, c, name)
+	if err != nil {
+		return err
+	}
+
+	configMapName := limaVM.Status.TemplateConfigMap
+	if configMapName == "" {
+		return fmt.Errorf("LimaVM %q does not have a template ConfigMap", name)
+	}
+
+	configMap := &corev1.ConfigMap{}
+	configMapKey := types.NamespacedName{Name: configMapName, Namespace: limaVM.Namespace}
+	if err := c.Get(ctx, configMapKey, configMap); err != nil {
+		return fmt.Errorf("failed to get template ConfigMap %q: %w", configMapName, err)
+	}
+
+	templateData, exists := configMap.Data[limav1alpha1.TemplateConfigMapKey]
+	if !exists {
+		return fmt.Errorf("template ConfigMap %q does not contain key %q", configMapName, limav1alpha1.TemplateConfigMapKey)
+	}
+
+	edit := editor.NewDefaultEditor(editorEnvs())
+	updatedBytes, path, err := edit.LaunchTempFile(name+"-template-", ".yaml", strings.NewReader(templateData))
+	if err != nil {
+		return fmt.Errorf("failed to launch editor: %w", err)
+	}
+	defer os.Remove(path)
+
+	updatedContent := strings.TrimSpace(string(updatedBytes))
+	if updatedContent == "" {
+		return errors.New("template data was cleared, aborting edit")
+	}
+
+	if updatedContent == templateData {
+		logrus.Info("No changes made to template, skipping update")
+		return nil
+	}
+
+	configMap.Data[limav1alpha1.TemplateConfigMapKey] = updatedContent
+	if err := c.Update(ctx, configMap); err != nil {
+		return fmt.Errorf("failed to update template ConfigMap: %w", err)
+	}
+	logrus.Infof("Template ConfigMap %q updated successfully", configMapName)
+	return nil
 }
 
 func newLimaVMCreateCommand() *cobra.Command {
@@ -346,4 +414,13 @@ func newLimaVMLogsCommand() *cobra.Command {
 	command.Flags().BoolP("stdout", "o", false, "Print stdout instead of stderr")
 	command.Flags().BoolP("follow", "f", false, "Follow log output")
 	return command
+}
+
+// editorEnvs returns an ordered list of env vars to check for editor preferences.
+func editorEnvs() []string {
+	return []string{
+		"KUBE_EDITOR",
+		"EDITOR",
+		"VISUAL",
+	}
 }
