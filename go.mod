@@ -18,7 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
-	go.etcd.io/etcd/api/v3 v3.6.7
+	go.etcd.io/etcd/api/v3 v3.6.8
 	golang.org/x/mod v0.33.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.41.0
@@ -36,6 +36,7 @@ require (
 	k8s.io/kubernetes v1.35.1
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.23.1
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -442,7 +443,6 @@ require (
 	sigs.k8s.io/kustomize/kustomize/v5 v5.7.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
 )
 
 replace (
