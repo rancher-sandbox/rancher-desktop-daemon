@@ -30,6 +30,14 @@ func instancePaths() map[string]string {
 	}
 }
 
+const (
+	outputTable = "table"
+	outputJSON  = "json"
+	outputShell = "shell"
+)
+
+var validOutputFormats = fmt.Sprintf("%s, %s, or %s", outputTable, outputJSON, outputShell)
+
 func newServicePathsCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "paths [key]",
@@ -37,16 +45,16 @@ func newServicePathsCommand() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE:  servicePathsAction,
 	}
-	command.Flags().StringP("output", "o", "table", "Output format: table, json, or shell")
+	command.Flags().StringP("output", "o", outputTable, "Output format: "+validOutputFormats)
 	return command
 }
 
 func servicePathsAction(cmd *cobra.Command, args []string) error {
 	format, _ := cmd.Flags().GetString("output")
 	switch format {
-	case "table", "json", "shell":
+	case outputTable, outputJSON, outputShell:
 	default:
-		return fmt.Errorf("unknown output format %q; valid formats: table, json, shell", format)
+		return fmt.Errorf("unknown output format %q; valid formats: %s", format, validOutputFormats)
 	}
 
 	paths := instancePaths()
@@ -58,7 +66,7 @@ func servicePathsAction(cmd *cobra.Command, args []string) error {
 		if _, ok := paths[key]; !ok {
 			return fmt.Errorf("unknown key %q; valid keys: %s", key, strings.Join(keys, ", "))
 		}
-		if format == "table" {
+		if format == outputTable {
 			_, err := fmt.Fprintln(cmd.OutOrStdout(), paths[key])
 			return err
 		}
@@ -67,13 +75,13 @@ func servicePathsAction(cmd *cobra.Command, args []string) error {
 
 	w := cmd.OutOrStdout()
 	switch format {
-	case "json":
+	case outputJSON:
 		m := make(map[string]string, len(keys))
 		for _, key := range keys {
 			m[key] = paths[key]
 		}
 		return json.NewEncoder(w).Encode(m)
-	case "shell":
+	case outputShell:
 		for _, key := range keys {
 			if _, err := fmt.Fprintf(w, "export RDD_%s=%q\n", strings.ToUpper(key), paths[key]); err != nil {
 				return err

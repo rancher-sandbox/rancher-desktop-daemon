@@ -140,17 +140,25 @@ Output formats (`--output`, `-o`):
 
 *   `shell`: `export` statements with `RDD_` prefix suitable for `source`, e.g. `export RDD_LOG_DIR="/path/to/logs"`.
 
+With a key argument and table output, only the value is printed (no key prefix), so the result can be used directly in scripts.
+
 Examples:
 
-```shell
-# Print all paths
-rdd svc paths
+```console
+$ rdd svc paths
+args_file  /path/to/rancher-desktop-default/rdd.args
+config     /path/to/rancher-desktop-default/config.json
+dir        /path/to/rancher-desktop-default
+lima_home  /path/to/.rd2/lima
+log_dir    /path/to/rancher-desktop-default/log
+pid_file   /path/to/rancher-desktop-default/rdd.pid
+short_dir  /path/to/.rd2
+tls_dir    /path/to/rancher-desktop-default/tls
 
-# Get just the log directory
-rdd svc paths log_dir
+$ rdd svc paths log_dir
+/path/to/rancher-desktop-default/log
 
-# Source paths into the current shell
-source <(rdd svc paths --output=shell)
+$ source <(rdd svc paths --output=shell)
 ```
 
 ## `rdd service config`

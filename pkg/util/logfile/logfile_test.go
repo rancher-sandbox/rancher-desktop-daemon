@@ -5,7 +5,9 @@
 package logfile
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +26,7 @@ func TestCreateFirstFile(t *testing.T) {
 	_, err = os.Stat(filepath.Join(dir, "test.log"))
 	assert.NilError(t, err, "expected test.log to exist")
 	_, err = os.Stat(filepath.Join(dir, "test.1.log"))
-	assert.Assert(t, os.IsNotExist(err), "expected no test.1.log on first call")
+	assert.Assert(t, errors.Is(err, fs.ErrNotExist), "expected no test.1.log on first call")
 }
 
 func TestSequentialNumbering(t *testing.T) {
@@ -49,7 +51,7 @@ func TestSequentialNumbering(t *testing.T) {
 
 	// No app.3.log (the third call created app.log, not a numbered file)
 	_, err = os.Stat(filepath.Join(dir, "app.3.log"))
-	assert.Assert(t, os.IsNotExist(err), "expected no app.3.log")
+	assert.Assert(t, errors.Is(err, fs.ErrNotExist), "expected no app.3.log")
 }
 
 func TestPruning(t *testing.T) {
@@ -67,7 +69,7 @@ func TestPruning(t *testing.T) {
 	// File 1 should be pruned
 	name := filepath.Join(dir, "prune.1.log")
 	_, err := os.Stat(name)
-	assert.Assert(t, os.IsNotExist(err), "expected %s to be pruned", name)
+	assert.Assert(t, errors.Is(err, fs.ErrNotExist), "expected %s to be pruned", name)
 
 	// Remaining numbered files should still exist
 	for n := 2; n <= count-1; n++ {
@@ -84,15 +86,16 @@ func TestPruning(t *testing.T) {
 func TestKeepAll(t *testing.T) {
 	dir := t.TempDir()
 
-	// Create 7 files with keepAll=true
-	for i := 1; i <= 7; i++ {
+	// Create enough files to exceed the retention count with keepAll=true.
+	count := retentionCount + 2
+	for i := 1; i <= count; i++ {
 		f, err := Create(dir, "keep", true, "")
 		assert.NilError(t, err, "Create #%d", i)
 		f.Close()
 	}
 
-	// All numbered backups (1-6) should exist
-	for n := 1; n <= 6; n++ {
+	// All numbered backups should exist
+	for n := 1; n <= count-1; n++ {
 		name := filepath.Join(dir, fmt.Sprintf("keep.%d.log", n))
 		_, err := os.Stat(name)
 		assert.NilError(t, err, "expected %s to exist", name)
@@ -136,11 +139,11 @@ func TestGapsInNumbering(t *testing.T) {
 
 	// No gap.6.log since there was nothing to rename
 	_, err = os.Stat(filepath.Join(dir, "gap.6.log"))
-	assert.Assert(t, os.IsNotExist(err), "expected no gap.6.log")
+	assert.Assert(t, errors.Is(err, fs.ErrNotExist), "expected no gap.6.log")
 
 	// Pre-existing files 1, 3, 5 should be pruned based on nextN=6
 	_, err = os.Stat(filepath.Join(dir, "gap.1.log"))
-	assert.Assert(t, os.IsNotExist(err), "expected gap.1.log to be pruned")
+	assert.Assert(t, errors.Is(err, fs.ErrNotExist), "expected gap.1.log to be pruned")
 	for _, n := range []int{3, 5} {
 		_, err = os.Stat(filepath.Join(dir, fmt.Sprintf("gap.%d.log", n)))
 		assert.NilError(t, err, "expected gap.%d.log to exist", n)
