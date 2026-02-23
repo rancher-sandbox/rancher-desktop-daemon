@@ -20,6 +20,8 @@ export * from '../models/IoRancherdesktopContainersV1alpha1ContainerCreateReques
 export * from '../models/IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec';
 export * from '../models/IoRancherdesktopContainersV1alpha1ContainerCreateRequestStatus';
 export * from '../models/IoRancherdesktopContainersV1alpha1ContainerList';
+export * from '../models/IoRancherdesktopContainersV1alpha1ContainerNamespace';
+export * from '../models/IoRancherdesktopContainersV1alpha1ContainerNamespaceList';
 export * from '../models/IoRancherdesktopContainersV1alpha1ContainerSpec';
 export * from '../models/IoRancherdesktopContainersV1alpha1ContainerStatus';
 export * from '../models/IoRancherdesktopContainersV1alpha1ContainerStatusPortsInner';
@@ -204,8 +206,10 @@ import { IoRancherdesktopContainersV1alpha1ContainerCreateRequestList } from '..
 import { IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec } from '../models/IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec';
 import { IoRancherdesktopContainersV1alpha1ContainerCreateRequestStatus } from '../models/IoRancherdesktopContainersV1alpha1ContainerCreateRequestStatus';
 import { IoRancherdesktopContainersV1alpha1ContainerList } from '../models/IoRancherdesktopContainersV1alpha1ContainerList';
+import { IoRancherdesktopContainersV1alpha1ContainerNamespace } from '../models/IoRancherdesktopContainersV1alpha1ContainerNamespace';
+import { IoRancherdesktopContainersV1alpha1ContainerNamespaceList } from '../models/IoRancherdesktopContainersV1alpha1ContainerNamespaceList';
 import { IoRancherdesktopContainersV1alpha1ContainerSpec } from '../models/IoRancherdesktopContainersV1alpha1ContainerSpec';
-import { IoRancherdesktopContainersV1alpha1ContainerStatus            , IoRancherdesktopContainersV1alpha1ContainerStatusStatusEnum   } from '../models/IoRancherdesktopContainersV1alpha1ContainerStatus';
+import { IoRancherdesktopContainersV1alpha1ContainerStatus              , IoRancherdesktopContainersV1alpha1ContainerStatusStatusEnum   } from '../models/IoRancherdesktopContainersV1alpha1ContainerStatus';
 import { IoRancherdesktopContainersV1alpha1ContainerStatusPortsInner } from '../models/IoRancherdesktopContainersV1alpha1ContainerStatusPortsInner';
 import { IoRancherdesktopContainersV1alpha1ContainerStatusPortsInnerBindingsInner } from '../models/IoRancherdesktopContainersV1alpha1ContainerStatusPortsInnerBindingsInner';
 import { IoRancherdesktopContainersV1alpha1Image } from '../models/IoRancherdesktopContainersV1alpha1Image';
@@ -425,6 +429,8 @@ let typeMap: {[index: string]: any} = {
     "IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec": IoRancherdesktopContainersV1alpha1ContainerCreateRequestSpec,
     "IoRancherdesktopContainersV1alpha1ContainerCreateRequestStatus": IoRancherdesktopContainersV1alpha1ContainerCreateRequestStatus,
     "IoRancherdesktopContainersV1alpha1ContainerList": IoRancherdesktopContainersV1alpha1ContainerList,
+    "IoRancherdesktopContainersV1alpha1ContainerNamespace": IoRancherdesktopContainersV1alpha1ContainerNamespace,
+    "IoRancherdesktopContainersV1alpha1ContainerNamespaceList": IoRancherdesktopContainersV1alpha1ContainerNamespaceList,
     "IoRancherdesktopContainersV1alpha1ContainerSpec": IoRancherdesktopContainersV1alpha1ContainerSpec,
     "IoRancherdesktopContainersV1alpha1ContainerStatus": IoRancherdesktopContainersV1alpha1ContainerStatus,
     "IoRancherdesktopContainersV1alpha1ContainerStatusPortsInner": IoRancherdesktopContainersV1alpha1ContainerStatusPortsInner,

@@ -17,7 +17,7 @@ import { HttpFile } from '../http/http';
 */
 export class IoRancherdesktopContainersV1alpha1ImagePushRequestSpec {
     /**
-    * ImageRef is the image to push. This must be the name of an Image object in the same namespace.
+    * ImageRef is the image to push. This must be the name of an Image object in the same Kubernetes namespace.
     */
     'imageRef': string;
 

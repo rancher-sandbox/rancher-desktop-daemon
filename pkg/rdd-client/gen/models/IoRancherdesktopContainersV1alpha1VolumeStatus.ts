@@ -33,6 +33,14 @@ export class IoRancherdesktopContainersV1alpha1VolumeStatus {
     */
     'mountpoint': string;
     /**
+    * Name of the volume.
+    */
+    'name': string;
+    /**
+    * Namespace of the volume; refers to a `ContainerNamespace` object in the same Kubernetes namespace.
+    */
+    'namespace': string;
+    /**
     * Options for the volume driver.
     */
     'options'?: { [key: string]: string; };
@@ -67,6 +75,18 @@ export class IoRancherdesktopContainersV1alpha1VolumeStatus {
         {
             "name": "mountpoint",
             "baseName": "mountpoint",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "name",
+            "baseName": "name",
+            "type": "string",
+            "format": ""
+        },
+        {
+            "name": "namespace",
+            "baseName": "namespace",
             "type": "string",
             "format": ""
         },

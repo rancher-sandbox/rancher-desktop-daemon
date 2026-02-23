@@ -38,6 +38,10 @@ export class IoRancherdesktopContainersV1alpha1ImageStatus {
     */
     'labels'?: { [key: string]: string; };
     /**
+    * Namespace is the container namespace; refers to a `ContainerNamespace` object in the same Kubernetes namespace.
+    */
+    'namespace': string;
+    /**
     * OS associated with the image.
     */
     'os': string;
@@ -87,6 +91,12 @@ export class IoRancherdesktopContainersV1alpha1ImageStatus {
             "name": "labels",
             "baseName": "labels",
             "type": "{ [key: string]: string; }",
+            "format": ""
+        },
+        {
+            "name": "namespace",
+            "baseName": "namespace",
+            "type": "string",
             "format": ""
         },
         {
