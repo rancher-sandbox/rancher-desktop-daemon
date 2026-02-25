@@ -42,6 +42,9 @@ type pluginTypes = pluginType<moduleTypes>;
 export type RootState = {
   [K in keyof Modules]: ReturnType<Modules[K]['state']>;
 };
+export type RootGetters = {
+  [K in keyof Modules]: Modules[K] extends { getters: any } ? ReturnType<Modules[K]['getters']> : never;
+};
 
 export default createStore<any>({
   modules: Object.fromEntries(Object.entries(modules).map(([k, v]) => [k, { namespaced: true, ...v }])),

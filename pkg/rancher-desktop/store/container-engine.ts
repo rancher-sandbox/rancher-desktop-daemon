@@ -1,5 +1,5 @@
 import { defineResource, listNamespacedResource, ListResourceOptions, resourceMutations, resourceState, resourceWatchActions } from '@pkg/store/rddConnection';
-import { ActionTree, MutationsType } from '@pkg/store/ts-helpers';
+import { ActionTree, GetterTree, MutationsType } from '@pkg/store/ts-helpers';
 import * as RDDClient from '@rdd-client';
 
 type ContainerEngineState = ReturnType<typeof state>;
@@ -27,6 +27,12 @@ function listContainerNamespacedResource<
 
 const resources = [
   defineResource({
+    name:       'containers',
+    path:       '/apis/containers.rancherdesktop.io/v1alpha1/containers',
+    makeClient: config => config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api),
+    list:       listContainerNamespacedResource('Container'),
+  }),
+  defineResource({
     name:       'images',
     path:       '/apis/containers.rancherdesktop.io/v1alpha1/images',
     makeClient: config => config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api),
@@ -47,7 +53,7 @@ const resources = [
   }),
 ] as const;
 
-type errorSource = 'images' | 'volumes' | 'namespaces';
+type errorSource = 'containers' | 'images' | 'volumes' | 'namespaces';
 
 export const state = () => ({
   ...resourceState(resources),
@@ -55,12 +61,15 @@ export const state = () => ({
   error:            undefined as undefined | { error: Error, source: errorSource },
 });
 
-export const getters = ({
+export const getters = {
   supportsNamespaces(): boolean {
     // TODO: Determine if the backend supports namespaces.
     return false;
   },
-});
+  currentNamespace(state, getters): string | undefined {
+    return getters.supportsNamespaces ? state.currentNamespace : undefined;
+  },
+} satisfies GetterTree<ContainerEngineState>;
 
 export const mutations = {
   ...resourceMutations(resources),
@@ -74,13 +83,67 @@ export const mutations = {
 
 export const actions = {
   ...resourceWatchActions(resources),
-  setCurrentNamespace({ commit, state }, { namespace }: { namespace: string | undefined }) {
-    if (namespace !== undefined && !state.namespaces?.some(ns => ns.metadata?.name === namespace)) {
+  setCurrentNamespace({ commit, getters, state }, { namespace }: { namespace: string | undefined }) {
+    if (namespace === state.currentNamespace) {
+      return;
+    }
+    if (!getters.supportsNamespaces) {
+      const error = new Error('Current container engine does not support namespaces');
+      commit('SET_ERROR', { error, source: 'namespaces' });
+      console.log(error);
+    } else if (namespace !== undefined && !state.namespaces?.some(ns => ns.metadata?.name === namespace)) {
       const error = new Error(`Cannot set current namespace to nonexistent namespace ${ namespace }`);
       commit('SET_ERROR', { error, source: 'namespaces' });
       console.log(error);
     } else {
       commit('SET_CURRENT_NAMESPACE', namespace);
+    }
+  },
+  /** Request the given container to transition to the provided state. */
+  containerSetState(
+    { rootState, commit },
+    { container, state }: {
+      container: RDDClient.IoRancherdesktopContainersV1alpha1Container,
+      state:     'running' | 'stopped',
+    },
+  ) {
+    const config: RDDClient.KubeConfig = rootState['rdd-connection'].config;
+    const client = config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api);
+
+    return client.patchNamespacedContainer(
+      {
+        name:            container.metadata!.name!,
+        namespace:       container.metadata!.namespace!,
+        body:            { spec: { desiredState: state } },
+        fieldValidation: 'Strict',
+      }).catch((err: Error) => {
+      commit('SET_ERROR', { error: err, source: 'containers' });
+    });
+  },
+  /** Delete the given container. */
+  async containerDelete(
+    { rootState, commit },
+    { container }: {
+      container: RDDClient.IoRancherdesktopContainersV1alpha1Container,
+    },
+  ) {
+    const config: RDDClient.KubeConfig = rootState['rdd-connection'].config;
+    const client = config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api);
+
+    try {
+      const status = await client.deleteNamespacedContainer({
+        name:      container.metadata!.name!,
+        namespace: container.metadata!.namespace!,
+      });
+
+      if (status.status !== 'Success') {
+        commit('SET_ERROR', {
+          error:  new Error(`Failed to delete container ${ container.metadata!.name }: ${ status.message }`),
+          source: 'containers',
+        });
+      }
+    } catch (error: any) {
+      commit('SET_ERROR', { error, source: 'containers' });
     }
   },
   imagePush(

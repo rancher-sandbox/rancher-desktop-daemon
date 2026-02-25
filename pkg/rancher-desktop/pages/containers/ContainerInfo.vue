@@ -114,9 +114,8 @@ import ContainerLogs from '@pkg/components/ContainerLogs.vue';
 import ContainerShell from '@pkg/components/ContainerShell.vue';
 import RdTabbed from '@pkg/components/Tabbed/RdTabbed.vue';
 import Tab from '@pkg/components/Tabbed/Tab.vue';
-import type { Settings } from '@pkg/config/settings';
-import type { Container } from '@pkg/store/container-engine';
-import { ipcRenderer } from '@pkg/utils/ipcRenderer';
+
+import type { IoRancherdesktopContainersV1alpha1Container as Container } from '@rdd-client';
 
 // Router and Store
 const route = useRoute();
@@ -128,40 +127,28 @@ const containerShell = ref<InstanceType<typeof ContainerShell> | null>(null);
 const searchInput = ref<HTMLInputElement | null>(null);
 
 // Reactive data
-const settings = ref<Settings>();
-const subscribeTimer = ref<ReturnType<typeof setTimeout>>();
 const searchTerm = ref('');
 const activeTab = ref<'tab-logs' | 'tab-shell'>('tab-logs');
 const shellEverActivated = ref(false);
 
 // Vuex integration
 const containers = computed(() => store.state['container-engine'].containers);
-const supportsNamespaces = computed(() => store.getters['container-engine/supportsNamespaces']);
-const namespace = computed(() => supportsNamespaces.value ? settings.value?.containers?.namespace : undefined);
+const supportsNamespaces = computed<boolean>(() => store.getters['container-engine/supportsNamespaces']);
+const namespace = computed<string | undefined>(() => store.getters['container-engine/currentNamespace']);
 
 // Computed properties
 const containerId = computed(() => route.params.id as string || '');
 
 const currentContainer = computed((): Container | null => {
-  if (!containers.value || !containerId.value) {
-    return null;
-  }
-  return containers.value[containerId.value] || null;
+  return containers.value?.find(c => c.metadata?.name === containerId.value) ?? null;
 });
 
 const containerName = computed(() => {
-  if (!currentContainer.value) {
-    return containerId.value.substring(0, 12);
-  }
-  const name = currentContainer.value.containerName;
-  return name.replace(/^\//, '') || containerId.value.substring(0, 12);
+  return currentContainer.value?.status?.name ?? containerId.value.substring(0, 12);
 });
 
 const isRunning = computed(() => {
-  if (!currentContainer.value) {
-    return false;
-  }
-  return currentContainer.value.state === 'running';
+  return currentContainer.value?.status?.status === 'running';
 });
 
 // Watchers
@@ -181,24 +168,6 @@ watch(activeTab, (tab) => {
 });
 
 // Methods as functions
-const subscribe = async() => {
-  if (subscribeTimer.value) {
-    clearTimeout(subscribeTimer.value);
-  }
-  try {
-    if (!window.ddClient || !settings.value) {
-      subscribeTimer.value = setTimeout(subscribe, 1_000);
-      return;
-    }
-    await store.dispatch('container-engine/subscribe', {
-      type:   'containers',
-      client: window.ddClient,
-    });
-  } catch (error) {
-    console.error('There was a problem subscribing to container events:', { error });
-  }
-};
-
 const onSearchInput = () => {
   containerLogs.value?.performSearch(searchTerm.value);
 };
@@ -245,35 +214,20 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
 };
 
 // Event handlers
-const handleSettingsUpdate = (_event: any, settingsData: any) => {
-  settings.value = settingsData;
-};
-
-const handleSettingsRead = (_event: any, settingsData: any) => {
-  settings.value = settingsData;
-  subscribe().catch(console.error);
-};
-
 // Lifecycle hooks
 onMounted(() => {
-  ipcRenderer.send('settings-read');
-
-  ipcRenderer.on('settings-update', handleSettingsUpdate);
-  ipcRenderer.on('settings-read', handleSettingsRead);
-
-  subscribe().catch(console.error);
+  store.dispatch('container-engine/watchContainers', {
+    callback: (error) => {
+      store.commit('container-engine/SET_ERROR', { error, source: 'containers' });
+    },
+  }).catch(console.error);
 
   window.addEventListener('keydown', handleGlobalKeydown);
 });
 
 onBeforeUnmount(() => {
   store.dispatch('page/setHeader', { action: null });
-  ipcRenderer.removeListener('settings-update', handleSettingsUpdate);
-  ipcRenderer.removeListener('settings-read', handleSettingsRead);
-  store.dispatch('container-engine/unsubscribe').catch(console.error);
-  if (subscribeTimer.value) {
-    clearTimeout(subscribeTimer.value);
-  }
+
   window.removeEventListener('keydown', handleGlobalKeydown);
 });
 </script>
