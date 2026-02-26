@@ -1,8 +1,11 @@
 # Words from tools.
 buildkit
 buildvcs
+coreutils
 cpanm
 cpanminus
+gnubin
+libexec
 ltag
 maxdepth
 mindepth
@@ -10,6 +13,7 @@ mkfifo
 mktemp
 moby
 netcat
+nproc
 pulumi
 Trivy
 

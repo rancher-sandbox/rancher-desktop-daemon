@@ -75,12 +75,15 @@ jobs:
       if: runner.os == 'macOS'
       working-directory: ${{ runner.temp }}
       run: |
-        brew install bash
+        brew install bash coreutils make
 
         # Set up run-in-wsl helper script (as a symlink to bash)
         mkdir -p bin
         ln -s $(brew --prefix bash)/bin/bash bin/run-in-wsl
         readlink -f bin >> "$GITHUB_PATH"
+
+        # Use GNU make
+        echo "$(brew --prefix)/opt/make/libexec/gnubin" >> "$GITHUB_PATH"
 
     - name: "Windows: install prerequisites"
       if: runner.os == 'Windows'
@@ -156,7 +159,7 @@ jobs:
         systemctl status systemd-binfmt.service || true
       continue-on-error: true
 
-    - run: make -C bats --keep-going
+    - run: make -C bats --keep-going --jobs=$(nproc) --output-sync=target
       shell: run-in-wsl {0}
       env:
         RDD_TRACE: true
