@@ -29,8 +29,9 @@ assert_process_exited() {
 }
 
 @test "external controller starts and registers" {
-    # Start external rdd-controller binary in background, capturing logs for debugging
-    "rdd-controller${EXE}" >"${BATS_FILE_TMPDIR}/controller1.log" 2>&1 &
+    # Start external rdd-controller binary in background, capturing logs for debugging.
+    # Write to RDD_LOG_DIR so the CI artifact collector picks up the log.
+    "rdd-controller${EXE}" &>"${RDD_LOG_DIR}/rdd-controller-1.log" &
     # Store PID to verify it auto-exits later
     echo "$!" >"${BATS_FILE_TMPDIR}/controller_pid"
 
@@ -137,7 +138,7 @@ EOF
     # Use 30s to provide margin for slow CI machines
     if ! try --max 30 --delay 1 -- assert_process_exited "${controller_pid}"; then
         trace "# Controller did not exit in time. Log contents:"
-        trace "$(cat "${BATS_FILE_TMPDIR}/controller1.log" || true)"
+        trace "$(cat "${RDD_LOG_DIR}/rdd-controller-1.log" || true)"
         return 1
     fi
     trace "# Controller exited at $(date +%T)"
@@ -167,8 +168,9 @@ EOF
 }
 
 @test "external controller runs and registers" {
-    # Start external rdd-controller binary in background, capturing logs for debugging
-    "rdd-controller${EXE}" >"${BATS_FILE_TMPDIR}/controller2.log" 2>&1 &
+    # Start external rdd-controller binary in background, capturing logs for debugging.
+    # Write to RDD_LOG_DIR so the CI artifact collector picks up the log.
+    "rdd-controller${EXE}" &>"${RDD_LOG_DIR}/rdd-controller-2.log" &
     # Store PID to verify it auto-exits later
     echo "$!" >"${BATS_FILE_TMPDIR}/controller_pid"
 
@@ -199,7 +201,7 @@ EOF
     # Use 30s to provide margin for slow CI machines
     if ! try --max 30 --delay 1 -- assert_process_exited "${controller_pid}"; then
         trace "# Controller did not exit in time. Log contents:"
-        trace "$(cat "${BATS_FILE_TMPDIR}/controller2.log" || true)"
+        trace "$(cat "${RDD_LOG_DIR}/rdd-controller-2.log" || true)"
         return 1
     fi
     trace "# Controller exited at $(date +%T)"
