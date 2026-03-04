@@ -65,8 +65,11 @@ assert_klog_level() {
 # Test default log levels based on developer mode
 @test 'default log level in developer mode creates -v 2' {
     run -0 rdd svc delete
-    # Developer mode should default to debug level
-    # shellcheck disable=SC2030,SC2031 # This only applies to the subshell
+    # Developer mode should default to debug level.
+    # Use empty string (not unset) because unset does not cross the WSL boundary on Windows.
+    # shellcheck disable=SC2030,SC2031 # Subshell-local modifications are intentional
+    export RDD_LOG_LEVEL=""
+    # shellcheck disable=SC2030,SC2031
     export RDD_DEVELOPER_MODE=1
     run -0 rdd svc create --controllers=""
     assert_klog_level 2
@@ -74,10 +77,30 @@ assert_klog_level() {
 
 @test 'default log level in non-developer mode creates -v 0' {
     run -0 rdd svc delete
-    # Non-developer mode should default to warning level
-    # shellcheck disable=SC2030,SC2031 # This only applies to the subshell
+    # Non-developer mode should default to warning level.
+    # Use empty string (not unset) because unset does not cross the WSL boundary on Windows.
+    # shellcheck disable=SC2030,SC2031 # Subshell-local modifications are intentional
+    export RDD_LOG_LEVEL=""
+    # shellcheck disable=SC2030,SC2031
     export RDD_DEVELOPER_MODE=0
     run -0 rdd svc create --controllers=""
+    assert_klog_level 0
+}
+
+# Test RDD_LOG_LEVEL environment variable
+@test 'RDD_LOG_LEVEL sets log level' {
+    run -0 rdd svc delete
+    # shellcheck disable=SC2030,SC2031 # This only applies to the subshell
+    export RDD_LOG_LEVEL=trace
+    run -0 rdd svc create --controllers=""
+    assert_klog_level 4
+}
+
+@test '--log-level flag overrides RDD_LOG_LEVEL' {
+    run -0 rdd svc delete
+    # shellcheck disable=SC2030,SC2031 # This only applies to the subshell
+    export RDD_LOG_LEVEL=trace
+    run -0 rdd --log-level=error svc create --controllers=""
     assert_klog_level 0
 }
 

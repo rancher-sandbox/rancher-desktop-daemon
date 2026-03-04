@@ -163,6 +163,7 @@ jobs:
       shell: run-in-wsl {0}
       env:
         RDD_TRACE: true
+        RDD_LOG_LEVEL: trace
 
     - name: Collect RDD logs
       if: always()

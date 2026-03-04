@@ -68,11 +68,14 @@ func parseInstanceFlag() {
 	}
 }
 
-// setLogLevel sets the log level from command flags.
+// setLogLevel sets the log level from command flags or RDD_LOG_LEVEL.
 func setLogLevel(cmd *cobra.Command, _ []string) error {
 	logLevel, err := cmd.Root().Flags().GetString("log-level")
 	if err != nil {
 		return err
+	}
+	if logLevel == "" {
+		logLevel = os.Getenv("RDD_LOG_LEVEL")
 	}
 	if logLevel == "" {
 		// Default log level: warn for regular mode, debug for developer mode
