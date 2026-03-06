@@ -59,6 +59,7 @@ Provides basic infrastructure services. Examples include:
 * [url monitoring APIs](api_url_monitor.md) periodically check for new versions
 * [diagnostics APIs](api_diagnostic.md) can raise warnings and errors from any component
 * [service lifecycle](api_service.md) explains how the control plane start up and shuts down
+* [controller manager discovery](discovery.md) explains how controller managers find each other
 * [snapshot APIs](api_snapshot.md) can save and restore all or part of the state of the RDD service
 * [deployment profiles](profile.md) set defaults and can lock down features
 
