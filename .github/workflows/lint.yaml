@@ -31,6 +31,19 @@ jobs:
         --jq '.[0].number // 0')
       env:
         GH_TOKEN: ${{ github.token }}
+  verify-generate:
+    name: Verify generated files
+    needs: get-pr-number
+    runs-on: ubuntu-latest
+    if: ${{ ! needs.get-pr-number.outputs.number }}
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+      with:
+        go-version-file: go.mod
+    - run: make verify-generate
   lint-rdd:
     name: Lint RDD
     needs: get-pr-number

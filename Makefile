@@ -137,6 +137,14 @@ generate-crds:
 generate: generate-deepcopy generate-crds
 .PHONY: generate
 
+verify-generate: generate
+	@if [ -n "$$(git diff --name-only)" ]; then \
+		echo "ERROR: Generated files are out of date. Run 'make generate' and commit the result." >&2; \
+		git diff --stat; \
+		exit 1; \
+	fi
+.PHONY: verify-generate
+
 run: bin/rdd$(EXE)
 	$< service start
 .PHONY: run
