@@ -8,6 +8,7 @@ import (
 	"os"
 
 	// Import app controller packages to trigger init() functions.
+	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/app"
 	_ "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/demo"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/external"
 )
