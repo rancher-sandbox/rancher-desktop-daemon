@@ -1,59 +1,25 @@
 load '../../helpers/load'
 
-# Controller testing using CRD presence validation
+# Verify that --controllers selects which controllers run.
+# The discovery ConfigMap tracks enabled controllers; CRDs persist
+# across restarts and cannot indicate which controllers are active.
 
-CRD_GROUP=customresourcedefinition.apiextensions.k8s.io # spellchecker:ignore
-
-get_controllers() {
-    run -0 rdd ctl get CustomResourceDefinition --output=name
-    # If `$output` is empty, `refute_lines` will fail because `$lines` is unset.
-    if [[ -z "${output}" ]]; then
-        run -0 echo '<no output>'
-    fi
-}
-
-check_rdd_controllers() {
-    local assert=$1
-    "${assert}_line" "${CRD_GROUP}/notaries.rdd.rancherdesktop.io"
-    "${assert}_line" "${CRD_GROUP}/configmapreplicasets.rdd.rancherdesktop.io"
-}
-
-check_app_controllers() {
-    local assert=$1
-    "${assert}_line" "${CRD_GROUP}/demos.app.rancherdesktop.io"
-}
-
-assert_only_rdd_controllers() {
-    get_controllers
-    check_rdd_controllers assert
-    check_app_controllers refute
-}
-
-assert_only_app_controllers() {
-    get_controllers
-    check_app_controllers assert
-    check_rdd_controllers refute
-}
-
-assert_all_controllers() {
-    get_controllers
-    check_rdd_controllers assert
-    check_app_controllers assert
-}
-
-assert_no_controllers() {
-    # Essential APIs should work but no controllers
-    run -0 rdd ctl get namespaces
-    get_controllers
-    check_rdd_controllers refute
-    check_app_controllers refute
+get_enabled_controllers() {
+    run -0 rdd ctl get configmap rdd-controller-manager \
+        --namespace=rdd-system --output=jsonpath='{.data.embedded}'
+    run -0 jq_output '.enabledControllers[]'
 }
 
 @test 'test instance with no controllers parameter' {
     run -0 rdd svc delete
     run -0 rdd svc create --controllers=""
     run -0 rdd svc start
-    assert_no_controllers
+    # enabledControllers is null when no controllers are running.
+    # Use "// empty" because ".enabledControllers[]" errors on null.
+    run -0 rdd ctl get configmap rdd-controller-manager \
+        --namespace=rdd-system --output=jsonpath='{.data.embedded}'
+    run -0 jq_output '.enabledControllers // empty'
+    refute_output
 }
 
 @test 'create instance with specific controllers parameter' {
@@ -69,24 +35,36 @@ assert_no_controllers() {
 
 @test 'start instance uses saved parameters by default' {
     run -0 rdd svc start
-    assert_only_rdd_controllers
+    get_enabled_controllers
+    assert_line notary
+    assert_line configmapreplicaset
+    refute_line demo
 }
 
 @test 'start instance with parameter override' {
     run -0 rdd svc stop
     run -0 rdd svc start --controllers="*"
-    assert_all_controllers
+    get_enabled_controllers
+    assert_line notary
+    assert_line configmapreplicaset
+    assert_line demo
 }
 
 @test 'start instance with controller parameter override' {
     run -0 rdd svc stop
     run -0 rdd svc start --controllers="app"
-    assert_only_app_controllers
+    get_enabled_controllers
+    assert_line demo
+    refute_line notary
+    refute_line configmapreplicaset
 }
 
 @test 'start instance returns to default parameters after override' {
     run -0 rdd svc stop
     # Start with default parameters (should use saved rdd controllers)
     run -0 rdd svc start
-    assert_only_rdd_controllers
+    get_enabled_controllers
+    assert_line notary
+    assert_line configmapreplicaset
+    refute_line demo
 }

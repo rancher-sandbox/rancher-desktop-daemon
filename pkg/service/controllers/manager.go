@@ -18,17 +18,13 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"k8s.io/apiextensions-apiserver/pkg/apihelpers"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -42,11 +38,6 @@ import (
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
-)
-
-const (
-	// crdOwnerLabel is the label used to identify the SharedControllerManager that owns a CRD.
-	crdOwnerLabel = "org.rancherdesktop.rdd/shared-controller-manager"
 )
 
 // SharedControllerManager manages all embedded RDD controllers using a single controller-runtime manager.
@@ -103,11 +94,6 @@ func (scm *SharedControllerManager) Start(ctx context.Context) error {
 	}
 
 	log := klog.FromContext(ctx)
-
-	// Clean up unused resources from previous controller runs
-	if err := scm.cleanupUnusedResources(ctx); err != nil {
-		return fmt.Errorf("failed to cleanup unused resources: %w", err)
-	}
 
 	// Clean up stale discovery configmap to prevent readiness check confusion
 	if err := scm.discovery.UnregisterControllerManager(ctx); err != nil {
@@ -412,10 +398,6 @@ func (scm *SharedControllerManager) installControllerCRDs(ctx context.Context) e
 
 			// Create the CRD
 			klog.Infof("Installing %s CRD %s", controllerName, crd.Name)
-			if crd.Labels == nil {
-				crd.Labels = make(map[string]string)
-			}
-			crd.Labels[crdOwnerLabel] = scm.name
 			if _, err := crdClient.Create(ctx, &crd, metav1.CreateOptions{}); err != nil {
 				return fmt.Errorf("failed to create CRD for controller %s: %w", controllerName, err)
 			}
@@ -512,225 +494,6 @@ func (scm *SharedControllerManager) runPassthroughServer(ctx context.Context) er
 	<-shutdownComplete
 
 	return nil
-}
-
-// cleanupUnusedResources removes CRDs and webhook configurations for controllers that are not currently running.
-// This function cleans up resources from controllers that were previously running but are no longer selected.
-func (scm *SharedControllerManager) cleanupUnusedResources(ctx context.Context) error {
-	// Get the set of controllers that will be running
-	runningControllers := make(map[string]bool)
-	for _, registration := range scm.registrations {
-		runningControllers[registration.GetName()] = true
-	}
-
-	// Get all possible controllers from the registry to determine what could be cleaned up
-	allControllers := base.GetAllControllers()
-	controllersToCleanup := make([]base.Controller, 0)
-
-	for _, controller := range allControllers {
-		if !runningControllers[controller.GetName()] {
-			controllersToCleanup = append(controllersToCleanup, controller)
-		}
-	}
-
-	if len(controllersToCleanup) == 0 {
-		klog.V(2).InfoS("No controllers to cleanup")
-		return nil
-	}
-
-	klog.InfoS("Cleaning up resources for unused controllers", "count", len(controllersToCleanup))
-
-	// Cleanup CRDs
-	if err := scm.cleanupUnusedCRDs(ctx, controllersToCleanup); err != nil {
-		return fmt.Errorf("failed to cleanup unused CRDs: %w", err)
-	}
-
-	return nil
-}
-
-// cleanupUnusedCRDs removes CRDs for controllers that are not currently running
-// and waits for the deletions to complete.
-//
-// CRDs in the same API group are deleted sequentially because each deletion
-// triggers an API group handler rebuild that tears down watch caches for all
-// sibling CRDs. Deleting them all at once creates a thundering herd: the CRD
-// finalizer hits "storage is (re)initializing" 429s, retries conflict, and
-// drops work items. Serializing within a group lets each CRD finalize cleanly
-// before the next deletion. Different API groups are independent, so they are
-// processed in parallel.
-func (scm *SharedControllerManager) cleanupUnusedCRDs(ctx context.Context, controllersToCleanup []base.Controller) error {
-	if len(controllersToCleanup) == 0 {
-		return nil
-	}
-
-	apiextensionsClient, err := apiextensionsclientset.NewForConfig(scm.kubeConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create apiextensions client: %w", err)
-	}
-	dynamicClient, err := dynamic.NewForConfig(scm.kubeConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
-	crdClient := apiextensionsClient.ApiextensionsV1().CustomResourceDefinitions()
-
-	// Collect CRDs to delete, grouped by API group.
-	crdsByGroup := make(map[string][]*apiextensionsv1.CustomResourceDefinition)
-
-	for _, controller := range controllersToCleanup {
-		crdData := controller.GetCRDData()
-		if crdData == "" {
-			continue
-		}
-
-		decoder := yaml.NewYAMLToJSONDecoder(bytes.NewBufferString(crdData))
-		for {
-			var crd apiextensionsv1.CustomResourceDefinition
-			if err := decoder.Decode(&crd); err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-				klog.ErrorS(err, "Failed to unmarshal CRD for controller", "controller", controller.GetName())
-				continue
-			}
-			if crd.Name == "" {
-				continue // Comment block before the first document has no data.
-			}
-
-			existingCRD, err := crdClient.Get(ctx, crd.Name, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			if err != nil {
-				return fmt.Errorf("failed to check CRD %s: %w", crd.Name, err)
-			}
-			if existingCRD.Labels != nil && existingCRD.Labels[crdOwnerLabel] != scm.name {
-				klog.V(2).InfoS("Skipping CRD owned by different controller manager", "crd", crd.Name, "manager", existingCRD.Labels[crdOwnerLabel])
-				continue
-			}
-
-			group := existingCRD.Spec.Group
-			crdsByGroup[group] = append(crdsByGroup[group], existingCRD)
-		}
-	}
-
-	total := 0
-	for _, crds := range crdsByGroup {
-		total += len(crds)
-	}
-	if total == 0 {
-		return nil
-	}
-
-	klog.InfoS("Deleting unused CRDs", "count", total, "groups", len(crdsByGroup))
-
-	// Delete each API group's CRDs sequentially, but process groups in parallel.
-	cleanupCtx, cleanupCancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cleanupCancel()
-
-	var wg sync.WaitGroup
-	errCh := make(chan error, len(crdsByGroup))
-
-	for group, crds := range crdsByGroup {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := deleteAndWaitForCRDs(cleanupCtx, crdClient, dynamicClient, group, crds); err != nil {
-				errCh <- err
-			}
-		}()
-	}
-
-	wg.Wait()
-	close(errCh)
-
-	var errs []error
-	for err := range errCh {
-		errs = append(errs, err)
-	}
-	return errors.Join(errs...)
-}
-
-// deleteAndWaitForCRDs deletes CRDs one at a time within a single API group,
-// waiting for each to be fully finalized before deleting the next. This avoids
-// the handler rebuild cascade that causes the CRD finalizer to fail.
-func deleteAndWaitForCRDs(
-	ctx context.Context,
-	crdClient apiextensionsv1client.CustomResourceDefinitionInterface,
-	dynamicClient dynamic.Interface,
-	group string,
-	crds []*apiextensionsv1.CustomResourceDefinition,
-) error {
-	for _, crd := range crds {
-		klog.InfoS("Deleting unused CRD", "crd", crd.Name, "group", group)
-
-		// Warm the watch cache so the CRD finalizer can list instances
-		// without hitting a 429 "storage is (re)initializing" error.
-		warmCRDCache(ctx, dynamicClient, crd)
-
-		if err := crdClient.Delete(ctx, crd.Name, metav1.DeleteOptions{}); err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			return fmt.Errorf("failed to delete CRD %s: %w", crd.Name, err)
-		}
-
-		// Wait for finalization before deleting the next CRD in this group.
-		err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-			_, err := crdClient.Get(ctx, crd.Name, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				return true, nil
-			}
-			if err != nil {
-				klog.V(2).InfoS("CRD check failed, will retry", "crd", crd.Name, "err", err)
-				return false, nil
-			}
-			return false, nil
-		})
-		if err != nil {
-			return fmt.Errorf("timed out waiting for CRD %s to be deleted: %w", crd.Name, err)
-		}
-		klog.V(2).InfoS("CRD deleted", "crd", crd.Name)
-	}
-	return nil
-}
-
-// warmCRDCache waits for the watch cache for a custom resource type to be
-// initialized before the CRD finalizer needs it.
-//
-// On a fresh restart, the API server creates watch caches on demand. The CRD
-// finalizer lists instances during deletion, which triggers lazy cache creation
-// and receives HTTP 429 ("storage is (re)initializing") because
-// ResilientWatchCacheInitialization (locked on since K8s v1.34) rejects
-// immediately instead of blocking. The finalizer enters exponential backoff,
-// which can exceed our cleanup timeout.
-func warmCRDCache(ctx context.Context, dynamicClient dynamic.Interface, crd *apiextensionsv1.CustomResourceDefinition) {
-	version, err := apihelpers.GetCRDStorageVersion(crd)
-	if err != nil {
-		return
-	}
-
-	gvr := schema.GroupVersionResource{
-		Group:    crd.Spec.Group,
-		Version:  version,
-		Resource: crd.Spec.Names.Plural,
-	}
-
-	// Retry on 429 ("storage is (re)initializing"), which means cache creation
-	// is still in progress. Any other error is unrelated to cache warming, so
-	// stop retrying and let the CRD finalizer proceed without a warm cache.
-	if err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 30*time.Second, true, func(ctx context.Context) (bool, error) {
-		_, listErr := dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{Limit: 1})
-		if listErr == nil {
-			return true, nil
-		}
-		if apierrors.IsTooManyRequests(listErr) {
-			return false, nil
-		}
-		return false, listErr
-	}); err != nil {
-		klog.V(1).InfoS("Failed to warm CRD cache", "crd", crd.Name, "err", err)
-	}
 }
 
 // setupSharedWebhookCertificates generates webhook certificates for all controllers that need them.
