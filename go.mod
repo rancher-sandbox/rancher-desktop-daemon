@@ -13,7 +13,7 @@ require (
 	github.com/lima-vm/lima/v2 v2.0.3
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mikefarah/yq/v4 v4.49.2
-	github.com/moby/moby/api v1.53.0
+	github.com/moby/moby/api v1.54.0
 	github.com/muesli/reflow v0.3.0
 	github.com/nxadm/tail v1.4.11
 	github.com/sirupsen/logrus v1.9.4
