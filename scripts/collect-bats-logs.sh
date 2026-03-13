@@ -60,7 +60,15 @@ for instance in $(make --no-print-directory -C "${REPO_ROOT}/bats" bats-instance
         collect_logs "$log_dir" "$dest"
     fi
 
-    # Lima hostagent logs (ha.stdout, ha.stderr per VM)
+    # Preserved instance logs (moved to log_dir during instance deletion)
+    if [ -n "${log_dir:-}" ]; then
+        for vm_dir in "$log_dir"/*/; do
+            vm_name=$(basename "$vm_dir")
+            collect_logs "$vm_dir" "$dest/${vm_name}"
+        done
+    fi
+
+    # Lima instance logs (for instances that survived teardown)
     if lima_home=$(resolve_path lima_home); then
         for vm_dir in "$lima_home"/*/; do
             vm_name=$(basename "$vm_dir")

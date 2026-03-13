@@ -8,6 +8,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,6 +30,7 @@ import (
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/logfile"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/process"
 )
@@ -73,6 +76,7 @@ func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.
 			existingInst.DriverPID = 0
 			existingInst.HostAgentPID = 0
 		}
+		preserveInstanceLogs(ctx, existingInst)
 		logger.Info("Deleting Lima instance", "instance", limaVM.Name)
 		// Use a timeout because Lima's WSL2 driver calls wsl.exe --unregister
 		// which can hang indefinitely if the WSL subsystem is degraded.
@@ -695,4 +699,74 @@ func terminateWSL2Distro(ctx context.Context, logger logr.Logger, instName strin
 	if err := exec.CommandContext(wslCtx, "wsl.exe", "--terminate", distroName).Run(); err != nil {
 		logger.V(1).Info("Failed to terminate WSL2 distro", "distro", distroName, "error", err)
 	}
+}
+
+// preserveInstanceLogs moves log files from the Lima instance directory to
+// a subdirectory of the service log directory before the instance is deleted.
+// This is a no-op unless RDD_KEEP_LOGS is set.
+//
+// Errors are logged but do not prevent deletion. On Windows, os.Rename
+// requires FILE_SHARE_DELETE on the source; Go sets this flag since 1.14,
+// but non-Go processes (e.g., QEMU) may not. If rename fails because a
+// process still holds a lock, the logs are lost when the instance directory
+// is deleted afterward.
+func preserveInstanceLogs(ctx context.Context, inst *limatype.Instance) {
+	if os.Getenv("RDD_KEEP_LOGS") == "" {
+		return
+	}
+
+	logger := log.FromContext(ctx)
+	logDir := instance.LogDir()
+	if err := os.MkdirAll(logDir, 0o700); err != nil {
+		logger.Error(err, "Failed to create log directory for preservation")
+		return
+	}
+
+	destDir, err := nextAvailableDir(logDir, inst.Name)
+	if err != nil {
+		logger.Error(err, "Failed to create log preservation directory")
+		return
+	}
+
+	entries, err := os.ReadDir(inst.Dir)
+	if err != nil {
+		logger.Error(err, "Failed to read instance directory for log preservation")
+		return
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".log") {
+			continue
+		}
+		src := filepath.Join(inst.Dir, entry.Name())
+		dst := filepath.Join(destDir, entry.Name())
+		if err := os.Rename(src, dst); err != nil {
+			logger.Error(err, "Failed to preserve log file", "file", entry.Name())
+			continue
+		}
+		count++
+	}
+
+	logger.Info("Preserved instance logs", "dest", destDir, "count", count)
+}
+
+// nextAvailableDir creates a new directory named {name} under parent. If it
+// already exists, it tries {name}.2, {name}.3, etc.
+func nextAvailableDir(parent, name string) (string, error) {
+	dir := filepath.Join(parent, name)
+	if err := os.Mkdir(dir, 0o700); err == nil {
+		return dir, nil
+	} else if !errors.Is(err, fs.ErrExist) {
+		return "", fmt.Errorf("create directory %s: %w", dir, err)
+	}
+	for n := 2; n <= 1000; n++ {
+		dir = filepath.Join(parent, fmt.Sprintf("%s.%d", name, n))
+		if err := os.Mkdir(dir, 0o700); err == nil {
+			return dir, nil
+		} else if !errors.Is(err, fs.ErrExist) {
+			return "", fmt.Errorf("create directory %s: %w", dir, err)
+		}
+	}
+	return "", fmt.Errorf("exhausted directory names for %s in %s", name, parent)
 }

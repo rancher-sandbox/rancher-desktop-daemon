@@ -423,6 +423,7 @@ func Delete() error {
 	if os.Getenv("RDD_KEEP_LOGS") == "" {
 		_ = os.RemoveAll(instance.LogDir())
 	}
+	_ = os.RemoveAll(instance.ShortDir())
 	return os.RemoveAll(instance.Dir())
 }
 
