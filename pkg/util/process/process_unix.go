@@ -18,6 +18,11 @@ func SetGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &unix.SysProcAttr{Setpgid: true}
 }
 
+// Interrupt sends SIGINT to the process with the given PID.
+func Interrupt(pid int) error {
+	return unix.Kill(pid, unix.SIGINT)
+}
+
 // Kill sends SIGTERM to the process with the given PID.
 func Kill(pid int) error {
 	return unix.Kill(pid, unix.SIGTERM)

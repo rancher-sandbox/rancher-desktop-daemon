@@ -14,8 +14,18 @@ import (
 )
 
 // SetGroup configures the command to run in its own process group.
-func SetGroup(*exec.Cmd) {
-	// Not implemented on Windows.
+// On Windows, CREATE_NEW_PROCESS_GROUP allows GenerateConsoleCtrlEvent to
+// target only the child process (using its PID as the group ID) without
+// affecting the parent process.
+func SetGroup(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &windows.SysProcAttr{CreationFlags: windows.CREATE_NEW_PROCESS_GROUP}
+}
+
+// Interrupt sends a graceful shutdown signal to the process with the given PID.
+// On Windows, this uses GenerateConsoleCtrlEvent with CTRL_BREAK_EVENT targeted
+// at the process group (requires CREATE_NEW_PROCESS_GROUP via SetGroup).
+func Interrupt(pid int) error {
+	return windows.GenerateConsoleCtrlEvent(windows.CTRL_BREAK_EVENT, uint32(pid))
 }
 
 // Kill terminates the process with the given PID.

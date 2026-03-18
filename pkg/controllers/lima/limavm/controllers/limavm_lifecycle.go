@@ -47,7 +47,7 @@ func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.
 		// shutdown can stop the instance before deleting.
 		if existingInst.Status == limatype.StatusRunning {
 			logger.Info("Force-stopping Lima instance before deletion", "instance", limaVM.Name)
-			limainstance.StopForcibly(existingInst)
+			stopInstanceForcibly(existingInst)
 		}
 		logger.Info("Deleting Lima instance", "instance", limaVM.Name)
 		if err := limainstance.Delete(ctx, existingInst, true); err != nil {
@@ -185,7 +185,7 @@ func (r *LimaVMReconciler) handleWatchedState(ctx context.Context, limaVM *v1alp
 		// the instance so the next hostagent can start with a clean slate.
 		if inst.Status == limatype.StatusRunning || inst.Status == limatype.StatusBroken {
 			logger.Info("Force-stopping orphaned VM driver", "status", inst.Status)
-			limainstance.StopForcibly(inst)
+			stopInstanceForcibly(inst)
 		}
 		return r.startInstance(ctx, limaVM, inst)
 
@@ -280,17 +280,23 @@ func (r *LimaVMReconciler) handleRestartNeeded(ctx context.Context, limaVM *v1al
 	case phaseRunning:
 		logger.Info("Restart needed: stopping running instance")
 
-		r.signalHostagent(limaVM.Name, os.Interrupt)
-		stopCtx, cancel := context.WithTimeout(ctx, gracefulShutdownTimeout)
-		defer cancel()
-		if !r.waitForProcessExit(stopCtx, limaVM.Name) {
-			logger.Info("Hostagent did not exit gracefully, forcing stop")
-			inst, err := store.Inspect(ctx, limaVM.Name)
-			if err != nil {
-				logger.Error(err, "Failed to inspect Lima instance for forceful stop")
-			} else if inst != nil {
-				limainstance.StopForcibly(inst)
+		if r.signalHostagent(limaVM.Name) {
+			stopCtx, cancel := context.WithTimeout(ctx, gracefulShutdownTimeout)
+			defer cancel()
+			if !r.waitForProcessExit(stopCtx, limaVM.Name) {
+				logger.Info("Hostagent did not exit gracefully, forcing stop")
+				inst, err := store.Inspect(ctx, limaVM.Name)
+				if err != nil {
+					logger.Error(err, "Failed to inspect Lima instance for forceful stop")
+				} else if inst != nil {
+					stopInstanceForcibly(inst)
+				}
+				r.waitForProcessExit(ctx, limaVM.Name)
 			}
+		} else {
+			// Signal delivery failed (e.g. process already exited or no console).
+			logger.Info("Could not signal hostagent for restart, killing process directly")
+			r.killHostagent(limaVM.Name)
 			r.waitForProcessExit(ctx, limaVM.Name)
 		}
 
@@ -449,12 +455,21 @@ func (r *LimaVMReconciler) stopInstance(ctx context.Context, limaVM *v1alpha1.Li
 	logger := log.FromContext(ctx)
 	logger.Info("Stopping Lima instance", "instance", limaVM.Name)
 
-	r.signalHostagent(limaVM.Name, os.Interrupt)
-	stopCtx, cancel := context.WithTimeout(ctx, gracefulShutdownTimeout)
-	defer cancel()
-	if !r.waitForProcessExit(stopCtx, limaVM.Name) {
-		logger.Info("Hostagent did not exit gracefully, forcing stop")
-		limainstance.StopForcibly(inst)
+	if r.signalHostagent(limaVM.Name) {
+		// Signal delivered; wait for graceful exit before falling back to force-stop.
+		stopCtx, cancel := context.WithTimeout(ctx, gracefulShutdownTimeout)
+		defer cancel()
+		if !r.waitForProcessExit(stopCtx, limaVM.Name) {
+			logger.Info("Hostagent did not exit gracefully, forcing stop")
+			stopInstanceForcibly(inst)
+			r.waitForProcessExit(ctx, limaVM.Name)
+		}
+	} else {
+		// Signal delivery failed (e.g. process already exited or no console).
+		// Kill the hostagent process directly via its process handle rather than
+		// via StopForcibly (which kills by PID and cleans up files concurrently).
+		logger.Info("Could not signal hostagent, killing process directly")
+		r.killHostagent(limaVM.Name)
 		r.waitForProcessExit(ctx, limaVM.Name)
 	}
 
@@ -489,13 +504,24 @@ func (r *LimaVMReconciler) stopInstance(ctx context.Context, limaVM *v1alpha1.Li
 }
 
 // killOrphanedHostagent terminates an orphaned hostagent (one running without a
-// watcher, typically after a controller restart). Sends SIGTERM first and falls
-// back to SIGKILL after the graceful shutdown timeout.
-func (r *LimaVMReconciler) killOrphanedHostagent(ctx context.Context, inst *limatype.Instance) error {
-	stopCtx, cancel := context.WithTimeout(ctx, gracefulShutdownTimeout)
-	defer cancel()
-	if err := limainstance.StopGracefully(stopCtx, inst, false); err != nil {
-		limainstance.StopForcibly(inst)
-	}
+// watcher, typically after a controller restart).
+func (r *LimaVMReconciler) killOrphanedHostagent(_ context.Context, inst *limatype.Instance) error {
+	stopInstanceForcibly(inst)
 	return nil
+}
+
+// stopInstanceForcibly terminates the hostagent and driver processes.
+// This replaces limainstance.StopForcibly because Lima's SysKill on Windows
+// uses GenerateConsoleCtrlEvent(CTRL_BREAK) which targets the entire console
+// group, killing the RDD service along with the hostagent. We use
+// os.Process.Kill (TerminateProcess on Windows) which targets only the
+// specified process.
+func stopInstanceForcibly(inst *limatype.Instance) {
+	for _, pid := range []int{inst.DriverPID, inst.HostAgentPID} {
+		if pid > 0 {
+			if p, err := os.FindProcess(pid); err == nil {
+				_ = p.Kill()
+			}
+		}
+	}
 }

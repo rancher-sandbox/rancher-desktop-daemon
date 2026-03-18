@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"time"
 
 	limainstance "github.com/lima-vm/lima/v2/pkg/instance"
@@ -36,6 +35,7 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/process"
 )
 
 const (
@@ -474,8 +474,8 @@ func (r *LimaVMReconciler) waitForShutdown(ctx context.Context) error {
 }
 
 // shutdownAllHostagents terminates all running hostagents during graceful shutdown.
-// It sends SIGINT to each hostagent for graceful shutdown, waits for them to exit,
-// and falls back to SIGKILL after a timeout.
+// It sends a graceful shutdown signal to each hostagent, waits for exit, and falls
+// back to process termination after a timeout.
 func (r *LimaVMReconciler) shutdownAllHostagents() {
 	r.instanceStatesMu.RLock()
 	states := maps.Clone(r.instanceStates)
@@ -485,10 +485,10 @@ func (r *LimaVMReconciler) shutdownAllHostagents() {
 		return
 	}
 
-	// Send SIGINT to all hostagents in parallel for graceful shutdown.
+	// Send graceful shutdown signal to all hostagents in parallel.
 	for _, state := range states {
 		if state.cmd != nil && state.cmd.Process != nil {
-			_ = state.cmd.Process.Signal(syscall.SIGINT)
+			_ = process.Interrupt(state.cmd.Process.Pid)
 		}
 	}
 
