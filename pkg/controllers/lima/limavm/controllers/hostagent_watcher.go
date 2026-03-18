@@ -6,7 +6,6 @@ package controllers
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/process"
 )
 
 // instancePhase represents the hostagent lifecycle as observed by the watcher.
@@ -197,16 +197,37 @@ func (r *LimaVMReconciler) waitForProcessExit(ctx context.Context, name string) 
 	}
 }
 
-// signalHostagent sends a signal to the hostagent process. Returns false if no
-// watcher exists or the process handle is unavailable.
-func (r *LimaVMReconciler) signalHostagent(name string, sig os.Signal) bool {
+// signalHostagent sends a graceful shutdown signal to the hostagent process.
+// Uses process.Interrupt which sends SIGINT on Unix and CTRL_BREAK on Windows
+// (targeted at the hostagent's process group, not the parent).
+// Returns false if no watcher exists or the signal could not be delivered.
+func (r *LimaVMReconciler) signalHostagent(name string) bool {
 	r.instanceStatesMu.RLock()
 	state, ok := r.instanceStates[name]
 	r.instanceStatesMu.RUnlock()
 	if !ok || state.cmd == nil || state.cmd.Process == nil {
 		return false
 	}
-	return state.cmd.Process.Signal(sig) == nil
+	return process.Interrupt(state.cmd.Process.Pid) == nil
+}
+
+// killHostagent terminates the hostagent process tree. Uses KillTree instead
+// of Process.Kill so child processes (e.g. SSH port forwarders) are also
+// terminated. On Windows, Process.Kill only sends TerminateProcess to the
+// parent; children that inherited the parent's pipes would keep cmd.Wait
+// blocked indefinitely.
+func (r *LimaVMReconciler) killHostagent(name string) {
+	r.instanceStatesMu.RLock()
+	state, ok := r.instanceStates[name]
+	r.instanceStatesMu.RUnlock()
+	if !ok || state.cmd == nil || state.cmd.Process == nil {
+		return
+	}
+	// Background context: killHostagent runs during shutdown when the
+	// reconciler context may already be cancelled.
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = process.KillTree(ctx, state.cmd.Process.Pid)
 }
 
 // enqueueReconcile sends a GenericEvent to trigger a reconcile for the named VM.

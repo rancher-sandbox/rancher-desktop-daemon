@@ -338,8 +338,20 @@ func StopWithWait(wait bool) error {
 	_ = cleanupDiscoveryConfigMap() // Clean up discovery configmap to prevent stale controller info
 
 	pid := PID()
-	if err := process.Kill(pid); err != nil {
-		return fmt.Errorf("failed to stop %q control plane with pid %d: %w", instance.Name(), pid, err)
+	// Try graceful shutdown first. On Unix, Kill already sends SIGTERM which
+	// triggers the Go signal handler. On Windows, Kill uses TerminateProcess
+	// which bypasses all handlers, so we send Interrupt (CTRL_BREAK_EVENT)
+	// first to let the service run its shutdown path (shutdownAllHostagents).
+	//
+	// On Windows, Interrupt uses GenerateConsoleCtrlEvent, which only works
+	// when caller and target share a console. If invoked from a different
+	// terminal, the call fails and we fall back to Kill (TerminateProcess),
+	// bypassing graceful shutdown. Hostagents survive in their own process
+	// groups and self-heal on the next service start via killOrphanedHostagent.
+	if err := process.Interrupt(pid); err != nil {
+		if err := process.Kill(pid); err != nil {
+			return fmt.Errorf("failed to stop %q control plane with pid %d: %w", instance.Name(), pid, err)
+		}
 	}
 
 	if wait {
@@ -352,6 +364,14 @@ func StopWithWait(wait bool) error {
 		for {
 			select {
 			case <-timeout:
+				// Graceful shutdown timed out; force-kill so we don't leave
+				// a hung service process. Kill targets only the service; on
+				// Windows (TerminateProcess) this avoids killing hostagents
+				// that are children of the service but run in their own
+				// process groups. On Unix, SIGTERM suffices because the
+				// service is responsive to signals (it's just slow shutting
+				// down hostagents sequentially).
+				_ = process.Kill(pid)
 				return fmt.Errorf("timed out waiting for %q control plane with pid %d to stop", instance.Name(), pid)
 			case <-ticker.C:
 				if !Running() {
