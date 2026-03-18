@@ -47,7 +47,7 @@ func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.
 		// shutdown can stop the instance before deleting.
 		if existingInst.Status == limatype.StatusRunning {
 			logger.Info("Force-stopping Lima instance before deletion", "instance", limaVM.Name)
-			stopInstanceForcibly(existingInst)
+			stopInstanceForcibly(ctx, existingInst)
 		}
 		logger.Info("Deleting Lima instance", "instance", limaVM.Name)
 		if err := limainstance.Delete(ctx, existingInst, true); err != nil {
@@ -185,7 +185,7 @@ func (r *LimaVMReconciler) handleWatchedState(ctx context.Context, limaVM *v1alp
 		// the instance so the next hostagent can start with a clean slate.
 		if inst.Status == limatype.StatusRunning || inst.Status == limatype.StatusBroken {
 			logger.Info("Force-stopping orphaned VM driver", "status", inst.Status)
-			stopInstanceForcibly(inst)
+			stopInstanceForcibly(ctx, inst)
 		}
 		return r.startInstance(ctx, limaVM, inst)
 
@@ -289,7 +289,7 @@ func (r *LimaVMReconciler) handleRestartNeeded(ctx context.Context, limaVM *v1al
 				if err != nil {
 					logger.Error(err, "Failed to inspect Lima instance for forceful stop")
 				} else if inst != nil {
-					stopInstanceForcibly(inst)
+					stopInstanceForcibly(ctx, inst)
 				}
 				r.waitForProcessExit(ctx, limaVM.Name)
 			}
@@ -298,6 +298,12 @@ func (r *LimaVMReconciler) handleRestartNeeded(ctx context.Context, limaVM *v1al
 			logger.Info("Could not signal hostagent for restart, killing process directly")
 			r.killHostagent(limaVM.Name)
 			r.waitForProcessExit(ctx, limaVM.Name)
+			inst, err := store.Inspect(ctx, limaVM.Name)
+			if err != nil {
+				logger.Error(err, "Failed to inspect Lima instance for forceful stop")
+			} else if inst != nil {
+				stopInstanceForcibly(ctx, inst)
+			}
 		}
 
 		r.stopWatcher(limaVM.Name)
@@ -461,16 +467,17 @@ func (r *LimaVMReconciler) stopInstance(ctx context.Context, limaVM *v1alpha1.Li
 		defer cancel()
 		if !r.waitForProcessExit(stopCtx, limaVM.Name) {
 			logger.Info("Hostagent did not exit gracefully, forcing stop")
-			stopInstanceForcibly(inst)
+			stopInstanceForcibly(ctx, inst)
 			r.waitForProcessExit(ctx, limaVM.Name)
 		}
 	} else {
 		// Signal delivery failed (e.g. process already exited or no console).
-		// Kill the hostagent process directly via its process handle rather than
-		// via StopForcibly (which kills by PID and cleans up files concurrently).
+		// Kill the hostagent and force-stop the instance to clean up the
+		// VM driver and tmp files.
 		logger.Info("Could not signal hostagent, killing process directly")
 		r.killHostagent(limaVM.Name)
 		r.waitForProcessExit(ctx, limaVM.Name)
+		stopInstanceForcibly(ctx, inst)
 	}
 
 	r.stopWatcher(limaVM.Name)
@@ -505,8 +512,8 @@ func (r *LimaVMReconciler) stopInstance(ctx context.Context, limaVM *v1alpha1.Li
 
 // killOrphanedHostagent terminates an orphaned hostagent (one running without a
 // watcher, typically after a controller restart).
-func (r *LimaVMReconciler) killOrphanedHostagent(_ context.Context, inst *limatype.Instance) error {
-	stopInstanceForcibly(inst)
+func (r *LimaVMReconciler) killOrphanedHostagent(ctx context.Context, inst *limatype.Instance) error {
+	stopInstanceForcibly(ctx, inst)
 	return nil
 }
 
@@ -516,12 +523,32 @@ func (r *LimaVMReconciler) killOrphanedHostagent(_ context.Context, inst *limaty
 // group, killing the RDD service along with the hostagent. We use
 // os.Process.Kill (TerminateProcess on Windows) which targets only the
 // specified process.
-func stopInstanceForcibly(inst *limatype.Instance) {
+//
+// On WSL2, also terminates the distro because the keepAlive process
+// (nohup sleep) would keep it running after the hostagent is killed.
+func stopInstanceForcibly(ctx context.Context, inst *limatype.Instance) {
 	for _, pid := range []int{inst.DriverPID, inst.HostAgentPID} {
 		if pid > 0 {
 			if p, err := os.FindProcess(pid); err == nil {
 				_ = p.Kill()
 			}
+		}
+	}
+	// On WSL2, terminate the distro so store.Inspect reports StatusStopped.
+	if inst.VMType == limatype.WSL2 {
+		distroName := "lima-" + inst.Name
+		// Best-effort with a timeout: wsl.exe can hang if the WSL
+		// subsystem is degraded; don't block the reconciler.
+		wslCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		_ = exec.CommandContext(wslCtx, "wsl.exe", "--terminate", distroName).Run()
+	}
+	// Clean up PID/socket/tmp files so the next hostagent can start cleanly.
+	// This matches what limainstance.StopForcibly does.
+	for _, suffix := range filenames.TmpFileSuffixes {
+		matches, _ := filepath.Glob(filepath.Join(inst.Dir, "*"+suffix))
+		for _, m := range matches {
+			_ = os.Remove(m)
 		}
 	}
 }
