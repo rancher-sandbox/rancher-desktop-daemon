@@ -1,4 +1,5 @@
 cooldown #https://en.wiktionary.org/wiki/cooldown#English
+keypair
 nohup
 taskkill
 passthrough #https://en.wiktionary.org/wiki/passthrough

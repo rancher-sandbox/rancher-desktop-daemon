@@ -7,6 +7,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
@@ -448,6 +449,10 @@ func (r *LimaVMReconciler) updateCondition(ctx context.Context, limaVM *v1alpha1
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *LimaVMReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := ensureSSHKeys(); err != nil {
+		return fmt.Errorf("failed to generate Lima SSH keys: %w", err)
+	}
+
 	r.instanceStates = make(map[string]*instanceState)
 	r.reconcileChan = make(chan event.TypedGenericEvent[*v1alpha1.LimaVM], 1)
 
