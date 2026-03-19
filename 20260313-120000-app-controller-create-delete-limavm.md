@@ -1,8 +1,11 @@
-# Deep Review: app-controller-create-delete-limavm
+# Deep Review: 20260313-120000-app-controller-create-delete-limavm
 
-**Date:** 2026-03-13
-**Branch:** `app-controller-create-delete-limavm`
-**Reviewers:** Claude Opus 4.6, Codex GPT 5.4, Gemini 3.1 Pro
+| | |
+|---|---|
+| **Date** | 2026-03-13 |
+| **Branch** | `app-controller-create-delete-limavm` |
+| **Reviewers** | Claude Opus 4.6, Codex GPT 5.4, Gemini 3.1 Pro |
+| **Verdict** | **Rework** — DeleteOwnedResources strips LimaVM finalizer leaking VM on disk, hardcoded developer path in lima.yaml |
 
 ---
 

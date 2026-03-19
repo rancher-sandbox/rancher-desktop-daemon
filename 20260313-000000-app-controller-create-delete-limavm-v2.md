@@ -5,6 +5,7 @@
 | **Date** | 2026-03-13 |
 | **Branch** | `app-controller-create-delete-limavm` |
 | **Reviewers** | Claude Opus 4.6, Codex GPT 5.4, Gemini 3.1 Pro |
+| **Verdict** | **Rework** — deletion path leaks VM on disk, embedded template hardcodes developer-specific path |
 
 ## Consolidated Review
 

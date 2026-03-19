@@ -1,8 +1,12 @@
-# Deep Review: `rotate-serial-logs` branch
+# Deep Review: 20260313-123900-rotate-serial-logs
 
-**Date:** 2026-03-13
-**Reviewers:** Claude Opus 4.6, Codex GPT 5.4, Gemini 3.1 Pro
-**Commits:** `4fd77c6` (serial log rotation), `71714cf` (instance log preservation)
+| | |
+|---|---|
+| **Date** | 2026-03-13 |
+| **Branch** | `rotate-serial-logs` |
+| **Commits** | `4fd77c6` (serial log rotation), `71714cf` (instance log preservation) |
+| **Reviewers** | Claude Opus 4.6, Codex GPT 5.4, Gemini 3.1 Pro |
+| **Verdict** | **Merge with fixes** — new functions lack unit tests, `svc delete` bypasses log preservation |
 
 ---
 
