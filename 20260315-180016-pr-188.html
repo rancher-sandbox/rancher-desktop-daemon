@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260315-180016-pr-188</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1a1a2e;
+      background: #f8f9fc;
+      margin: 0;
+      padding: 0;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+    h1 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      margin: 0 0 1.2rem;
+      color: #0d1117;
+    }
+    h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 2.5rem 0 1rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid #e1e4e8;
+      color: #0d1117;
+    }
+    h2:first-of-type { border-top: none; padding-top: 0; }
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.8rem 0 0.8rem;
+      color: #24292f;
+    }
+    h3.severity-critical { color: #a11; }
+    h3.severity-important { color: #c05000; }
+    h3.severity-suggestion { color: #1a56db; }
+    h3.severity-design { color: #157a3e; }
+    p, li { font-size: 0.94rem; }
+    a { color: #1a56db; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .card-critical  { background: #fff5f5; }
+    .card-important { background: #fff0e0; }
+    .card-suggestion { background: #f0f6ff; }
+    .card-design    { background: #f0faf4; }
+    .card-neutral   { background: #fff; }
+    .card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0 0 0.6rem;
+      color: #24292f;
+      line-height: 1.5;
+    }
+    .card p { margin: 0.5rem 0; }
+    .card p:first-of-type { margin-top: 0; }
+    .card ul, .card ol { margin: 0.4rem 0; padding-left: 1.4rem; }
+    .card li { margin-bottom: 0.3rem; }
+    .badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.15em 0.55em;
+      border-radius: 999px;
+      vertical-align: middle;
+      margin-left: 0.3em;
+      letter-spacing: 0.02em;
+    }
+    .badge-claude  { background: #7c3aed; color: #fff; }
+    .badge-codex   { background: #16a34a; color: #fff; }
+    .badge-gemini  { background: #e05d6f; color: #fff; }
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .meta-table td {
+      padding: 0.35rem 0.6rem;
+      border: 1px solid #e1e4e8;
+      vertical-align: top;
+    }
+    .meta-table td:first-child {
+      font-weight: 600;
+      width: 140px;
+      background: #f6f8fa;
+      white-space: nowrap;
+    }
+    .file-header {
+      background: #2d2d2d;
+      color: #ccc;
+      font-size: 0.75rem;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px 6px 0 0;
+      margin-top: 0.8rem;
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.4em;
+    }
+    .file-header a { color: #8ab4f8; }
+    .file-header + pre[class*="language-"] {
+      margin-top: 0 !important;
+      border-radius: 0 0 6px 6px !important;
+    }
+    pre[class*="language-"] {
+      font-size: 0.78rem !important;
+      line-height: 1.3 !important;
+      border-radius: 6px;
+      margin: 0.6rem 0 0.8rem;
+      padding: 0.8em 1em !important;
+    }
+    code[class*="language-"] {
+      font-size: 0.78rem !important;
+      line-height: 1.3 !important;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace !important;
+    }
+    .code-line {
+      display: block;
+    }
+    .code-line::before {
+      content: counter(line);
+      counter-increment: line;
+      display: inline-block;
+      width: 3em;
+      margin-right: 0.8em;
+      padding-right: 0.5em;
+      text-align: right;
+      color: #636e7b;
+      border-right: 1px solid #3d4556;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .line-hl {
+      background: rgba(255, 199, 0, 0.18);
+    }
+    .fix-label {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #157a3e;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.6rem;
+    }
+    .retro-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 1rem 0;
+    }
+    .retro-table th, .retro-table td {
+      padding: 0.45rem 0.7rem;
+      border: 1px solid #d0d7de;
+      text-align: center;
+    }
+    .retro-table th {
+      background: #f6f8fa;
+      font-weight: 600;
+    }
+    .retro-table td:first-child {
+      text-align: left;
+      font-weight: 500;
+    }
+    .retro-table tr:nth-child(even) td { background: #f8f9fc; }
+    .retro-table caption {
+      caption-side: bottom;
+      font-size: 0.78rem;
+      color: #656d76;
+      padding-top: 0.4rem;
+      text-align: left;
+    }
+    .inline-code {
+      background: #eff1f3;
+      padding: 0.15em 0.35em;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, monospace;
+    }
+    .structure-line {
+      font-size: 0.88rem;
+      color: #57606a;
+      margin-top: 0.3rem;
+    }
+    @media (max-width: 640px) {
+      main { padding: 1rem; }
+      pre[class*="language-"] { font-size: 0.72rem !important; }
+      .meta-table td:first-child { width: auto; }
+    }
+  </style>
+</head>
+<body>
+<main>
+
+<h1>Deep Review: PR #188</h1>
+
+<table class="meta-table">
+  <tr><td>Date</td><td>2026-03-15</td></tr>
+  <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/188">#188 &mdash; mock: namespaces: ensure we have all namespaces</a></td></tr>
+  <tr><td>Commits</td><td style="font-family:'SF Mono','Fira Code','Fira Mono',Menlo,monospace;font-size:0.85em;line-height:1.6"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/513f44d">513f44d</a> API: containers: make pid optional<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/7ce6b31">7ce6b31</a> mock controller: Create in <code class="inline-code">rancher-desktop</code> namespace<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/29d5ae6">29d5ae6</a> mock: namespaces: ensure we have all namespaces</td></tr>
+  <tr>
+    <td>Reviewers</td>
+    <td>
+      <span class="badge badge-claude">Claude</span> Opus 4.6 &ensp;
+      <span class="badge badge-codex">Codex</span> GPT 5.4 &ensp;
+      <span class="badge badge-gemini">Gemini</span> 3.1 Pro
+    </td>
+  </tr>
+  <tr><td>Verdict</td><td><strong>Merge with fixes</strong> &mdash; 1 important issue (self-referential namespace ownership)</td></tr>
+  <tr><td>Wall-clock time</td><td>19 min 7 s</td></tr>
+</table>
+
+<h2>Consolidated Review</h2>
+
+<h3>Executive Summary</h3>
+
+<div class="card card-neutral">
+  <p>Three commits make the container <code class="inline-code">pid</code> field optional, move mock resources from <code class="inline-code">default</code> to the <code class="inline-code">rancher-desktop</code> Kubernetes namespace, and create <code class="inline-code">ContainerNamespace</code> resources for all volume namespaces. The new <code class="inline-code">kubeNamespaceReconciler</code> has a self-referential ownership bug: it applies <code class="inline-code">rancher-desktop</code>&rsquo;s ownerReference pointing to itself instead of <code class="inline-code">rdd-mocks</code>, breaking garbage collection and causing reconciliation oscillation.</p>
+</div>
+
+<h3 class="severity-critical">Critical Issues</h3>
+
+<div class="card card-critical">
+  <p>None.</p>
+</div>
+
+<h3 class="severity-important">Important Issues</h3>
+
+<div class="card card-important">
+  <h4>1. <code class="inline-code">rancher-desktop</code> namespace overwrites its own ownerReference
+    <span class="badge badge-claude">Claude</span>
+    <span class="badge badge-codex">Codex</span>
+    <span class="badge badge-gemini">Gemini</span>
+  </h4>
+
+  <p>Both <code class="inline-code">For</code> and <code class="inline-code">Watches</code> target <code class="inline-code">corev1.Namespace</code>. The global <code class="inline-code">WithEventFilter</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L75">line 75</a> admits both <code class="inline-code">rdd-mocks</code> and <code class="inline-code">rancher-desktop</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L78">line 78</a>). When <code class="inline-code">rancher-desktop</code> triggers an event, the <code class="inline-code">For</code> handler enqueues <code class="inline-code">{Name: "rancher-desktop"}</code> directly.</p>
+
+  <div class="file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L63-L85">pkg/controllers/mock/kube_namespace_reconciler.go</a></div>
+<pre class="language-go" data-start="63" data-line="75,78"><code class="language-go">func (r *kubeNamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&amp;corev1.Namespace{}).
+		Named("mock-kube-namespace-reconciler").
+		Watches(
+			&amp;corev1.Namespace{},
+			handler.EnqueueRequestForOwner(
+				mgr.GetScheme(),
+				mgr.GetRESTMapper(),
+				&amp;corev1.Namespace{},
+				handler.OnlyControllerOwner(),
+			)).
+		WithEventFilter(predicate.NewPredicateFuncs(func(object client.Object) bool {
+			if _, ok := object.(*corev1.Namespace); ok {
+				switch object.GetName() {
+				case mockNamespaceName, apiNamespace:
+					return true
+				}
+			}
+			return false
+		})).
+		Complete(r)
+}</code></pre>
+
+  <p>The reconciler at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L31">line 31</a> fetches whichever namespace the request names. When the request is for <code class="inline-code">rancher-desktop</code>, it builds an ownerReference from that namespace (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L41-L47">lines 41&ndash;47</a>) and applies it back to <code class="inline-code">rancher-desktop</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L49-L55">lines 49&ndash;55</a>) &mdash; a self-referential ownership.</p>
+
+  <div class="file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L27-L61">pkg/controllers/mock/kube_namespace_reconciler.go</a></div>
+<pre class="language-go" data-start="27" data-line="31,41-47,49-55"><code class="language-go">func (r *kubeNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+
+	var rddNamespace corev1.Namespace
+	if err := r.Client.Get(ctx, req.NamespacedName, &amp;rddNamespace); err != nil {
+		log.Error(err, "Failed to get namespace", "namespace", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+	gvk, err := r.Client.GroupVersionKindFor(&amp;rddNamespace)
+	if err != nil {
+		log.Error(err, "Failed to get GVK for namespace", "namespace", &amp;rddNamespace)
+		return ctrl.Result{}, err
+	}
+
+	ownerReference := metav1apply.OwnerReference().
+		WithAPIVersion(gvk.GroupVersion().String()).
+		WithKind(gvk.Kind).
+		WithName(rddNamespace.GetName()).
+		WithUID(rddNamespace.GetUID()).
+		WithBlockOwnerDeletion(true).
+		WithController(true)
+
+	err = r.Client.Apply(
+		ctx,
+		corev1apply.Namespace(apiNamespace).
+			WithOwnerReferences(ownerReference),
+		client.ForceOwnership,
+		client.FieldOwner(controllerLongName),
+	)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}</code></pre>
+
+  <p>This overwrites the correct <code class="inline-code">rdd-mocks</code> ownerReference set by the <code class="inline-code">{Name: "rdd-mocks"}</code> reconcile. The resulting oscillation flips ownership between <code class="inline-code">rdd-mocks</code> and <code class="inline-code">rancher-desktop</code> on each event. When <code class="inline-code">rancher-desktop</code> owns itself, deleting <code class="inline-code">rdd-mocks</code> orphans it. Codex confirmed this against a live control plane: <code class="inline-code">ownerReferences.name</code> alternated between the two depending on event order. All lines confirmed as commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/7ce6b31"><code class="inline-code">7ce6b31</code></a> via <code class="inline-code">git blame</code>.</p>
+
+  <p>Gemini rated this Critical; Claude and Codex rated it Important. Assessment: <strong>Important.</strong> The bug will manifest reliably, but its blast radius is limited to mock controller test infrastructure in an embedded single-user kube-apiserver. No production data loss or security impact.</p>
+
+  <p class="fix-label">Fix</p>
+  <p>Early-return in <code class="inline-code">Reconcile</code> for requests other than the intended trigger namespace:</p>
+<pre class="language-go" data-start="27"><code class="language-go">func (r *kubeNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    if req.Name != mockNamespaceName {
+        return ctrl.Result{}, nil
+    }
+    // ... rest of reconcile
+}</code></pre>
+  <p>The predicate must still admit <code class="inline-code">apiNamespace</code> so the <code class="inline-code">Watches</code> handler can detect changes to the owned namespace and enqueue <code class="inline-code">rdd-mocks</code>. The guard in <code class="inline-code">Reconcile</code> filters out spurious <code class="inline-code">For</code>-originated requests.</p>
+</div>
+
+<h3 class="severity-suggestion">Suggestions</h3>
+
+<div class="card card-suggestion">
+  <h4>1. Missing <code class="inline-code">IsNotFound</code> handling causes retry churn on namespace deletion
+    <span class="badge badge-gemini">Gemini</span>
+  </h4>
+
+  <div class="file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/kube_namespace_reconciler.go#L27-L38">pkg/controllers/mock/kube_namespace_reconciler.go</a></div>
+<pre class="language-go" data-start="27" data-line="31-34"><code class="language-go">func (r *kubeNamespaceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+
+	var rddNamespace corev1.Namespace
+	if err := r.Client.Get(ctx, req.NamespacedName, &amp;rddNamespace); err != nil {
+		log.Error(err, "Failed to get namespace", "namespace", req.NamespacedName)
+		return ctrl.Result{}, err
+	}
+	gvk, err := r.Client.GroupVersionKindFor(&amp;rddNamespace)
+	if err != nil {
+		log.Error(err, "Failed to get GVK for namespace", "namespace", &amp;rddNamespace)
+		return ctrl.Result{}, err
+	}</code></pre>
+
+  <p>If the watched namespace is deleted, <code class="inline-code">Get</code> returns <code class="inline-code">IsNotFound</code> and the returned error causes controller-runtime to requeue indefinitely with exponential backoff. This produces log noise during cleanup.</p>
+
+  <p>The same pattern exists in all other mock reconcilers (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/container_reconciler.go#L54">container_reconciler.go:54</a>, <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/container_namespace_reconciler.go#L48">container_namespace_reconciler.go:48</a>, etc.), so this is a pre-existing gap carried forward into new code &mdash; not specific to this PR. The practical impact is low: exponential backoff limits CPU waste, and the namespace is deleted only during controller shutdown.</p>
+
+  <p class="fix-label">Fix</p>
+  <p>Handle <code class="inline-code">IsNotFound</code> explicitly:</p>
+<pre class="language-go" data-start="30"><code class="language-go">	var rddNamespace corev1.Namespace
+	if err := r.Client.Get(ctx, req.NamespacedName, &amp;rddNamespace); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		log.Error(err, "Failed to get namespace", "namespace", req.NamespacedName)
+		return ctrl.Result{}, err
+	}</code></pre>
+</div>
+
+<div class="card card-suggestion">
+  <h4>2. <code class="inline-code">getVolumeName</code> always returns a constant namespace
+    <span class="badge badge-claude">Claude</span>
+  </h4>
+
+  <div class="file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/volume_reconciler.go#L42-L44">pkg/controllers/mock/volume_reconciler.go</a></div>
+<pre class="language-go" data-start="42" data-line="42-44"><code class="language-go">func getVolumeName(volume mobyvolume.Volume) (namespace, name string) {
+	return containerNamespace, volume.Name
+}</code></pre>
+
+  <p>The function ignores its argument for the namespace component &mdash; it always returns <code class="inline-code">"buildkit"</code>. The <code class="inline-code">containerNamespaceReconciler</code> iterates volumes via <code class="inline-code">getVolumeName</code> to collect namespaces (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/container_namespace_reconciler.go#L58-L62">lines 58&ndash;62</a>), but the result is always the same value already seeded at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/container_namespace_reconciler.go#L58">line 58</a>. The indirection is harmless but the name implies it extracts namespace from the volume data.</p>
+
+  <div class="file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/container_namespace_reconciler.go#L58-L62">pkg/controllers/mock/container_namespace_reconciler.go</a></div>
+<pre class="language-go" data-start="58" data-line="58-62"><code class="language-go">	namespaces := map[string]struct{}{containerNamespace: {}}
+	for _, volume := range r.volumes {
+		namespace, _ := getVolumeName(volume)
+		namespaces[namespace] = struct{}{}
+	}</code></pre>
+
+  <p class="fix-label">Fix</p>
+  <p>Add a comment noting this is a placeholder for future namespace-per-volume logic.</p>
+</div>
+
+<h3 class="severity-design">Design Observations</h3>
+
+<div class="card card-design">
+  <h4>1. <code class="inline-code">For</code> + <code class="inline-code">Watches</code> on the same type creates a footgun <em>(in-scope)</em>
+    <span class="badge badge-claude">Claude</span>
+    <span class="badge badge-codex">Codex</span>
+  </h4>
+  <p>The <code class="inline-code">kubeNamespaceReconciler</code> is the only mock reconciler where <code class="inline-code">For</code> and <code class="inline-code">Watches</code> target the same resource type (<code class="inline-code">corev1.Namespace</code>). Every other reconciler watches Namespace as the trigger and a distinct CRD type as the managed resource, avoiding cross-contamination between handlers. Using per-source predicates (<code class="inline-code">For(..., builder.WithPredicates(...))</code>) instead of a global <code class="inline-code">WithEventFilter</code> would eliminate the class of bugs where events from the managed object are misrouted through the <code class="inline-code">For</code> handler.</p>
+</div>
+
+<div class="card card-design">
+  <h4>2. A dedicated reconciler for a single static namespace adds complexity <em>(in-scope)</em>
+    <span class="badge badge-codex">Codex</span>
+  </h4>
+  <p>There is exactly one Kubernetes namespace to ensure: <code class="inline-code">rancher-desktop</code>. The existing <code class="inline-code">createNamespace</code> function in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/mock_controller.go#L119">mock_controller.go:119</a> already ensures <code class="inline-code">rdd-mocks</code> at startup. Ensuring <code class="inline-code">rancher-desktop</code> from the same <code class="inline-code">rdd-mocks</code>-driven reconcile path &mdash; or even from <code class="inline-code">createNamespace</code> itself &mdash; would remove the <code class="inline-code">Namespace &rarr; Namespace</code> watch cycle entirely and eliminate the class of self-referential ownership bugs.</p>
+</div>
+
+<h3>Testing Assessment</h3>
+
+<div class="card card-neutral">
+  <p>Coverage gaps, ranked by risk:</p>
+  <ol>
+    <li><strong>No test for <code class="inline-code">rancher-desktop</code> namespace ownership.</strong> The BATS tests verify resources exist in <code class="inline-code">rancher-desktop</code>, but never assert that the namespace&rsquo;s ownerReference points to <code class="inline-code">rdd-mocks</code>. A direct assertion on ownership would catch the regression in finding #1.</li>
+    <li><strong>No test for deletion cascade.</strong> No test deletes <code class="inline-code">rdd-mocks</code> and verifies that <code class="inline-code">rancher-desktop</code> and its mock resources are garbage-collected. This is the path that exposes the ownership instability.</li>
+    <li><strong>No test for ContainerNamespace resources.</strong> The <code class="inline-code">containerNamespaceReconciler</code> creates ContainerNamespace objects (e.g., <code class="inline-code">buildkit</code> in <code class="inline-code">rancher-desktop</code>), but no test verifies their existence.</li>
+    <li><strong>No test for the <code class="inline-code">pid</code> optional change.</strong> The CRD change is mechanical and low-risk, but a test creating a Container without a <code class="inline-code">pid</code> value would confirm the CRD accepts it.</li>
+  </ol>
+</div>
+
+<h3>Documentation Assessment</h3>
+
+<div class="card card-neutral">
+  <p>No blocking documentation issues. The constants <code class="inline-code">apiNamespace</code> and <code class="inline-code">containerNamespace</code> in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/513f44d15bcb51808e889342bbbeeafffb212410/pkg/controllers/mock/mock_controller.go#L22-L28">mock_controller.go:22&ndash;28</a> are well-commented. If there is user-facing API documentation for <code class="inline-code">Container.status.pid</code>, it should be updated to reflect the new optional semantics from commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/513f44d"><code class="inline-code">513f44d</code></a>.</p>
+</div>
+
+<h2>Agent Performance Retro</h2>
+
+<div class="card card-neutral">
+  <h4><span class="badge badge-claude">Claude</span> Opus 4.6</h4>
+  <ul>
+    <li><strong>Unique contributions:</strong> Identified the <code class="inline-code">getVolumeName</code> constant-return issue. Provided the most detailed mechanical explanation of the reconciliation oscillation, tracing through both <code class="inline-code">For</code> and <code class="inline-code">Watches</code> handler behavior.</li>
+    <li><strong>Accuracy:</strong> All findings confirmed. No false positives.</li>
+    <li><strong>Depth:</strong> Traced the predicate interaction between <code class="inline-code">For</code> and <code class="inline-code">Watches</code> handlers. Compared against other mock reconciler predicates to show this is the only one admitting <code class="inline-code">apiNamespace</code>.</li>
+    <li><strong>Signal-to-noise:</strong> High signal. Two actionable findings plus two design observations.</li>
+  </ul>
+</div>
+
+<div class="card card-neutral">
+  <h4><span class="badge badge-codex">Codex</span> GPT 5.4</h4>
+  <ul>
+    <li><strong>Unique contributions:</strong> Verified the bug against a live control plane, confirming the ownerReference oscillation with actual <code class="inline-code">kubectl</code> output. Proposed the simplest architectural fix (fold namespace creation into the existing path).</li>
+    <li><strong>Accuracy:</strong> All findings confirmed. No false positives.</li>
+    <li><strong>Depth:</strong> Live verification is strong evidence. Design observation about the self-referential watch graph is well-reasoned.</li>
+    <li><strong>Signal-to-noise:</strong> Highest signal-to-noise &mdash; focused on the one real bug with live proof, plus one actionable design observation.</li>
+  </ul>
+</div>
+
+<div class="card card-neutral">
+  <h4><span class="badge badge-gemini">Gemini</span> 3.1 Pro</h4>
+  <ul>
+    <li><strong>Unique contributions:</strong> Identified the <code class="inline-code">IsNotFound</code> error-handling gap and traced it across all mock reconcilers.</li>
+    <li><strong>Accuracy:</strong> Rated the ownership bug as Critical, which overstates the practical impact in an embedded single-user context. Otherwise accurate.</li>
+    <li><strong>Depth:</strong> Traced the <code class="inline-code">IsNotFound</code> pattern into sibling reconcilers. Did not verify the ownership bug live or trace the <code class="inline-code">For</code>/<code class="inline-code">Watches</code> handler mechanics as deeply.</li>
+    <li><strong>Signal-to-noise:</strong> Good. One inflated severity, but the <code class="inline-code">IsNotFound</code> finding was a genuine unique contribution.</li>
+  </ul>
+</div>
+
+<h3>Summary Table</h3>
+
+<div class="card card-neutral">
+<table class="retro-table">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th><span class="badge badge-claude">Claude</span> Opus 4.6</th>
+      <th><span class="badge badge-codex">Codex</span> GPT 5.4</th>
+      <th><span class="badge badge-gemini">Gemini</span> 3.1 Pro</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Duration</td><td>6 min 24 s</td><td>5 min 49 s</td><td>4 min 44 s</td></tr>
+    <tr><td>Critical</td><td>0</td><td>0</td><td>1*</td></tr>
+    <tr><td>Important</td><td>1</td><td>1</td><td>1</td></tr>
+    <tr><td>Suggestion</td><td>1</td><td>0</td><td>0</td></tr>
+    <tr><td>Design observations</td><td>2</td><td>1</td><td>1</td></tr>
+    <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+    <tr><td>Unique insights</td><td>1</td><td>1</td><td>1</td></tr>
+  </tbody>
+</table>
+  <p style="font-size:0.82rem;color:#57606a;">* Reclassified as Important in consolidation (mock controller in embedded single-user context).</p>
+  <p><strong>Overall:</strong> All three agents converged on the same core bug, providing high confidence in the finding. Codex provided the strongest evidence (live verification) and the most actionable design suggestion. Claude offered the deepest mechanical explanation of the controller-runtime interaction. Gemini contributed the only finding beyond the core bug.</p>
+</div>
+
+<h2>Skill Improvement Recommendations</h2>
+
+<div class="card card-neutral">
+  <ul>
+    <li><strong>Prompt specificity for mock/test controllers:</strong> Agents should be told whether the code under review is production infrastructure or test/development tooling. This context affects severity calibration &mdash; Gemini rated the ownership bug Critical partly because the prompt didn&rsquo;t emphasize that mock controllers serve only test data generation.</li>
+    <li><strong>Live verification instruction:</strong> Codex&rsquo;s live verification was the strongest evidence in this review. The prompt could suggest running the code against a local control plane when feasible.</li>
+    <li><strong>All agents missed the same gap:</strong> None flagged that the <code class="inline-code">kubeNamespaceReconciler</code> could be eliminated entirely by extending <code class="inline-code">createNamespace</code> in <code class="inline-code">mock_controller.go</code> to create both namespaces at startup, avoiding the watch-cycle problem. Codex came closest but framed it as a design observation rather than a concrete alternative.</li>
+    <li><strong>Pre-existing pattern detection:</strong> The prompt asks agents not to flag pre-existing issues unrelated to the change, but Gemini&rsquo;s <code class="inline-code">IsNotFound</code> finding is a pre-existing pattern copied into new code. The prompt should clarify: pre-existing patterns replicated in new code are fair game as gaps.</li>
+  </ul>
+</div>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
+<script>
+window.addEventListener('load', function() {
+  document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+    var startLine = parseInt(pre.getAttribute('data-start') || '1', 10);
+    var dataLine = pre.getAttribute('data-line') || '';
+    var hlLines = new Set();
+    if (dataLine) {
+      dataLine.split(',').forEach(function(part) {
+        part = part.trim();
+        if (part.indexOf('-') !== -1) {
+          var parts = part.split('-');
+          for (var i = parseInt(parts[0]); i <= parseInt(parts[1]); i++) hlLines.add(i);
+        } else {
+          hlLines.add(parseInt(part));
+        }
+      });
+    }
+    var codeEl = pre.querySelector('code');
+    if (!codeEl) return;
+    var lines = codeEl.innerHTML.split('\n');
+    if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+    pre.style.counterReset = 'line ' + (startLine - 1);
+    codeEl.innerHTML = lines.map(function(line, i) {
+      var lineNum = startLine + i;
+      var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+      return '<span class="' + cls + '">' + line + '</span>';
+    }).join('');
+  });
+});
+</script>
+</body>
+</html>

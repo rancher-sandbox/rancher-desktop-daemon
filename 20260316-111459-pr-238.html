@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260316-111459-pr-238</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f8f9fb;
+      margin: 0;
+      padding: 2rem 1rem;
+    }
+    main { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+    h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+    h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+    hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+    pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+    pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+    pre code { background: none; padding: 0; }
+
+    /* Header table */
+    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+    .meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+    .meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+    /* Cards */
+    .card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+    .card-neutral { background: #f9fafb; border: 1px solid #e5e7eb; }
+    .card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+    .card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+    .card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+    .card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+    /* Section severity headings */
+    .section-critical { color: #9b1c1c; }
+    .section-important { color: #92400e; }
+    .section-suggestion { color: #1e40af; }
+    .section-design { color: #065f46; }
+
+    /* Agent pills */
+    .pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+    .pill-claude { background: #e9d5ff; color: #6b21a8; }
+    .pill-codex { background: #d1fae5; color: #065f46; }
+    .pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+    /* Finding title */
+    .finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+    .finding-num { font-weight: 800; }
+
+    /* Code file header */
+    .code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+    .code-file-header a { color: #7ee787; }
+
+    /* Line numbers & highlighting */
+    .code-line { display: block; }
+    .code-line::before {
+      content: counter(line);
+      counter-increment: line;
+      display: inline-block;
+      width: 3em;
+      margin-right: 0.8em;
+      padding-right: 0.5em;
+      text-align: right;
+      color: #636e7b;
+      border-right: 1px solid #3d4556;
+      user-select: none;
+    }
+    .line-hl { background: rgba(255, 199, 0, 0.18); }
+
+    /* Retro table */
+    .retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; }
+    .retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+    .retro-table th { background: #f3f4f6; font-weight: 600; }
+    .retro-table tr:nth-child(even) { background: #f9fafb; }
+
+    /* Lists in cards */
+    .card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+    .card li { margin-bottom: 0.3rem; }
+    .card p { margin: 0.5rem 0; }
+    .card p:first-child { margin-top: 0; }
+
+    /* Verdict highlight */
+    .verdict { font-weight: 700; }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem 0.5rem; }
+      .card { padding: 0.9rem 1rem; }
+      pre code { font-size: 0.72rem; }
+    }
+  </style>
+</head>
+<body>
+<main>
+
+<h1>Deep Review: PR #238</h1>
+
+<table class="meta-table">
+  <tr><td>Date</td><td>2026-03-16</td></tr>
+  <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/238">#238</a> &mdash; Split RDD finalizer into /cleanup and /owned</td></tr>
+  <tr><td>Branch</td><td><code>split-finalizers</code></td></tr>
+  <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471"><code>9de9269</code></a> Split RDD finalizer into /cleanup and /owned</td></tr>
+  <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span></td></tr>
+  <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; upgrade path for legacy finalizers must be addressed</td></tr>
+  <tr><td>Wall-clock time</td><td>12 min 27 s</td></tr>
+</table>
+
+<hr>
+
+<!-- Executive Summary -->
+<h2>Executive Summary</h2>
+
+<div class="card card-neutral">
+<p>This PR splits the single shared <code>rdd.rancherdesktop.io/cleanup</code> finalizer into two purpose-specific finalizers: <code>/cleanup</code> for self-protection (a resource's own controller runs cleanup before deletion) and <code>/owned</code> for cascade blocking (an owner prevents child deletion until explicit release via <code>DeleteOwnedResources</code>). The split fixes a real bug where <code>DeleteOwnedResources</code> stripped the only finalizer on a child resource, bypassing the child controller's cleanup logic.</p>
+<p>The implementation is correct for new resources but leaves existing resources stranded on upgrade: legacy template ConfigMaps still carry <code>/cleanup</code>, which <code>DeleteOwnedResources</code> no longer strips.</p>
+</div>
+
+<hr>
+
+<!-- Critical Issues -->
+<h3 class="section-critical">Critical Issues</h3>
+<div class="card card-critical"><p>None.</p></div>
+
+<hr>
+
+<!-- Important Issues -->
+<h3 class="section-important">Important Issues</h3>
+
+<div class="card card-important">
+  <div class="finding-title">
+    <span class="finding-num">1.</span> Legacy template ConfigMaps become stuck in Terminating after upgrade
+    <span class="pill pill-claude">Claude</span>
+    <span class="pill pill-codex">Codex</span>
+    <span class="pill pill-gemini">Gemini</span>
+  </div>
+
+  <p>Before this PR, the LimaVM webhook created template ConfigMaps with <code>rdd.rancherdesktop.io/cleanup</code> (the old <code>FinalizerName</code>). After this PR, <code>DeleteOwnedResources</code> strips only <code>/owned</code>. When a user deletes a LimaVM created before the upgrade:</p>
+
+  <ul>
+    <li><code>DeleteOwnedResources</code> tries to strip <code>/owned</code> from the template ConfigMap at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L162">line 162</a> &mdash; not present, so no-op.</li>
+    <li><code>c.Delete</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L176">line 176</a> marks the ConfigMap for deletion.</li>
+    <li>The <code>ValidateDelete</code> webhook at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/lima/limavm/controller.go#L276">controller.go:276</a> checks <code>HasOwnedFinalizer</code> &mdash; not present, so allows deletion.</li>
+    <li>But the old <code>/cleanup</code> finalizer still blocks actual deletion. No controller removes <code>/cleanup</code> from child resources.</li>
+    <li>The template ConfigMap is stuck in Terminating permanently.</li>
+  </ul>
+
+  <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L154-L179">pkg/controllers/base/finalizer.go</a></div>
+  <pre data-start="154" data-line="162,176"><code class="language-go">		for _, item := range list.Items {
+			if !IsOwnedByUID(&item, owner.GetUID()) {
+				continue
+			}
+
+			// Strip the owned finalizer to unblock deletion. The cleanup finalizer (if any)
+			// remains so the child's own controller can still run its cleanup logic.
+			patch := client.MergeFrom(item.DeepCopy())
+			if controllerutil.RemoveFinalizer(&item, OwnedFinalizerName) {
+				// Use Patch instead of Update for PartialObjectMetadata
+				if err := c.Patch(ctx, &item, patch); err != nil {
+					itemLogger := logger.V(1).WithValues("namespace", item.GetNamespace(), "name", item.GetName(), "gvk", gvk.String())
+					if apierrors.IsNotFound(err) {
+						itemLogger.Info("Resource already deleted during finalizer removal")
+						continue
+					}
+					// For other errors, log and collect error but proceed with deletion attempt
+					// The deletion might still succeed if there are no other blocking finalizers
+					itemLogger.Info("Failed to remove finalizer, will attempt deletion anyway", "error", err)
+					errs = append(errs, fmt.Errorf("failed to remove finalizers from %s %s/%s: %w", gvk, item.GetNamespace(), item.GetName(), err))
+				}
+			}
+			if err := c.Delete(ctx, &item); err != nil && client.IgnoreNotFound(err) != nil {
+				errs = append(errs, fmt.Errorf("failed to delete %s %s/%s during cleanup: %w", gvk, item.GetNamespace(), item.GetName(), err))
+			}
+		}</code></pre>
+
+  <p>The webhook at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/lima/limavm/controller.go#L210-L211">controller.go:210-211</a> now creates new template ConfigMaps with <code>/owned</code>, but existing ones carry <code>/cleanup</code>:</p>
+
+  <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/lima/limavm/controller.go#L202-L217">pkg/controllers/lima/limavm/controller.go</a></div>
+  <pre data-start="202" data-line="210,211"><code class="language-go">	// Create template ConfigMap with label
+	templateConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      limavm.GetTemplateConfigMapName(),
+			Namespace: limavm.Namespace,
+			Labels: map[string]string{
+				controllers.TemplateConfigMapLabel: "true",
+			},
+			Finalizers: []string{
+				base.OwnedFinalizerName,
+			},
+		},
+		Data: map[string]string{
+			v1alpha1.TemplateConfigMapKey: templateData,
+		},
+	}</code></pre>
+
+  <p>All three agents identified this issue. Claude rated it important/gap; Codex rated it important/regression; Gemini rated it critical/regression. The correct classification is <strong>important, regression</strong>: the PR introduces the incompatibility, but recovery is straightforward in the single-user embedded context (delete the kine database or manually patch the finalizer).</p>
+
+  <p><strong>Fix:</strong> Migrate legacy children. In the LimaVM reconciler, when fetching the template ConfigMap during normal reconciliation, check whether it carries <code>/cleanup</code> without <code>/owned</code>. If so, patch to replace <code>/cleanup</code> with <code>/owned</code>. This keeps the migration close to the only controller that creates these ConfigMaps and avoids polluting the generic <code>DeleteOwnedResources</code> helper with knowledge of the legacy scheme.</p>
+</div>
+
+<hr>
+
+<!-- Suggestions -->
+<h3 class="section-suggestion">Suggestions</h3>
+
+<div class="card card-suggestion">
+  <div class="finding-title">
+    <span class="finding-num">1.</span> Stale comment claims owned resources "have no finalizers"
+    <span class="pill pill-claude">Claude</span>
+  </div>
+
+  <p>After this PR, template ConfigMaps carry the <code>/owned</code> finalizer. The practical conclusion (delete in one pass) remains correct because <code>DeleteOwnedResources</code> strips <code>/owned</code> before issuing the delete, but the stated reasoning at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L60-L64">lines 60-64</a> is wrong. Blame confirms these lines predate this PR (<code>de1f2298</code>), but the PR made the comment inaccurate.</p>
+
+  <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L58-L71">pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go</a></div>
+  <pre data-start="58" data-line="60,61,62,63,64"><code class="language-go">
+	// Delete owned resources and remove the finalizer in one pass. This is safe
+	// because owned resources (ConfigMaps) delete instantly and have no finalizers.
+	// If we later own resources with complex teardown, split this into two reconcile
+	// cycles: delete owned resources, then verify they are gone before removing
+	// the finalizer.
+	if err := base.DeleteOwnedResources(ctx, r.Client, limaVM, r.Manager); err != nil {
+		logger.Error(err, "Failed to delete owned resources")
+		return ctrl.Result{}, err
+	}
+
+	// Remove finalizer
+	if err := base.RemoveCleanupFinalizer(ctx, r.Client, limaVM); err != nil {
+		logger.Error(err, "Failed to remove finalizer")
+		return ctrl.Result{}, err
+	}</code></pre>
+
+  <p><strong>Fix:</strong> Rewrite the comment to explain that <code>DeleteOwnedResources</code> strips <code>/owned</code> before deletion, and the two-cycle caveat applies if a child ever needs <code>/cleanup</code> alongside <code>/owned</code>.</p>
+</div>
+
+<div class="card card-suggestion">
+  <div class="finding-title">
+    <span class="finding-num">2.</span> Missing test case for legacy child with only <code>/cleanup</code> finalizer
+    <span class="pill pill-claude">Claude</span>
+    <span class="pill pill-codex">Codex</span>
+  </div>
+
+  <p>The test covers no finalizers, owned-only, and both-finalizers. The missing case is a child with only <code>/cleanup</code> &mdash; the upgrade scenario from Important Issue #1. <code>RemoveFinalizer</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L162">line 162</a> returns false (different code path), and the resource gets stuck in Terminating.</p>
+
+  <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer_test.go#L58-L80">pkg/controllers/base/finalizer_test.go</a></div>
+  <pre data-start="58" data-line="75,76,77,78"><code class="language-go">	testCases := []struct {
+		name       string
+		finalizers []string
+		// expectDeleted is true when the owned resource should be fully deleted
+		// (NotFound) after DeleteOwnedResources. When false, the resource still
+		// exists because a remaining finalizer blocks deletion.
+		expectDeleted bool
+	}{
+		{
+			name:          "config map without finalizers",
+			expectDeleted: true,
+		},
+		{
+			name:          "config map with owned finalizer only",
+			finalizers:    []string{OwnedFinalizerName},
+			expectDeleted: true,
+		},
+		{
+			name:          "config map with both finalizers strips only owned",
+			finalizers:    []string{CleanupFinalizerName, OwnedFinalizerName},
+			expectDeleted: false,
+		},
+	}</code></pre>
+
+  <p><strong>Fix:</strong> Add a test case:</p>
+  <pre><code class="language-go">{
+    name:          "config map with cleanup finalizer only (legacy)",
+    finalizers:    []string{CleanupFinalizerName},
+    expectDeleted: false,
+},</code></pre>
+  <p>After implementing the migration fix, add a corresponding integration test that creates a legacy-finalizered ConfigMap and verifies LimaVM deletion cleans it up.</p>
+</div>
+
+<div class="card card-suggestion">
+  <div class="finding-title">
+    <span class="finding-num">3.</span> <code>EnsureOwnedFinalizer</code> and <code>RemoveOwnedFinalizer</code> are unused
+    <span class="pill pill-gemini">Gemini</span>
+  </div>
+
+  <p>The LimaVM webhook applies <code>OwnedFinalizerName</code> directly in the struct literal (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/lima/limavm/controller.go#L211">controller.go:211</a>), and <code>DeleteOwnedResources</code> removes it via <code>controllerutil.RemoveFinalizer</code> with a direct patch (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L162">finalizer.go:162</a>). Neither caller uses the new helpers.</p>
+
+  <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L58-L78">pkg/controllers/base/finalizer.go</a></div>
+  <pre data-start="58" data-line="60,71"><code class="language-go">// EnsureOwnedFinalizer adds the owned finalizer to a child object if not already present.
+// Returns true if the finalizer was added and the object has been updated.
+func EnsureOwnedFinalizer(ctx context.Context, c client.Client, obj client.Object) (bool, error) {
+	if !controllerutil.AddFinalizer(obj, OwnedFinalizerName) {
+		return false, nil
+	}
+	if err := c.Update(ctx, obj); err != nil {
+		return false, fmt.Errorf("failed to add owned finalizer: %w", err)
+	}
+	return true, nil
+}
+
+// RemoveOwnedFinalizer removes the owned finalizer from the object and updates it.
+func RemoveOwnedFinalizer(ctx context.Context, c client.Client, obj client.Object) error {
+	if controllerutil.RemoveFinalizer(obj, OwnedFinalizerName) {
+		if err := c.Update(ctx, obj); err != nil {
+			return fmt.Errorf("failed to remove owned finalizer: %w", err)
+		}
+	}
+	return nil
+}</code></pre>
+
+  <p><strong>Fix:</strong> Either remove these functions or refactor existing code to use them. They provide a consistent API surface for future controllers, so keeping them is reasonable &mdash; but document that intent.</p>
+</div>
+
+<hr>
+
+<!-- Design Observations -->
+<h3 class="section-design">Design Observations</h3>
+
+<div class="card card-design">
+  <div class="finding-title">
+    <span class="finding-num">1.</span> <code>DeleteOwnedResources</code> is now schema-version-sensitive <em>(in-scope)</em>
+    <span class="pill pill-codex">Codex</span>
+  </div>
+  <p>The helper assumes every child that should be unblocked already uses <code>/owned</code>. Encoding a short compatibility window (stripping the legacy finalizer from owned resources) in the helper would eliminate the entire class of upgrade bugs across all controllers, rather than requiring each controller to handle its own migration. The tradeoff: this would contradict the design principle that <code>DeleteOwnedResources</code> does not strip <code>/cleanup</code>. A targeted migration in the owning controller is safer and keeps the helper's contract clean.</p>
+</div>
+
+<div class="card card-design">
+  <div class="finding-title">
+    <span class="finding-num">2.</span> The <code>/owned</code> finalizer doubles as a user-facing deletion guard <em>(in-scope)</em>
+    <span class="pill pill-gemini">Gemini</span>
+  </div>
+  <p>Child resources like template ConfigMaps do not need <code>/owned</code> for the garbage collection loop to work &mdash; <code>DeleteOwnedResources</code> can delete resources without a finalizer. The <code>/owned</code> finalizer's primary value is blocking accidental <code>kubectl delete</code> attempts via the <code>ValidateDelete</code> webhook. This layered approach (webhook + finalizer) is sound but worth documenting explicitly so future contributors understand the finalizer's dual purpose.</p>
+</div>
+
+<hr>
+
+<!-- Testing Assessment -->
+<h2>Testing Assessment</h2>
+
+<div class="card card-neutral">
+  <p>The unit tests cover the three key scenarios for the new design: no finalizer, owned-only (deleted), and both finalizers (owned stripped, cleanup remains). The BATS integration test verifies that LimaVM gets <code>/cleanup</code> and the template ConfigMap gets <code>/owned</code>.</p>
+  <p><strong>Untested scenarios ranked by risk:</strong></p>
+  <ol>
+    <li><strong>Upgrade path:</strong> Child resource with only the legacy <code>/cleanup</code> finalizer processed by <code>DeleteOwnedResources</code>. Highest risk &mdash; this is the scenario from Important Issue #1.</li>
+    <li><strong>Webhook validation during cascade deletion:</strong> Verifying that <code>ValidateDelete</code> allows deletion of a template ConfigMap immediately after <code>DeleteOwnedResources</code> strips <code>/owned</code>.</li>
+    <li><strong>Concurrent owner deletion:</strong> Two owners deleting simultaneously, both calling <code>DeleteOwnedResources</code> on a shared child. The patch/delete is naturally idempotent (NotFound handled at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9de92692b758f1bf6bc0f2c1d318d5b32e4ba471/pkg/controllers/base/finalizer.go#L166-L168">lines 166-168</a>), so this is likely safe but untested.</li>
+  </ol>
+</div>
+
+<hr>
+
+<!-- Documentation Assessment -->
+<h2>Documentation Assessment</h2>
+
+<div class="card card-neutral">
+  <p>The new <code>docs/design/controllers.md</code> documents the finalizer design clearly, including the "Why Two Finalizers?" rationale. Cross-links from <code>README.md</code> and <code>discovery.md</code> are appropriate.</p>
+  <p><strong>Gap:</strong> The design doc should mention the upgrade path for existing resources, or state explicitly that migration from the single-finalizer scheme is required.</p>
+</div>
+
+<hr>
+
+<!-- Agent Performance Retro -->
+<h2>Agent Performance Retro</h2>
+
+<div class="card card-neutral">
+  <h3><span class="pill pill-claude">Claude</span> Opus 4.6</h3>
+  <ul>
+    <li><strong>Unique contributions:</strong> Identified the stale comment in <code>limavm_lifecycle.go:60-64</code>.</li>
+    <li><strong>Accuracy:</strong> All findings verified. Correctly classified the upgrade issue as "important, gap" (though "regression" is more precise since this PR introduced the incompatibility).</li>
+    <li><strong>Depth:</strong> Traced through <code>DeleteOwnedResources</code>, the webhook, and the reconciler. Used git blame to confirm origins. Explored the design tradeoff between helper-level and controller-level migration.</li>
+    <li><strong>Signal-to-noise:</strong> Excellent. Every finding is actionable. No false positives.</li>
+  </ul>
+</div>
+
+<div class="card card-neutral">
+  <h3><span class="pill pill-codex">Codex</span> GPT 5.4</h3>
+  <ul>
+    <li><strong>Unique contributions:</strong> None beyond the shared upgrade finding.</li>
+    <li><strong>Accuracy:</strong> All findings verified. Correctly classified the upgrade issue as "important, regression."</li>
+    <li><strong>Depth:</strong> Traced the full deletion path from <code>DeleteOwnedResources</code> through to the parent finalizer removal. Concise analysis.</li>
+    <li><strong>Signal-to-noise:</strong> High signal, very concise review. No false positives.</li>
+  </ul>
+</div>
+
+<div class="card card-neutral">
+  <h3><span class="pill pill-gemini">Gemini</span> 3.1 Pro</h3>
+  <ul>
+    <li><strong>Unique contributions:</strong> Identified unused helper functions (<code>EnsureOwnedFinalizer</code>, <code>RemoveOwnedFinalizer</code>). Flagged the ConfigMap orphan issue (pre-existing gap, not a regression).</li>
+    <li><strong>Accuracy:</strong> Rated the upgrade issue as "critical, regression" &mdash; overcalibrated for an embedded single-user context. The ConfigMap orphan finding is legitimate but pre-existing.</li>
+    <li><strong>Depth:</strong> Read the webhook code, traced the admission flow, and identified the orphan scenario. Good cross-component analysis.</li>
+    <li><strong>Signal-to-noise:</strong> Good, but the orphan finding predates this PR and the severity calibration was off.</li>
+  </ul>
+</div>
+
+<div class="card card-neutral">
+  <h3>Summary</h3>
+  <table class="retro-table">
+    <thead>
+      <tr><th>Metric</th><th><span class="pill pill-claude">Claude</span> Opus 4.6</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Duration</td><td>4:16</td><td>3:20</td><td>4:26</td></tr>
+      <tr><td>Critical</td><td>0</td><td>0</td><td>1 (overcalibrated)</td></tr>
+      <tr><td>Important</td><td>1</td><td>1</td><td>1</td></tr>
+      <tr><td>Suggestion</td><td>2</td><td>1</td><td>1</td></tr>
+      <tr><td>Design observations</td><td>2</td><td>1</td><td>1</td></tr>
+      <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><td>Unique insights</td><td>1</td><td>0</td><td>2</td></tr>
+    </tbody>
+  </table>
+  <p>Claude provided the most thorough analysis with the best severity calibration. Gemini contributed the most unique findings but overcalibrated severity. Codex was accurate and concise but offered no unique insights beyond the shared finding.</p>
+</div>
+
+<hr>
+
+<!-- Skill Improvement Recommendations -->
+<h2>Skill Improvement Recommendations</h2>
+
+<div class="card card-neutral">
+  <ul>
+    <li>The prompt's instruction to "calibrate severity for an embedded single-user context" worked for Claude and Codex but not Gemini. Consider adding a concrete example to the repo context (e.g., "an issue that requires deleting the kine database to recover is IMPORTANT, not CRITICAL").</li>
+    <li>All three agents found the same upgrade issue, confirming it as the PR's central risk. The prompt dimensions are comprehensive for this type of change.</li>
+    <li>No aspects were missed by all agents.</li>
+    <li>The clarification round was unnecessary &mdash; all findings were clear and consistent.</li>
+  </ul>
+</div>
+
+</main>
+
+<script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+<script>
+/* Run highlighting and line-number wrapping synchronously.
+   Prism.manual=true prevents auto-highlight, so we call it here.
+   No event listeners — document.write() pages may never fire
+   DOMContentLoaded or load. */
+Prism.highlightAll();
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1],10); i <= parseInt(m[2],10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+  var code = pre.querySelector('code');
+  if (!code) return;
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+</script>
+</body>
+</html>
