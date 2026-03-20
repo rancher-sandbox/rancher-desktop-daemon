@@ -177,7 +177,7 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
 </div>
 
 <h3 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&para;</a></h3>
-<div class="card card-neutral"><p>None.</p></div>
+<div class="card card-critical"><p>None.</p></div>
 
 <h3 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&para;</a></h3>
 
@@ -512,36 +512,40 @@ func (r *LimaVMReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 <h2 id="design-observations">Design Observations <a href="#design-observations" class="pilcrow">&para;</a></h2>
 
+<h3 id="design-concerns" class="section-design">Concerns <a href="#design-concerns" class="pilcrow">&para;</a></h3>
+
 <div class="card card-design">
-<div class="finding-title" id="design-1">
+<div class="finding-title" id="design-concern-1">
   <span class="finding-num">1.</span> <code>stopInstanceForcibly</code> forks upstream cleanup semantics instead of overriding just the kill primitive (in-scope) <span class="pill pill-codex">Codex</span> <span class="pill pill-claude">Claude</span>
-  <a href="#design-1" class="pilcrow">&para;</a>
+  <a href="#design-concern-1" class="pilcrow">&para;</a>
 </div>
 <p>The new <code>stopInstanceForcibly</code> replaces the entire <code>StopForcibly</code> function rather than overriding just the Windows kill call. This already caused the <code>filepath.Glob</code> regression and the orphaned-children issue, and will drift further as Lima evolves (e.g., the additional-disk unlock at <code>stop.go:119-128</code>, which RDD doesn't currently use but might in the future). A better structure: keep one local helper for "Windows-safe kill PID" and call upstream <code>StopForcibly</code> for everything else, or copy upstream's cleanup logic faithfully when the kill primitive must differ.</p>
 </div>
 
+<h3 id="design-strengths" class="section-design">Strengths <a href="#design-strengths" class="pilcrow">&para;</a></h3>
+
 <div class="card card-design">
-<div class="finding-title" id="design-2">
-  <span class="finding-num">2.</span> <code>CREATE_NEW_PROCESS_GROUP</code> + targeted <code>GenerateConsoleCtrlEvent</code> is the right approach (in-scope) <span class="pill pill-claude">Claude</span>
-  <a href="#design-2" class="pilcrow">&para;</a>
+<div class="finding-title" id="design-strength-1">
+  <span class="finding-num">1.</span> <code>CREATE_NEW_PROCESS_GROUP</code> + targeted <code>GenerateConsoleCtrlEvent</code> is the right approach (in-scope) <span class="pill pill-claude">Claude</span>
+  <a href="#design-strength-1" class="pilcrow">&para;</a>
 </div>
-<p>The PR correctly identifies that Lima's <code>osutil.SysKill</code> on Windows uses <code>GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid)</code>, which targets the entire console group and kills the RDD service. The fix isolates the hostagent into its own process group, and <code>process.Interrupt</code> targets that group specifically. This is correct and clean.</p>
+<p>The fix isolates the hostagent into its own process group and targets <code>CTRL_BREAK_EVENT</code> at that group specifically. Correct and clean.</p>
 </div>
 
 <div class="card card-design">
-<div class="finding-title" id="design-3">
-  <span class="finding-num">3.</span> SSH key pre-generation is a clean Lima workaround (in-scope) <span class="pill pill-claude">Claude</span>
-  <a href="#design-3" class="pilcrow">&para;</a>
+<div class="finding-title" id="design-strength-2">
+  <span class="finding-num">2.</span> SSH key pre-generation is a clean Lima workaround (in-scope) <span class="pill pill-claude">Claude</span>
+  <a href="#design-strength-2" class="pilcrow">&para;</a>
 </div>
-<p><code>ensureSSHKeys</code> runs at controller startup, generates the SSH keypair with a native Windows path, and is idempotent. This avoids patching Lima while keeping the fix local to RDD.</p>
+<p><code>ensureSSHKeys</code> runs at controller startup, generates the keypair with a native Windows path, and is idempotent. Avoids patching Lima while keeping the fix local to RDD.</p>
 </div>
 
 <div class="card card-design">
-<div class="finding-title" id="design-4">
-  <span class="finding-num">4.</span> BATS helpers provide good cross-platform abstraction (in-scope) <span class="pill pill-claude">Claude</span>
-  <a href="#design-4" class="pilcrow">&para;</a>
+<div class="finding-title" id="design-strength-3">
+  <span class="finding-num">3.</span> BATS helpers provide good cross-platform abstraction (in-scope) <span class="pill pill-claude">Claude</span>
+  <a href="#design-strength-3" class="pilcrow">&para;</a>
 </div>
-<p><code>assert_process_alive</code> and <code>process_kill</code> in <code>os.bash</code> correctly handle the MSYS2-to-Win32 process boundary using <code>tasklist.exe</code> and <code>taskkill.exe</code> with <code>MSYS_NO_PATHCONV=1</code>. The <code>vm_template.bash</code> module cleanly separates platform-specific template selection.</p>
+<p><code>assert_process_alive</code> and <code>process_kill</code> correctly handle the MSYS2-to-Win32 process boundary. The <code>vm_template.bash</code> module cleanly separates platform-specific template selection.</p>
 </div>
 
 <hr>
