@@ -176,7 +176,7 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
 
     <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">¶</a></h2>
     <div class="card card-neutral">
-      <p>This PR adds the App controller's reconciliation loop: it bootstraps a LimaVM from an embedded template, propagates <code>spec.running</code>, mirrors LimaVM conditions onto the App, and handles deletion through a cleanup finalizer. The implementation is clean — the priority chain returns after every mutation to ensure fresh state, and the dual-finalizer pattern correctly delegates VM teardown to the LimaVM controller. Two error-handling issues need fixes before merge: transient API errors during cleanup can orphan ConfigMaps, and a manually deleted LimaVM gets stuck Terminating forever.</p>
+      <p>This PR adds the App controller's reconciliation loop: it bootstraps a LimaVM from an embedded template, propagates <code>spec.running</code>, mirrors LimaVM conditions onto the App, and handles deletion through a cleanup finalizer. The implementation is clean — the priority chain returns after every mutation to ensure fresh state, and the dual-finalizer pattern correctly delegates VM teardown to the LimaVM controller. Two issues need fixes: transient API errors during cleanup can orphan ConfigMaps, and the LimaVM resource lacks a validating webhook to block deletion while owned.</p>
     </div>
 
     <h2 id="findings">Findings <a href="#findings" class="pilcrow">¶</a></h2>
@@ -233,58 +233,39 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
 }</code></pre>
     </div>
 
-    <div class="card card-important">
+    <div class="card card-important" style="opacity: 0.6;">
       <div class="finding-title" id="important-2">
-        <span class="finding-num">2.</span> Manual LimaVM deletion deadlocks
+        <span class="finding-num">2.</span> <s>Manual LimaVM deletion deadlocks</s> <strong>INVALID</strong>
         <span class="pill pill-gemini">Gemini</span>
-        (important, regression)
         <a href="#important-2" class="pilcrow">¶</a>
       </div>
 
-      <p>The App controller adds <code>OwnedFinalizerName</code> to the LimaVM at creation (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L149">line 149</a>):</p>
+      <p><strong>This finding is invalid.</strong> The owned finalizer is not a deadlock — it is an access-control gate. A validating webhook checks <code>HasOwnedFinalizer</code> and rejects DELETE requests while the finalizer is present. The owner removes the finalizer when it wants to allow deletion. The LimaVM controller already uses this pattern for template ConfigMaps (<code>ConfigMapValidator.ValidateDelete</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/lima/limavm/controller.go#L272-L279">controller.go:272-279</a>). See Important #3 for the actual gap.</p>
+    </div>
 
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L145-L158">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="145" data-line="149"><code class="language-go">		limaVM = &amp;limav1alpha1.LimaVM{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       limaVMName,
-				Namespace:  namespace,
-				Finalizers: []string{base.OwnedFinalizerName},
-			},
-			Spec: limav1alpha1.LimaVMSpec{
-				TemplateRef: limav1alpha1.TemplateReference{
-					Name:      inputConfigMapName,
-					Namespace: namespace,
-				},
-				Running: app.Spec.Running,
-			},
-		}</code></pre>
+    <div class="card card-important">
+      <div class="finding-title" id="important-3">
+        <span class="finding-num">3.</span> LimaVM resource lacks a validating webhook to block deletion while owned
+        (important, gap)
+        <a href="#important-3" class="pilcrow">¶</a>
+      </div>
 
-      <p>But it only removes the finalizer during App deletion (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L90">line 90</a>):</p>
+      <p>The App controller adds <code>OwnedFinalizerName</code> to the LimaVM at creation (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L149">line 149</a>), matching the pattern the LimaVM controller uses for template ConfigMaps. The ConfigMap has a corresponding <code>ValidateDelete</code> webhook that rejects DELETE requests when the owned finalizer is present, giving the user a clear error:</p>
 
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L89-L101">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="89" data-line="90"><code class="language-go">		case !base.IsBeingDeleted(limaVM):
-			if err := base.RemoveOwnedFinalizer(ctx, r.Client, limaVM); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to remove owned finalizer from LimaVM: %w", err)
-			}
-			if err := r.Delete(ctx, limaVM); err != nil &amp;&amp; !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, fmt.Errorf("failed to delete LimaVM: %w", err)
-			}
-			log.Info("Requested LimaVM deletion, waiting for teardown")
-			return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil
-		default:
-			// LimaVM deletion is in progress; keep requeueing until it is gone.
-			log.Info("Waiting for LimaVM deletion to complete")
-			return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil</code></pre>
-
-      <p>If a user deletes the LimaVM directly (<code>rdd ctl delete limavm rd</code>) while the App is alive, the LimaVM receives a <code>DeletionTimestamp</code> but the <code>OwnedFinalizerName</code> is never released. The LimaVM stays Terminating forever, and the App controller's normal path (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L169-L212">lines 169-212</a>) never checks for a terminating LimaVM, so it mirrors stale conditions indefinitely.</p>
-
-      <p><span class="fix-label">Fix:</span> In the non-deletion path, after the <code>Get</code> at line 116, check whether the LimaVM is being deleted. If so, release the owned finalizer, reset the App's mirrored conditions to <code>Unknown</code>, and requeue:</p>
-      <pre><code class="language-go">if !base.IsBeingDeleted(&amp;app) &amp;&amp; base.IsBeingDeleted(limaVM) {
-    if err := base.RemoveOwnedFinalizer(ctx, r.Client, limaVM); err != nil {
-        return ctrl.Result{}, err
-    }
-    return ctrl.Result{Requeue: true}, nil
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/lima/limavm/controller.go#L272-L279">pkg/controllers/lima/limavm/controller.go</a></div>
+      <pre data-start="272" data-line="276,277"><code class="language-go">func (v *ConfigMapValidator) ValidateDelete(ctx context.Context, configMap *corev1.ConfigMap) (ctrlwebhookadmission.Warnings, error) {
+	if base.IsDryRun(ctx) {
+		klog.V(1).Infof("[DryRun] Webhook validating ConfigMap deletion %s/%s\n", configMap.Namespace, configMap.Name)
+	}
+	if base.HasOwnedFinalizer(configMap) {
+		return nil, fmt.Errorf("cannot delete template ConfigMap %q: it is protected by the LimaVM controller; delete the owning LimaVM resource instead", configMap.Name)
+	}
+	return nil, nil
 }</code></pre>
+
+      <p>The LimaVM resource lacks an equivalent webhook. Without it, <code>rdd ctl delete limavm rd</code> is accepted by the API server, the resource enters Terminating, and the owned finalizer blocks actual deletion — leaving a stuck resource with no error explaining why.</p>
+
+      <p><span class="fix-label">Fix:</span> Add a <code>ValidateDelete</code> to the LimaVM resource webhook that checks <code>HasOwnedFinalizer</code> and rejects the DELETE with a message like <em>"cannot delete LimaVM 'rd': it is owned by the App controller; delete the App resource instead."</em></p>
     </div>
 
     <!-- Suggestions -->
@@ -447,22 +428,13 @@ const conditionMessageMaxLen = 32768</code></pre>
       </ul>
     </div>
 
-    <h3 id="design-concerns" class="section-design">Concerns <a href="#design-concerns" class="pilcrow">¶</a></h3>
-    <div class="card card-design">
-      <div class="finding-title" id="design-1">
-        <span class="finding-num">1.</span> OwnedFinalizer creates asymmetric lifecycle (in-scope)
-        <a href="#design-1" class="pilcrow">¶</a>
-      </div>
-      <p>The OwnedFinalizer on LimaVM creates an asymmetric lifecycle: the App controller adds it at creation but only removes it during App deletion. Any path that leads to LimaVM deletion without App deletion (manual delete, future automation) causes a deadlock. If the owned finalizer's only purpose is to prevent premature deletion, consider whether the App controller could instead detect a missing LimaVM and recreate it — eliminating the finalizer and the deadlock class entirely. The App already has this recreation logic (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/dd300d6188a2baace02d1b8f4025b85590857039/pkg/controllers/app/app/controllers/app_controller.go#L121-L166">lines 121-166</a>); the owned finalizer prevents it from ever running.</p>
-    </div>
-
     <!-- Testing Assessment -->
     <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">¶</a></h2>
     <div class="card card-neutral">
       <p>The BATS tests cover the full happy-path lifecycle: creation, finalizer verification, ownership, template propagation, input ConfigMap cleanup, condition mirroring (including <code>LastTransitionTime</code> preservation), <code>spec.running</code> propagation, CRD validation (singleton name, namespace immutability), deletion cascade, and recreation after deletion.</p>
       <p>Untested scenarios, ranked by risk:</p>
       <ol>
-        <li><strong>Manual LimaVM deletion while App is alive</strong> — Highest risk. This triggers the deadlock in Important #2. A test should delete the LimaVM directly and verify the App controller recreates it.</li>
+        <li><strong>Attempted LimaVM deletion while owned</strong> — Highest risk. Once the validating webhook from Important #3 is added, a test should verify that <code>rdd ctl delete limavm rd</code> is rejected with a clear error while the App owns it.</li>
         <li><strong>No <code>local_teardown_file</code></strong> — Unlike <code>limavm-instance.bats</code>, this test file has no teardown to clean up Lima instance directories from disk. If a test fails before "delete App" at line 182, leftover disk state persists at <code>LIMA_HOME</code>.</li>
         <li><strong>App deletion while LimaVM is partially created</strong> — e.g., the input ConfigMap exists but the LimaVM webhook hasn't processed the template yet. The cleanup path at lines 62-84 handles this, but no test exercises it.</li>
       </ol>
