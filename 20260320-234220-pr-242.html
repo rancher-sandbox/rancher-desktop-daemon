@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260320-234220-pr-242</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+  </style>
+</head>
+<body>
+  <main>
+
+<h1>Deep Review: 20260320-234220-pr-242</h1>
+
+<table class="meta-table">
+  <tr><td>Date</td><td>2026-03-20 23:42</td></tr>
+  <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
+  <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/242" class="gh-ref" data-title="Msys2 ci" data-state="open" data-type="pr">#242</a> &mdash; Msys2 ci</td></tr>
+  <tr><td>Branch</td><td><code>msys2-ci</code></td></tr>
+  <tr><td>Commits</td><td>
+    <code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/eb0f332">eb0f332</a></code> Honor RDD_LOG_LEVEL in external controllers<br>
+    <code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/9557d83">9557d83</a></code> Run Windows BATS tests via MSYS2 instead of WSL2<br>
+    <code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/0936e8c">0936e8c</a></code> Pre-generate Lima SSH keys on Windows to avoid broken path conversion<br>
+    <code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/37bec17">37bec17</a></code> Enable Lima BATS tests on Windows<br>
+    <code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/4d1b877">4d1b877</a></code> Fix stopInstanceForcibly to terminate WSL2 distro and clean up files<br>
+    <code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/ddb5fbf">ddb5fbf</a></code> Fix Windows process signaling for Lima hostagent lifecycle
+  </td></tr>
+  <tr><td>Reviewers</td><td>
+    <span class="pill pill-claude">Claude</span> Opus 4.6,
+    <span class="pill pill-codex">Codex</span> GPT 5.4,
+    <span class="pill pill-gemini">Gemini</span> 3.1 Pro
+  </td></tr>
+  <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; one important bug in SSH key generation can permanently wedge the Lima controller on Windows</td></tr>
+  <tr><td>Wall-clock time</td><td>15 min 50 s</td></tr>
+</table>
+
+<hr>
+
+<h2 id="consolidated-review">Consolidated Review <a href="#consolidated-review" class="pilcrow">&para;</a></h2>
+
+<div class="card card-neutral">
+<h3 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&para;</a></h3>
+<p>This PR migrates Windows BATS tests from WSL2 to MSYS2, adds cross-platform process signaling for the Lima hostagent lifecycle, pre-generates SSH keys to work around Lima's broken cygpath conversion, and fixes forceful instance shutdown for WSL2. The Go changes consolidate three separate shutdown sequences into one (<code>shutdownHostagent</code>) and introduce a clean <code>process</code> package abstraction. The only significant defect: <code>ensureSSHKeys</code> on Windows cannot recover from a partial rename failure or from a state where the public key exists without its private key, permanently blocking controller startup.</p>
+</div>
+
+<hr>
+
+<h3 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&para;</a></h3>
+
+<div class="card card-critical">
+<p>None.</p>
+</div>
+
+<hr>
+
+<h3 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&para;</a></h3>
+
+<div class="card card-important">
+<div class="finding-title" id="important-1">
+  <span class="finding-num">1.</span> <code>ensureSSHKeys</code> partial rename leaves unrecoverable state
+  <span class="pill pill-claude">Claude</span>
+  <span class="pill pill-codex">Codex</span>
+  <a href="#important-1" class="pilcrow">&para;</a>
+</div>
+
+<p>(important, regression)</p>
+
+<p>Two failure modes, both unrecoverable:</p>
+
+<p><strong>(a)</strong> If the public-key rename (line 57) succeeds but the private-key rename (line 60) fails, the function leaves <code>pubPath</code> (new public key) and <code>tmpPath</code> (stale private key) on disk. On the next call, <code>os.Stat(privPath)</code> fails (no private key at the final path), so the function proceeds to ssh-keygen. But <code>tmpPath</code> still exists, and ssh-keygen prompts for overwrite confirmation. With no stdin, it reads EOF, interprets it as &ldquo;no,&rdquo; and aborts. Every subsequent call hits this dead end.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/eb0f3321d564b7cdfc52036f18de3ffc6b1b7c88/pkg/controllers/lima/limavm/controllers/ssh_keys_windows.go#L25-L64">pkg/controllers/lima/limavm/controllers/ssh_keys_windows.go</a></div>
+<pre data-start="25" data-line="32-38,57-62"><code class="language-go">func ensureSSHKeys() error {
+	configDir, err := dirnames.LimaConfigDir()
+	if err != nil {
+		return err
+	}
+	privPath := filepath.Join(configDir, filenames.UserPrivateKey)
+	pubPath := privPath + ".pub"
+	if _, err := os.Stat(privPath); err == nil {
+		if _, err := os.Stat(pubPath); err == nil {
+			return nil
+		}
+		// Private key exists without public key — corrupt keypair.
+		// Remove and regenerate.
+		_ = os.Remove(privPath)
+	}
+	if err := os.MkdirAll(configDir, 0o700); err != nil {
+		return fmt.Errorf("could not create %q: %w", configDir, err)
+	}
+	// Generate into a temporary path and rename on success, so an
+	// interrupted ssh-keygen does not leave a partial key that blocks
+	// future attempts.
+	tmpPath := privPath + ".tmp"
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "ssh-keygen", "-t", "ed25519", "-q", "-N", "",
+		"-C", "lima", "-f", tmpPath)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		// Clean up any partial files left by ssh-keygen.
+		_ = os.Remove(tmpPath)
+		_ = os.Remove(tmpPath + ".pub")
+		return fmt.Errorf("failed to generate SSH key: %s: %w", out, err)
+	}
+	if err := os.Rename(tmpPath+".pub", pubPath); err != nil {
+		return fmt.Errorf("failed to rename public key: %w", err)
+	}
+	if err := os.Rename(tmpPath, privPath); err != nil {
+		return fmt.Errorf("failed to rename private key: %w", err)
+	}
+	return nil
+}</code></pre>
+
+<p><strong>(b)</strong> The recovery code at lines 32&ndash;38 handles &ldquo;private key exists without public key&rdquo; but not the inverse. If <code>pubPath</code> exists without <code>privPath</code>, the function falls through to ssh-keygen, generates new keys at <code>tmpPath</code>, then attempts <code>os.Rename(tmpPath+".pub", pubPath)</code>. On Windows, <code>os.Rename</code> fails when the destination already exists, permanently blocking the rename.</p>
+
+<p>Both failures prevent <code>SetupWithManager</code> from completing (line 452 of <code>limavm_controller.go</code>), which blocks the entire Lima controller.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/eb0f3321d564b7cdfc52036f18de3ffc6b1b7c88/pkg/controllers/lima/limavm/controllers/limavm_controller.go#L450-L454">pkg/controllers/lima/limavm/controllers/limavm_controller.go</a></div>
+<pre data-start="450" data-line="452-454"><code class="language-go">// SetupWithManager sets up the controller with the Manager.
+func (r *LimaVMReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := ensureSSHKeys(); err != nil {
+		return fmt.Errorf("failed to generate Lima SSH keys: %w", err)
+	}</code></pre>
+
+<p><span class="fix-label">Fix:</span> Clean up both files on error, and handle the inverse case symmetrically:</p>
+
+<pre><code class="language-go">// Handle both half-present states before generation.
+if _, err := os.Stat(privPath); err == nil {
+    if _, err := os.Stat(pubPath); err == nil {
+        return nil
+    }
+    _ = os.Remove(privPath)
+}
+_ = os.Remove(pubPath) // remove orphaned public key if present
+
+// ... ssh-keygen ...
+
+if err := os.Rename(tmpPath+".pub", pubPath); err != nil {
+    _ = os.Remove(tmpPath)
+    _ = os.Remove(tmpPath + ".pub")
+    return fmt.Errorf("failed to rename public key: %w", err)
+}
+if err := os.Rename(tmpPath, privPath); err != nil {
+    _ = os.Remove(pubPath)
+    _ = os.Remove(tmpPath)
+    return fmt.Errorf("failed to rename private key: %w", err)
+}</code></pre>
+</div>
+
+<hr>
+
+<h3 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&para;</a></h3>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-1">
+  <span class="finding-num">1.</span> Unbounded wait after force-kill in <code>shutdownHostagent</code>
+  <span class="pill pill-claude">Claude</span>
+  <a href="#suggestion-1" class="pilcrow">&para;</a>
+</div>
+
+<p>(suggestion, regression)</p>
+
+<p>After <code>forceStop()</code> (SIGKILL/taskkill), <code>waitForProcessExit(ctx, name)</code> at line 504 uses the reconciler's context, which may have no deadline. If <code>KillTree</code> fails silently (zombie, permission issue), this blocks the reconciler indefinitely. The same pattern appears at line 509.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/eb0f3321d564b7cdfc52036f18de3ffc6b1b7c88/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L498-L512">pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go</a></div>
+<pre data-start="498" data-line="504,509"><code class="language-go">	if r.signalHostagent(name) {
+		stopCtx, cancel := context.WithTimeout(ctx, gracefulShutdownTimeout)
+		defer cancel()
+		if !r.waitForProcessExit(stopCtx, name) {
+			logger.Info("Hostagent did not exit gracefully, forcing stop")
+			forceStop()
+			r.waitForProcessExit(ctx, name)
+		}
+	} else {
+		logger.Info("Could not signal hostagent, killing process directly")
+		r.killHostagent(name)
+		r.waitForProcessExit(ctx, name)
+		forceStop()
+	}</code></pre>
+
+<p><span class="fix-label">Fix:</span> Use a bounded context, e.g., <code>context.WithTimeout(ctx, 10*time.Second)</code>, consistent with how <code>shutdownAllHostagents</code> creates a fresh timeout for cleanup.</p>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-2">
+  <span class="finding-num">2.</span> Stale PID in <code>stopInstanceForcibly</code> after process reap
+  <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-2" class="pilcrow">&para;</a>
+</div>
+
+<p>(suggestion, regression)</p>
+
+<p>In the else branch (lines 506&ndash;511), the process is killed and reaped before <code>forceStop()</code> calls <code>KillTree</code> on the PID read from disk. The PID is free for reuse. On Unix, <code>KillTree</code> sends to the process group (<code>-pid</code>), which no longer exists, so <code>Kill</code> returns <code>ESRCH</code> harmlessly. On Windows, <code>taskkill /PID</code> could theoretically target a recycled PID. The same pattern exists in <code>shutdownAllHostagents</code> (line 514, then line 523).</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/eb0f3321d564b7cdfc52036f18de3ffc6b1b7c88/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L506-L511">pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go</a></div>
+<pre data-start="506" data-line="506-511"><code class="language-go">	} else {
+		logger.Info("Could not signal hostagent, killing process directly")
+		r.killHostagent(name)
+		r.waitForProcessExit(ctx, name)
+		forceStop()
+	}</code></pre>
+
+<p>Practical risk is low: the window is microseconds, and PID recycling requires exhausting the range. The real value of <code>forceStop()</code> in this path is WSL2 distro termination and tmp file cleanup, not the kill. Reordering <code>forceStop()</code> before <code>waitForProcessExit</code> would eliminate the window.</p>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-3">
+  <span class="finding-num">3.</span> Missing <code>break</code> in tmp file cleanup loop
+  <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-3" class="pilcrow">&para;</a>
+</div>
+
+<p>(suggestion, enhancement)</p>
+
+<p>Once a file matches a suffix and is removed, the inner loop continues comparing its name against remaining suffixes. Adding <code>break</code> after the removal block avoids unnecessary iterations.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/eb0f3321d564b7cdfc52036f18de3ffc6b1b7c88/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L612-L623">pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go</a></div>
+<pre data-start="612" data-line="614"><code class="language-go">	for _, f := range entries {
+		for _, suffix := range filenames.TmpFileSuffixes {
+			if strings.HasSuffix(f.Name(), suffix) {
+				path := filepath.Join(inst.Dir, f.Name())
+				if err := os.Remove(path); err != nil {
+					logger.V(1).Info("Failed to remove tmp file", "path", path, "error", err)
+				} else {
+					logger.V(1).Info("Removed tmp file", "path", path)
+				}
+			}
+		}
+	}</code></pre>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-4">
+  <span class="finding-num">4.</span> <code>setVerbosityFromEnv</code> default message lacks guidance
+  <span class="pill pill-claude">Claude</span>
+  <a href="#suggestion-4" class="pilcrow">&para;</a>
+</div>
+
+<p>(suggestion, regression)</p>
+
+<p>The message says the level is unsupported but does not list valid values. Since this runs before klog initialization, raw stderr is understandable, but the message could list the valid values (<code>trace</code>, <code>debug</code>, <code>info</code>) to help operators self-correct.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/eb0f3321d564b7cdfc52036f18de3ffc6b1b7c88/pkg/external/main.go#L260-L276">pkg/external/main.go</a></div>
+<pre data-start="260" data-line="274"><code class="language-go">func setVerbosityFromEnv() {
+	level := strings.TrimSpace(os.Getenv("RDD_LOG_LEVEL"))
+	switch strings.ToLower(level) {
+	case "trace":
+		if err := flag.Set("v", "4"); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to set klog verbosity: %v\n", err)
+		}
+	case "debug":
+		if err := flag.Set("v", "2"); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to set klog verbosity: %v\n", err)
+		}
+	case "", "info":
+		// info is the default klog verbosity; nothing to change.
+	default:
+		fmt.Fprintf(os.Stderr, "RDD_LOG_LEVEL=%q is not supported for klog (only trace, debug); using default verbosity\n", level)
+	}
+}</code></pre>
+</div>
+
+<hr>
+
+<h3 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&para;</a></h3>
+
+<div class="card card-design">
+<h4>Concerns</h4>
+
+<ul>
+<li><strong><code>stopInstanceForcibly</code> handles too many responsibilities</strong> <em>(future)</em>
+<span class="pill pill-claude">Claude</span>
+<span class="pill pill-gemini">Gemini</span>
+&mdash; The function kills processes, unlocks disks, terminates WSL2 distros, and removes tmp files. Splitting it into <code>killProcesses</code> + <code>cleanupInstanceArtifacts</code> would let <code>shutdownAllHostagents</code> call only the cleanup half after its own <code>KillTree</code>, and would simplify future timeout consolidation.</li>
+
+<li><strong>PID-based orphan management is inherently racy</strong> <em>(future)</em>
+<span class="pill pill-gemini">Gemini</span>
+&mdash; <code>killOrphanedHostagent</code> targets PIDs loaded from disk. On a heavily loaded system, a process that crashed before controller startup may have had its PID reassigned. A sanity check (executable name or process start time) before killing would reduce risk, though a complete solution requires OS-level mechanisms (pidfds on Linux, job objects on Windows).</li>
+</ul>
+
+<h4>Strengths</h4>
+
+<ul>
+<li>The <code>shutdownHostagent</code> consolidation replaces three inline stop-signal-wait-kill sequences with one function and one shutdown protocol. All callers get consistent behavior.
+<span class="pill pill-claude">Claude</span>
+<span class="pill pill-codex">Codex</span></li>
+
+<li><code>process.SetGroup</code> + <code>process.Interrupt</code> + <code>process.KillTree</code> provides a clean cross-platform abstraction. On Windows, using <code>CREATE_NEW_PROCESS_GROUP</code> + <code>CTRL_BREAK_EVENT</code> avoids the console-group broadcast that was killing the RDD service.
+<span class="pill pill-claude">Claude</span>
+<span class="pill pill-gemini">Gemini</span></li>
+
+<li>The <code>ensureSSHKeys</code> approach (pre-generate before Lima's broken cygpath path) is a clean workaround. The atomic-rename pattern prevents partial keys from being used by Lima.
+<span class="pill pill-claude">Claude</span>
+<span class="pill pill-codex">Codex</span></li>
+
+<li><code>stopInstanceForcibly</code> correctly replaces Lima's <code>StopForcibly</code> for Windows, preserving disk/tmp-file cleanup while adding WSL2 distro termination.
+<span class="pill pill-codex">Codex</span></li>
+</ul>
+</div>
+
+<hr>
+
+<h3 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&para;</a></h3>
+
+<div class="card card-neutral">
+<p>The BATS tests were updated systematically: <code>skip_on_windows</code> removed, cross-platform process helpers (<code>assert_process_alive</code>, <code>process_kill</code>) used throughout, and timeouts increased for Windows boot times. Untested scenarios, ranked by risk:</p>
+
+<ol>
+<li><strong><code>ensureSSHKeys</code> partial rename recovery</strong> &mdash; No test covers the case where one rename succeeds and the other fails, or where the public key exists without the private key. This is the highest-risk gap: it can permanently wedge the controller.</li>
+<li><strong><code>RDD_LOG_LEVEL</code> in external controllers</strong> &mdash; The CLI's log level is tested in <code>bats/tests/10-cli/4-log-level.bats</code>, but the new <code>setVerbosityFromEnv</code> path in <code>pkg/external/main.go</code> has no coverage.</li>
+<li><strong>WSL2 distro termination timeout</strong> &mdash; The 10s timeout in <code>stopInstanceForcibly</code> (line 598) is not exercised. If <code>wsl.exe --terminate</code> hangs, the test would hang.</li>
+<li><strong><code>shutdownHostagent</code> kill-then-cleanup path</strong> &mdash; The else branch (lines 506&ndash;511, signal fails) fires only when no watcher exists but a hostagent is running &mdash; an unusual state with no direct test.</li>
+</ol>
+</div>
+
+<hr>
+
+<h3 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&para;</a></h3>
+
+<div class="card card-neutral">
+<p>No public API changes require external documentation. The inline comments are thorough: <code>stopInstanceForcibly</code> explains why Lima's <code>StopForcibly</code> cannot be used on Windows, and <code>ensureSSHKeys</code> explains the cygpath workaround.</p>
+</div>
+
+<hr>
+
+<h3 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&para;</a></h3>
+
+<div class="card card-neutral">
+<p>The commit sequence is well-ordered: process signaling foundation (<code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/ddb5fbf">ddb5fbf</a></code>), then <code>stopInstanceForcibly</code> (<code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/4d1b877">4d1b877</a></code>), SSH keys (<code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/0936e8c">0936e8c</a></code>), BATS enablement (<code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/37bec17">37bec17</a></code>), and CI migration (<code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/9557d83">9557d83</a></code>). Each commit is self-contained. The final commit (<code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/eb0f332">eb0f332</a></code>, RDD_LOG_LEVEL in external controllers) is tangentially related to the Windows/MSYS2 scope, but small enough that splitting it into its own PR would add overhead without reducing review risk.</p>
+</div>
+
+<hr>
+
+<h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&para;</a></h2>
+
+<div class="card card-neutral">
+<h3 id="retro-claude"><span class="pill pill-claude">Claude</span> <a href="#retro-claude" class="pilcrow">&para;</a></h3>
+
+<p>Claude produced the most thorough review. It correctly identified the SSH key partial-rename bug with two distinct failure modes and proposed two alternative fixes. It also caught the unbounded <code>waitForProcessExit</code> after force-kill, the redundant <code>KillTree</code> in <code>shutdownAllHostagents</code>, and the <code>setVerbosityFromEnv</code> message gap.</p>
+
+<p>One false positive: the MSYS2 path conversion finding (<code>commands.bash:36-44</code>) references a file not changed in this PR. Claude classified it as a &ldquo;regression,&rdquo; but the file is outside the diff entirely.</p>
+
+<p>Claude traced into called functions, evaluated the shutdown lifecycle end-to-end, and evaluated test coverage gaps with specificity. High signal-to-noise ratio.</p>
+</div>
+
+<div class="card card-neutral">
+<h3 id="retro-codex"><span class="pill pill-codex">Codex</span> <a href="#retro-codex" class="pilcrow">&para;</a></h3>
+
+<p>Codex delivered the most concise review. It identified the SSH key bug with accurate analysis of both failure modes, matching Claude's findings. Its design observations were sharp: noting that <code>stopInstanceForcibly</code> fits the Windows-specific failure mode it addresses.</p>
+
+<p>Codex raised no false positives. However, it produced fewer findings overall &mdash; missing the unbounded wait, the PID reuse window, and the tmp file cleanup optimization. Efficient but shallow compared to Claude and Gemini.</p>
+</div>
+
+<div class="card card-neutral">
+<h3 id="retro-gemini"><span class="pill pill-gemini">Gemini</span> <a href="#retro-gemini" class="pilcrow">&para;</a></h3>
+
+<p>Gemini raised the most provocative finding: a PID reuse race condition in the shutdown path. The analysis is technically correct &mdash; waiting for process reap before calling <code>KillTree</code> on the same PID creates a window for PID recycling. However, Gemini rated this CRITICAL despite the vanishingly small practical likelihood (microsecond window, PID range exhaustion required). On Unix, <code>KillTree</code> targets the process group, not the PID itself, further reducing risk. Downgraded to SUGGESTION.</p>
+
+<p>Gemini correctly identified <code>KillTree</code>'s behavior with non-process-group leaders as a concern, though it overstated the severity. The <code>break</code> optimization in the tmp file loop was a valid micro-finding. Gemini's strength was tracing the full lifecycle of PIDs through the shutdown sequence.</p>
+
+<p>Gemini missed the SSH key bug entirely.</p>
+</div>
+
+<div class="card card-neutral">
+<h3 id="retro-summary">Summary <a href="#retro-summary" class="pilcrow">&para;</a></h3>
+
+<table class="retro-table">
+  <tr>
+    <th>Metric</th>
+    <th><span class="pill pill-claude">Claude</span> Opus 4.6</th>
+    <th><span class="pill pill-codex">Codex</span> GPT 5.4</th>
+    <th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th>
+  </tr>
+  <tr><td>Duration</td><td>5:46</td><td>3:47</td><td>4:45</td></tr>
+  <tr><td>Critical</td><td>0</td><td>0</td><td>1 (downgraded)</td></tr>
+  <tr><td>Important</td><td>2</td><td>1</td><td>1</td></tr>
+  <tr><td>Suggestion</td><td>4</td><td>0</td><td>1</td></tr>
+  <tr><td>Design observations</td><td>3</td><td>2</td><td>2</td></tr>
+  <tr><td>False positives</td><td>1</td><td>0</td><td>1 (severity)</td></tr>
+  <tr><td>Unique insights</td><td>2</td><td>0</td><td>2</td></tr>
+</table>
+
+<p>Claude provided the most value overall: broadest coverage, deepest tracing, one false positive. Codex was the most precise but shallowest. Gemini brought a unique angle (PID lifecycle analysis) but miscalibrated severity and missed the most important bug. The multi-agent approach justified itself: Claude and Codex converged on the SSH key bug independently, while Gemini surfaced the PID reuse concern that the others missed.</p>
+</div>
+
+<hr>
+
+<h2 id="improvement-recommendations">Improvement Recommendations <a href="#improvement-recommendations" class="pilcrow">&para;</a></h2>
+
+<div class="card card-neutral">
+<h3>Repo context updates</h3>
+<ul>
+<li><strong>[repo]</strong> On Windows, <code>os.Rename</code> fails when the destination file already exists (unlike Unix, which atomically replaces). Review agents should check for this platform difference in any Windows-specific code that uses <code>os.Rename</code>. This would have helped Gemini catch the SSH key bug.</li>
+</ul>
+</div>
+
+  </main>
+
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+  </script>
+</body>
+</html>
