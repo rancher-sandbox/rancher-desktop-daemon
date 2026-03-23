@@ -108,7 +108,7 @@ jobs:
         # openssh is required because Lima constructs SSH paths using cygpath
         # (/c/Users/...) which only MSYS2's ssh understands; Windows OpenSSH
         # needs native paths and fails with "No such file or directory".
-        C:\msys64\usr\bin\pacman.exe --noconfirm -S gzip jq make openbsd-netcat openssh
+        C:\msys64\usr\bin\pacman.exe --noconfirm --sync gzip jq make openbsd-netcat openssh
 
         # Set up MSYS2 wrapper script
         New-Item -ItemType Directory -Name bin -Force
