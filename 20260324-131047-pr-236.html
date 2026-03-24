@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260324-131047-pr-236</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260324-131047-pr-236</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-03-24 13:10</td></tr>
+      <tr><td>Round</td><td>5 (of PR #236)</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/Nino-K">@Nino-K</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/236" class="gh-ref" data-title="Implement App controller lifecycle for LimaVM" data-state="open" data-type="pr">#236</a> &mdash; Implement App controller lifecycle for LimaVM</td></tr>
+      <tr><td>Branch</td><td><code>app-controller-create-delete-limavm</code></td></tr>
+      <tr><td>Commits</td><td><code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/2a3c5b2">2a3c5b2</a></code> Implement App controller lifecycle for LimaVM<br><code><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/049a3a0">049a3a0</a></code> Add Bats test to App Controller</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+      <tr><td>Verdict</td><td class="verdict">Merge with fixes &mdash; ownership violation in deletion path must be removed; ObservedGeneration and swallowed errors need correction</td></tr>
+      <tr><td>Wall-clock time</td><td>15 min 6 s</td></tr>
+    </table>
+
+    <hr>
+
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&para;</a></h2>
+    <div class="card card-neutral">
+      <p>This PR implements the App controller's core reconciliation loop: it bootstraps a LimaVM from an embedded template ConfigMap, propagates <code>spec.running</code>, mirrors VM status conditions onto the App resource, and tears down the LimaVM through a cleanup finalizer. The reconciler's priority chain and early-return pattern are clean. The main problems center on the deletion path, where the controller reaches into LimaVM-owned resources (violating the ownership model) and swallows transient API errors that can leak ConfigMaps in the GC-less embedded control plane.</p>
+    </div>
+
+    <hr>
+
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&para;</a></h2>
+    <div class="card card-critical">
+      <p>None.</p>
+    </div>
+
+    <hr>
+
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&para;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="important-1">
+        <span class="finding-num">1.</span> App finalizer deletes LimaVM-owned template ConfigMap
+        <span class="pill pill-claude">Claude</span>
+        <span class="pill pill-codex">Codex</span>
+        <span class="pill pill-gemini">Gemini</span>
+        (important, regression)
+        <a href="#important-1" class="pilcrow">&para;</a>
+      </div>
+
+      <p>The <code>rd-template</code> ConfigMap is owned by the LimaVM controller, not the App controller. The LimaVM webhook sets an <code>owned-by-LimaVM</code> finalizer on it (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/lima/limavm/controller.go#L211"><code>controller.go:211</code></a>), and the LimaVM's own cleanup finalizer deletes it via <code>DeleteOwnedResources</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L60-L71"><code>limavm_lifecycle.go:60-71</code></a>). This code violates the ownership boundary documented in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/docs/design/controllers.md#L63-L67"><code>controllers.md:63-67</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/docs/design/api_lima.md#L60-L68"><code>api_lima.md:60-68</code></a>.</p>
+
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L73-L86">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="73" data-line="73-84"><code class="language-go">			templateCM := &amp;corev1.ConfigMap{}
+			templateCMName := limaVMName + "-template"
+			if cmErr := r.Get(ctx, client.ObjectKey{Name: templateCMName, Namespace: namespace}, templateCM); cmErr == nil {
+				if cmErr := base.RemoveOwnedFinalizer(ctx, r.Client, templateCM, v1alpha1.AppKind); cmErr != nil {
+					return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from template ConfigMap: %w", cmErr)
+				}
+				if cmErr := r.Delete(ctx, templateCM); cmErr != nil &amp;&amp; !apierrors.IsNotFound(cmErr) {
+					return ctrl.Result{}, fmt.Errorf("failed to delete template ConfigMap during cleanup: %w", cmErr)
+				}
+			} else if !apierrors.IsNotFound(cmErr) {
+				log.Error(cmErr, "Failed to fetch template ConfigMap during cleanup")
+			}
+
+			return ctrl.Result{}, base.RemoveCleanupFinalizer(ctx, r.Client, &amp;app)</code></pre>
+
+      <p>Beyond the design violation, the code at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L76">line 76</a> passes <code>v1alpha1.AppKind</code> to <code>RemoveOwnedFinalizer</code>, which looks for <code>owned-by-App</code> &mdash; a finalizer that was never set. The removal is a no-op. The <code>Delete</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L79">line 79</a> then hits the <code>OwnedDeletionGuard</code> webhook because <code>owned-by-LimaVM</code> still blocks deletion.</p>
+
+      <p><span class="fix-label">Fix:</span> Remove this block entirely (lines 73&ndash;84). The LimaVM controller handles its own template ConfigMap cleanup.</p>
+
+      <pre><code class="language-diff">-			templateCM := &amp;corev1.ConfigMap{}
+-			templateCMName := limaVMName + "-template"
+-			if cmErr := r.Get(ctx, client.ObjectKey{Name: templateCMName, Namespace: namespace}, templateCM); cmErr == nil {
+-				if cmErr := base.RemoveOwnedFinalizer(ctx, r.Client, templateCM, v1alpha1.AppKind); cmErr != nil {
+-					return ctrl.Result{}, fmt.Errorf("failed to remove finalizer from template ConfigMap: %w", cmErr)
+-				}
+-				if cmErr := r.Delete(ctx, templateCM); cmErr != nil &amp;&amp; !apierrors.IsNotFound(cmErr) {
+-					return ctrl.Result{}, fmt.Errorf("failed to delete template ConfigMap during cleanup: %w", cmErr)
+-				}
+-			} else if !apierrors.IsNotFound(cmErr) {
+-				log.Error(cmErr, "Failed to fetch template ConfigMap during cleanup")
+-			}
+-
+ 			return ctrl.Result{}, base.RemoveCleanupFinalizer(ctx, r.Client, &amp;app)</code></pre>
+    </div>
+
+    <div class="card card-important">
+      <div class="finding-title" id="important-2">
+        <span class="finding-num">2.</span> Mirrored ObservedGeneration refers to the LimaVM's generation, not the App's
+        <span class="pill pill-claude">Claude</span>
+        <span class="pill pill-gemini">Gemini</span>
+        (important, regression)
+        <a href="#important-2" class="pilcrow">&para;</a>
+      </div>
+
+      <p><code>cond.ObservedGeneration</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L207">line 207</a> carries the LimaVM's <code>.metadata.generation</code>. On the App resource, a condition's <code>ObservedGeneration</code> should reflect the App's own generation &mdash; it tells observers whether the controller has seen the latest App spec. An App at generation 5 could show <code>observedGeneration: 2</code> from the LimaVM, which misleads watchers into thinking the controller is lagging.</p>
+
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L200-L210">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="200" data-line="207"><code class="language-go">	statusChanged := false
+	for _, cond := range limaVM.Status.Conditions {
+		statusChanged = apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{
+			Type:               cond.Type,
+			Status:             cond.Status,
+			Reason:             cond.Reason,
+			Message:            base.TruncateConditionMessage(cond.Message),
+			ObservedGeneration: cond.ObservedGeneration,
+			LastTransitionTime: cond.LastTransitionTime,
+		}) || statusChanged
+	}</code></pre>
+
+      <p><span class="fix-label">Fix:</span> Use the App's generation.</p>
+
+      <pre><code class="language-diff">-			ObservedGeneration: cond.ObservedGeneration,
++			ObservedGeneration: app.Generation,</code></pre>
+    </div>
+
+    <div class="card card-important">
+      <div class="finding-title" id="important-3">
+        <span class="finding-num">3.</span> Swallowed error in deletion path leaks the input ConfigMap
+        <span class="pill pill-gemini">Gemini</span>
+        (important, regression)
+        <a href="#important-3" class="pilcrow">&para;</a>
+      </div>
+
+      <p>If <code>r.Get</code> for the input ConfigMap fails with a transient API error (e.g., network timeout) at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L65">line 65</a>, the <code>else</code> branch at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L69">line 69</a> logs the error and falls through to <code>RemoveCleanupFinalizer</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L86">line 86</a>. The finalizer is stripped, the App is deleted, and the input ConfigMap is permanently orphaned. The embedded control plane has no garbage collector, so the ConfigMap persists indefinitely in kine.</p>
+
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L63-L71">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="63" data-line="69-71"><code class="language-go">			// LimaVM is gone. Clean up any ConfigMaps that may have been left behind.
+			inputCM := &amp;corev1.ConfigMap{}
+			if cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM); cmErr == nil {
+				if cmErr := r.Delete(ctx, inputCM); cmErr != nil &amp;&amp; !apierrors.IsNotFound(cmErr) {
+					return ctrl.Result{}, fmt.Errorf("failed to delete input ConfigMap during cleanup: %w", cmErr)
+				}
+			} else if !apierrors.IsNotFound(cmErr) {
+				log.Error(cmErr, "Failed to fetch input ConfigMap during cleanup")
+			}</code></pre>
+
+      <p><span class="fix-label">Fix:</span> Return the error so controller-runtime retries.</p>
+
+      <pre><code class="language-diff"> } else if !apierrors.IsNotFound(cmErr) {
+-    log.Error(cmErr, "Failed to fetch input ConfigMap during cleanup")
++    return ctrl.Result{}, fmt.Errorf("failed to fetch input ConfigMap during cleanup: %w", cmErr)
+ }</code></pre>
+    </div>
+
+    <hr>
+
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&para;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="suggestion-1">
+        <span class="finding-num">1.</span> Template ConfigMap name duplicated as string concatenation
+        <span class="pill pill-claude">Claude</span>
+        (suggestion, regression)
+        <a href="#suggestion-1" class="pilcrow">&para;</a>
+      </div>
+
+      <p><code>LimaVM.GetTemplateConfigMapName()</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/apis/lima/v1alpha1/limavm_types.go#L117"><code>limavm_types.go:117</code></a>) is the single source of truth for this naming convention. The App controller duplicates it with string concatenation at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L74">line 74</a>. Moot if the template CM cleanup block is removed per <a href="#important-1">finding 1</a>.</p>
+
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L74">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="74" data-line="74"><code class="language-go">			templateCMName := limaVMName + "-template"</code></pre>
+    </div>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="suggestion-2">
+        <span class="finding-num">2.</span> Swallowed error in normal-path input ConfigMap cleanup
+        <span class="pill pill-gemini">Gemini</span>
+        (suggestion, regression)
+        <a href="#suggestion-2" class="pilcrow">&para;</a>
+      </div>
+
+      <p>A transient API error when fetching the input ConfigMap during normal reconciliation (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L172">line 172</a>) is logged and swallowed. The cleanup retries on the next watch event (LimaVM status change), so this self-heals. Returning the error would give faster, more predictable retry via exponential backoff.</p>
+
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L169-L183">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="169" data-line="181-182"><code class="language-go">	// LimaVM exists — clean up the input ConfigMap if it still lingers from the
+	// creation phase and return to requeueing on LimaVM updates.
+	inputConfigMap := &amp;corev1.ConfigMap{}
+	if err := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputConfigMap); err == nil {
+		if err := r.Delete(ctx, inputConfigMap); err != nil &amp;&amp; !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to delete input ConfigMap: %w", err)
+		}
+		log.Info("Deleted input ConfigMap after LimaVM created its own copy")
+		// ConfigMaps are not watched (no Owns(&amp;corev1.ConfigMap{})), so deleting
+		// one produces no watch event. Requeue explicitly to guarantee the next
+		// reconcile runs rather than relying on implicit LimaVM status activity.
+		return ctrl.Result{Requeue: true}, nil
+	} else if !apierrors.IsNotFound(err) {
+		log.Error(err, "Failed to fetch input ConfigMap")
+	}</code></pre>
+
+      <p><span class="fix-label">Fix:</span></p>
+
+      <pre><code class="language-diff"> } else if !apierrors.IsNotFound(err) {
+-    log.Error(err, "Failed to fetch input ConfigMap")
++    return ctrl.Result{}, fmt.Errorf("failed to fetch input ConfigMap: %w", err)
+ }</code></pre>
+    </div>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="suggestion-3">
+        <span class="finding-num">3.</span> Condition message comment describes bytes, code counts runes
+        <span class="pill pill-claude">Claude</span>
+        <span class="pill pill-gemini">Gemini</span>
+        (suggestion, gap)
+        <a href="#suggestion-3" class="pilcrow">&para;</a>
+      </div>
+
+      <p>The CRD <code>maxLength: 32768</code> validates character count, not byte count. The code correctly truncates by rune. The comment's "32768-byte limit on the whole object" is inaccurate &mdash; that limit comes from CRD field validation, not from an overall object size constraint.</p>
+
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/base/conditions.go#L12-L17">pkg/controllers/base/conditions.go</a></div>
+      <pre data-start="12" data-line="13-14"><code class="language-go">// ConditionMessageMaxLen is the maximum number of runes allowed in a Kubernetes
+// condition message. The API server enforces a 32768-byte limit on the whole
+// object; keeping messages within this bound avoids rejections from operations
+// that produce very long error strings (e.g. accumulated retry errors from
+// image downloads).
+const ConditionMessageMaxLen = 32768</code></pre>
+
+      <p><span class="fix-label">Fix:</span> Correct the comment.</p>
+
+      <pre><code class="language-diff">-// condition message. The API server enforces a 32768-byte limit on the whole
+-// object; keeping messages within this bound avoids rejections from operations
++// condition message. CRD validation enforces a 32768-character limit on this
++// field; keeping messages within this bound avoids rejections from operations</code></pre>
+    </div>
+
+    <hr>
+
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&para;</a></h2>
+
+    <div class="card card-design">
+      <h3 id="design-concerns">Concerns <a href="#design-concerns" class="pilcrow">&para;</a></h3>
+      <ul>
+        <li><strong>App controller reaches into LimaVM-owned resources</strong> (in-scope) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> &mdash; The deletion handler at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L73-L84">lines 73&ndash;84</a> manipulates a ConfigMap the LimaVM controller owns. Per the framework design (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/docs/design/controllers.md"><code>controllers.md</code></a>), a parent deletes the child resource and waits for the child's cleanup finalizer to handle everything downstream. Removing this block eliminates the wrong-kind bug, the coupling to LimaVM's internal naming convention, and the risk of interfering with the LimaVM controller's own cleanup.</li>
+      </ul>
+
+      <h3 id="design-strengths">Strengths <a href="#design-strengths" class="pilcrow">&para;</a></h3>
+      <ul>
+        <li>The reconciler's priority chain (deletion &gt; finalizer &gt; create LimaVM &gt; clean input CM &gt; propagate running &gt; mirror conditions) returns early after each mutation, keeping the resourceVersion from the initial Get current and avoiding stale-write conflicts. <span class="pill pill-claude">Claude</span></li>
+        <li><code>Owns(&amp;limav1alpha1.LimaVM{})</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L225">line 225</a> eliminates polling. The explicit <code>Requeue: true</code> after deleting the unwatched input ConfigMap (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L180">line 180</a>) avoids a silent stall. <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+        <li>Making <code>spec.namespace</code> immutable via CRD validation (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/crd.yaml#L43-L56"><code>crd.yaml:43-56</code></a>) prevents orphaning namespaced children. <span class="pill pill-codex">Codex</span></li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&para;</a></h2>
+    <div class="card card-neutral">
+      <p>The BATS test suite covers the full lifecycle (create, running state, condition mirroring, deletion, re-creation). Untested scenarios ranked by risk:</p>
+      <ol>
+        <li><strong>Crash recovery during creation</strong> &mdash; App created, input ConfigMap written, process crashes before LimaVM creation. The reconciler should re-enter the creation path and reuse the existing input CM (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L123">line 123</a>). Not tested.</li>
+        <li><strong>Orphaned template CM after interrupted LimaVM teardown</strong> &mdash; LimaVM deleted before it sets ownerRef on template CM. The template CM survives with <code>owned-by-LimaVM</code> finalizer. Not tested.</li>
+        <li><strong>Concurrent App spec update during creation</strong> &mdash; <code>spec.running</code> changes between CM creation and LimaVM creation. The running propagation (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controllers/app_controller.go#L186">line 186</a>) corrects it on the next reconcile. Self-healing but untested.</li>
+      </ol>
+    </div>
+
+    <hr>
+
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&para;</a></h2>
+    <div class="card card-neutral">
+      <ul>
+        <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controller.go#L63"><code>controller.go:63</code></a>: "It also registers Lima types allows App controller" &mdash; should read "It also registers Lima types, which allows the App controller."</li>
+        <li>The embedded <code>lima.yaml</code> has no comment explaining <code>ssh.localPort: 51422</code> or the 6 GB memory value. The "temporary" comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controller.go#L18"><code>controller.go:18</code></a> reduces urgency.</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&para;</a></h2>
+    <div class="card card-neutral">
+      <ul>
+        <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/049a3a0723e87e72633826c4e8ad422e3026eb66/pkg/controllers/app/app/controller.go#L18-L19"><code>controller.go:18-19</code></a>: <em>"This is temporary and will be removed once the app controller is fully implemented."</em> &mdash; The embedded <code>lima.yaml</code> serves as a bootstrap template. It hardcodes <code>ssh.localPort: 51422</code> and <code>hostSocket: "{{.Home}}/.rd/docker.sock"</code>, which would collide across parallel RDD instances. Codex flagged this as Important, but it is acknowledged as temporary and the project has no multi-instance deployment yet. Once the external template mechanism (TwoCows, per <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/227" class="gh-ref" data-title="Create and delete owned LimaVM resource for App resource" data-state="open" data-type="issue">#227</a>) replaces this embedded file, these hardcoded values disappear.</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&para;</a></h2>
+
+    <div class="card card-neutral">
+      <h3 id="retro-claude"><span class="pill pill-claude">Claude</span> <a href="#retro-claude" class="pilcrow">&para;</a></h3>
+      <p>Claude Opus 4.6 delivered the most thorough review with the best signal-to-noise ratio. It correctly identified the ownership violation (finding 1) with full trace through the webhook and LimaVM controller, caught the ObservedGeneration bug (finding 2), and offered three well-calibrated suggestions. Coverage was complete across all 9 files. No false positives.</p>
+      <p><strong>Unique contributions:</strong> Template CM name duplication (suggestion 1), additive-only condition mirroring observation (suggestion 2 in original).</p>
+    </div>
+
+    <div class="card card-neutral">
+      <h3 id="retro-codex"><span class="pill pill-codex">Codex</span> <a href="#retro-codex" class="pilcrow">&para;</a></h3>
+      <p>Codex GPT 5.4 was the fastest agent and correctly identified the ownership violation with a clear fix recommendation. It also flagged the hardcoded ports/paths in <code>lima.yaml</code> as Important &mdash; a valid concern but overcalibrated given the acknowledged temporary nature of the template.</p>
+      <p><strong>Unique contributions:</strong> Hardcoded <code>ssh.localPort</code> and <code>hostSocket</code> collision risk in embedded template.</p>
+      <p><strong>Misses:</strong> Did not flag ObservedGeneration (found by Claude and Gemini). Coverage summary omitted <code>conditions.go</code> findings.</p>
+    </div>
+
+    <div class="card card-neutral">
+      <h3 id="retro-gemini"><span class="pill pill-gemini">Gemini</span> <a href="#retro-gemini" class="pilcrow">&para;</a></h3>
+      <p>Gemini 3.1 Pro found the most findings (4 numbered + 1 suggestion) and was the only agent to catch the swallowed-error bug in the deletion path (finding 3). It overcalibrated severity: the ownership violation and the swallowed error were both rated CRITICAL. The ownership violation is dead code in the normal flow (LimaVM handles its own CM) &mdash; IMPORTANT is appropriate. The swallowed error leaks a small inert ConfigMap in kine &mdash; undesirable but not data-loss-grade.</p>
+      <p><strong>Unique contributions:</strong> Swallowed error in deletion path (finding 3), swallowed error in normal path (suggestion 2).</p>
+      <p><strong>Accuracy note:</strong> Gemini's comment about the condition message limit being characters rather than bytes is more accurate than Claude's rune-vs-byte framing &mdash; CRD <code>maxLength</code> validates Unicode scalar values, which aligns with Go's rune counting.</p>
+    </div>
+
+    <div class="card card-neutral">
+      <h3 id="retro-summary">Summary <a href="#retro-summary" class="pilcrow">&para;</a></h3>
+      <table class="retro-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th><span class="pill pill-claude">Claude</span> Opus 4.6</th>
+            <th><span class="pill pill-codex">Codex</span> GPT 5.4</th>
+            <th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Duration</td><td>7:09</td><td>3:55</td><td>5:13</td></tr>
+          <tr><td>Critical</td><td>0</td><td>0</td><td>2 (overcalibrated)</td></tr>
+          <tr><td>Important</td><td>2</td><td>2</td><td>2</td></tr>
+          <tr><td>Suggestion</td><td>3</td><td>0</td><td>1</td></tr>
+          <tr><td>Design observations</td><td>2</td><td>2</td><td>0</td></tr>
+          <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+          <tr><td>Unique insights</td><td>2</td><td>1</td><td>2</td></tr>
+          <tr><td>Files reviewed</td><td>9/9</td><td>9/9</td><td>9/9</td></tr>
+          <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        </tbody>
+      </table>
+      <p>Claude provided the most balanced and well-calibrated review. Gemini added the highest-value unique finding (swallowed error in deletion). Codex was fast and accurate on the main issue but missed two findings the other agents caught. All three correctly identified the ownership violation as the primary concern &mdash; strong consensus.</p>
+    </div>
+
+  </main>
+
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+  </script>
+</body>
+</html>
