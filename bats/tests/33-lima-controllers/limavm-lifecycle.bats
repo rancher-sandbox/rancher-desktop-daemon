@@ -9,7 +9,7 @@ VM_NAME="test-vm"
 TEMPLATE_NAME="${VM_NAME}-template"
 
 # non-functional template, but passes Lima validation
-TEMPLATE='images: [{"location":"https://foo"}]'
+TEMPLATE='images: [{"location":"https://foo.test."}]'
 
 local_setup_file() {
     setup_rdd_control_plane "lima"
@@ -98,9 +98,9 @@ EOF
 
 @test "template ConfigMap modification is allowed if template key exists" {
     run -0 rdd ctl patch configmap "${TEMPLATE_NAME}" --namespace "${NAMESPACE}" --type='merge' \
-        --patch='{"data":{"template":"images: [{\"location\":\"https://bar\"}]"}}'
+        --patch='{"data":{"template":"images: [{\"location\":\"https://bar.test.\"}]"}}'
     run -0 rdd ctl get configmap "${TEMPLATE_NAME}" --namespace "${NAMESPACE}" -o jsonpath='{.data.template}'
-    assert_output 'images: [{"location":"https://bar"}]'
+    assert_output 'images: [{"location":"https://bar.test."}]'
 }
 
 @test "template ConfigMap modification without template key is rejected" {

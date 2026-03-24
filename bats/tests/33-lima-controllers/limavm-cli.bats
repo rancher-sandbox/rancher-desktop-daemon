@@ -5,7 +5,7 @@ load '../../helpers/load'
 LIMA_TEST_NS="lima-test-ns"
 
 # non-functional template, but passes Lima validation
-TEMPLATE='images: [{"location":"https://foo"}]'
+TEMPLATE='images: [{"location":"https://foo.test."}]'
 
 local_setup_file() {
     setup_rdd_control_plane "lima"

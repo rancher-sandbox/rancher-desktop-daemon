@@ -521,7 +521,7 @@ env:
     cat >"${editor_script}" <<'SCRIPT'
 #!/bin/bash
 # Replace the template content
-echo 'images: [{"location":"https://bar"}]' > "$1"
+echo 'images: [{"location":"https://bar.test."}]' > "$1"
 SCRIPT
 
     chmod +x "${editor_script}"
@@ -533,7 +533,7 @@ SCRIPT
     # Verify ConfigMap was updated
     run -0 rdd ctl get configmap "${TEMPLATE_NAME}" --namespace "${NAMESPACE}" \
         -o jsonpath='{.data.template}'
-    assert_output "images: [{\"location\":\"https://bar\"}]"
+    assert_output "images: [{\"location\":\"https://bar.test.\"}]"
 }
 
 @test "limavm edit aborts when all content is deleted" {
