@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260324-134429-pr-236</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+  </style>
+</head>
+<body>
+  <main>
+
+<h1>Deep Review: 20260324-134429-pr-236</h1>
+
+<table class="meta-table">
+<tr><td>Date</td><td>2026-03-24 13:44</td></tr>
+<tr><td>Round</td><td>6 (of PR #236)</td></tr>
+<tr><td>Author</td><td><a href="https://github.com/Nino-K">@Nino-K</a></td></tr>
+<tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/236" class="gh-ref" data-title="Implement App controller lifecycle for LimaVM" data-state="open" data-type="pr">#236</a> — Implement App controller lifecycle for LimaVM</td></tr>
+<tr><td>Branch</td><td><code>app-controller-create-delete-limavm</code></td></tr>
+<tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/382b50a"><code>382b50a</code></a> Implement App controller lifecycle for LimaVM<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/6b3a999"><code>6b3a999</code></a> Add Bats test to App Controller</td></tr>
+<tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+<tr><td>Verdict</td><td class="verdict">Merge with fixes — fix the deletion deadlock and add a LimaVM ValidateDelete webhook</td></tr>
+<tr><td>Wall-clock time</td><td>20 min 10 s</td></tr>
+</table>
+
+<h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>This PR implements the App controller's core reconciliation loop: creating and owning a LimaVM singleton from an embedded template, propagating <code>spec.running</code>, mirroring VM status conditions onto the App resource, and cleaning up via a finalizer on deletion. The implementation follows established framework patterns and includes thorough BATS integration tests. One critical issue remains: the App deletion handler deadlocks when the LimaVM is already in Terminating state, and the LimaVM resource lacks the ValidateDelete webhook the framework requires to prevent this scenario.</p>
+</div>
+
+<hr>
+
+<h2 id="consolidated-review">Consolidated Review <a href="#consolidated-review" class="pilcrow">¶</a></h2>
+
+<h3 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">¶</a></h3>
+
+<div class="card card-critical">
+<div class="finding-title" id="critical-1">
+  <span class="finding-num">1.</span> App deletion deadlocks if LimaVM is already terminating
+  <span class="pill pill-gemini">Gemini</span>
+  <a href="#critical-1" class="pilcrow">¶</a>
+</div>
+
+<p>The deletion switch only removes the owned finalizer when <code>!base.IsBeingDeleted(limaVM)</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L75">line 75</a>). If the LimaVM was deleted externally (e.g., <code>rdd ctl delete limavm rd</code>), its <code>DeletionTimestamp</code> is set and the controller falls to <code>default</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L84">line 84</a>), where it loops forever waiting for the LimaVM to disappear. The LimaVM cannot disappear because the App controller still holds the <code>rdd.rancherdesktop.io/owned-by-App</code> finalizer and refuses to remove it. Both resources become permanently stuck with no recovery path.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L61-L88">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+<pre data-start="61" data-line="75,76,77,78,79,80,81,82,83,84,85,86,87" class="language-go"><code class="language-go">	switch {
+	case apierrors.IsNotFound(err):
+		// LimaVM is gone. Clean up any ConfigMaps that may have been left behind.
+		inputCM := &amp;corev1.ConfigMap{}
+		if cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM); cmErr == nil {
+			if cmErr := r.Delete(ctx, inputCM); cmErr != nil &amp;&amp; !apierrors.IsNotFound(cmErr) {
+				return ctrl.Result{}, fmt.Errorf("failed to delete input ConfigMap during cleanup: %w", cmErr)
+			}
+		} else if !apierrors.IsNotFound(cmErr) {
+			log.Error(cmErr, "Failed to fetch input ConfigMap during cleanup")
+		}
+		return ctrl.Result{}, base.RemoveCleanupFinalizer(ctx, r.Client, &amp;app)
+	case err != nil:
+		return ctrl.Result{}, err
+	case !base.IsBeingDeleted(limaVM):
+		if err := base.RemoveOwnedFinalizer(ctx, r.Client, limaVM, v1alpha1.AppKind); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to remove owned finalizer from LimaVM: %w", err)
+		}
+		if err := r.Delete(ctx, limaVM); err != nil &amp;&amp; !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to delete LimaVM: %w", err)
+		}
+		log.Info("Requested LimaVM deletion, waiting for teardown")
+		return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil
+	default:
+		// LimaVM deletion is in progress; keep requeueing until it is gone.
+		log.Info("Waiting for LimaVM deletion to complete")
+		return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil
+	}</code></pre>
+
+<p>Without the ValidateDelete webhook (see <a href="#important-1">Important finding 1</a>), this scenario is triggered by a single, intuitive CLI command.</p>
+
+<p><span class="fix-label">Fix:</span> Always remove the owned finalizer during App cleanup, regardless of the child's deletion state.</p>
+
+<pre class="language-diff"><code class="language-diff">-	case !base.IsBeingDeleted(limaVM):
+-		if err := base.RemoveOwnedFinalizer(ctx, r.Client, limaVM, v1alpha1.AppKind); err != nil {
+-			return ctrl.Result{}, fmt.Errorf("failed to remove owned finalizer from LimaVM: %w", err)
+-		}
+-		if err := r.Delete(ctx, limaVM); err != nil && !apierrors.IsNotFound(err) {
+-			return ctrl.Result{}, fmt.Errorf("failed to delete LimaVM: %w", err)
+-		}
+-		log.Info("Requested LimaVM deletion, waiting for teardown")
+-		return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil
+-	default:
+-		// LimaVM deletion is in progress; keep requeueing until it is gone.
+-		log.Info("Waiting for LimaVM deletion to complete")
+-		return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil
++	default:
++		if err := base.RemoveOwnedFinalizer(ctx, r.Client, limaVM, v1alpha1.AppKind); err != nil {
++			return ctrl.Result{}, fmt.Errorf("failed to remove owned finalizer from LimaVM: %w", err)
++		}
++		if !base.IsBeingDeleted(limaVM) {
++			if err := r.Delete(ctx, limaVM); err != nil && !apierrors.IsNotFound(err) {
++				return ctrl.Result{}, fmt.Errorf("failed to delete LimaVM: %w", err)
++			}
++			log.Info("Requested LimaVM deletion, waiting for teardown")
++		} else {
++			log.Info("Waiting for LimaVM deletion to complete")
++		}
++		return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil</code></pre>
+</div>
+
+<h3 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">¶</a></h3>
+
+<div class="card card-important">
+<div class="finding-title" id="important-1">
+  <span class="finding-num">1.</span> LimaVM lacks a ValidateDelete webhook for its owned finalizer
+  <span class="pill pill-codex">Codex</span>
+  <span class="pill pill-gemini">Gemini</span>
+  <a href="#important-1" class="pilcrow">¶</a>
+</div>
+
+<p>This PR adds <code>base.OwnedFinalizerFor(v1alpha1.AppKind)</code> to the LimaVM at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L135">line 135</a> of <code>app_controller.go</code>, but the Lima controller registers only a mutating webhook for LimaVM (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/lima/limavm/controller.go#L112-L127">lines 112-127</a>). No validating webhook with a <code>ValidateDelete</code> handler exists for LimaVM anywhere in the codebase.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/lima/limavm/controller.go#L108-L127">pkg/controllers/lima/limavm/controller.go</a></div>
+<pre data-start="108" data-line="112,113,114,115,116,117,118,119,120,121,122,123" class="language-go"><code class="language-go">// setupWebhookWithRuntimeConfig sets up webhooks with shared certificate configuration.
+func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
+	// Set up LimaVM mutating webhook (validates uniqueness and creates template ConfigMap during admission)
+	sideEffectsNoneOnDryRun := admissionregistrationv1.SideEffectClassNoneOnDryRun
+	mutatingConfig := base.WebhookConfig[*v1alpha1.LimaVM]{
+		Name:        limaVMDefaulterConfigName,
+		WebhookName: limaVMDefaulterWebhookName,
+		WebhookPort: c.webhookPort,
+		Operations: []admissionregistrationv1.OperationType{
+			admissionregistrationv1.Create, // Only on CREATE - UPDATE doesn't need to create ConfigMap again
+		},
+		SideEffects: &amp;sideEffectsNoneOnDryRun, // Creates ConfigMap normally, but not during dry-run
+		Defaulter:   &amp;defaulter{Client: mgr.GetClient(), Reader: mgr.GetAPIReader()},
+	}
+
+	managers, err := base.SetupWebhookForResource(mgr, &amp;v1alpha1.LimaVM{}, mutatingConfig)
+	if err != nil {
+		return err
+	}
+	c.webhookManagers = append(c.webhookManagers, managers...)</code></pre>
+
+<p>This violates the framework contract in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/docs/design/controllers.md#L49-L55"><code>docs/design/controllers.md</code> lines 49-55</a>: resources that may carry an owned finalizer must reject DELETE requests via a validating webhook. Without it, <code>rdd ctl delete limavm rd</code> is accepted, the LimaVM enters Terminating, and the deadlock in <a href="#critical-1">Critical finding 1</a> is triggered.</p>
+
+<p><span class="fix-label">Fix:</span> Add a LimaVM validating webhook that embeds <code>base.OwnedDeletionGuard[*v1alpha1.LimaVM]</code> and register it alongside the existing mutating webhook in <code>setupWebhookWithRuntimeConfig</code>. Include DELETE in its operations list. The existing <code>ConfigMapValidator</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/lima/limavm/controller.go#L259">line 259</a>) demonstrates the pattern.</p>
+</div>
+
+<h3 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">¶</a></h3>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-1">
+  <span class="finding-num">1.</span> Dropped transient error in deletion path may orphan ConfigMap
+  <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-1" class="pilcrow">¶</a>
+</div>
+
+<p>During App deletion, if <code>r.Get</code> for the input ConfigMap fails with a transient error (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L69">line 69</a>), the error is logged but not returned. The controller proceeds to remove the cleanup finalizer (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L72">line 72</a>), allowing the App to be deleted while the ConfigMap may still exist. Since RDD has no garbage collector, the ConfigMap is orphaned. In the embedded kine/sqlite backend, transient errors are unlikely, so this is a low-probability leak.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L65-L72">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+<pre data-start="65" data-line="69,70,71,72" class="language-go"><code class="language-go">		if cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM); cmErr == nil {
+			if cmErr := r.Delete(ctx, inputCM); cmErr != nil &amp;&amp; !apierrors.IsNotFound(cmErr) {
+				return ctrl.Result{}, fmt.Errorf("failed to delete input ConfigMap during cleanup: %w", cmErr)
+			}
+		} else if !apierrors.IsNotFound(cmErr) {
+			log.Error(cmErr, "Failed to fetch input ConfigMap during cleanup")
+		}
+		return ctrl.Result{}, base.RemoveCleanupFinalizer(ctx, r.Client, &amp;app)</code></pre>
+
+<p><span class="fix-label">Fix:</span> Return the error instead of logging and continuing.</p>
+
+<pre class="language-diff"><code class="language-diff"> 		} else if !apierrors.IsNotFound(cmErr) {
+-			log.Error(cmErr, "Failed to fetch input ConfigMap during cleanup")
++			return ctrl.Result{}, fmt.Errorf("failed to fetch input ConfigMap during cleanup: %w", cmErr)
+ 		}</code></pre>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-2">
+  <span class="finding-num">2.</span> Condition mirroring is additive-only
+  <span class="pill pill-claude">Claude</span>
+  <a href="#suggestion-2" class="pilcrow">¶</a>
+</div>
+
+<p>The mirroring loop copies every LimaVM condition onto the App but never removes App conditions absent from the LimaVM. <code>apimeta.SetStatusCondition</code> only adds or updates. Currently safe because the LimaVM controller never removes conditions and the App is deleted/recreated as a unit. If the LimaVM lifecycle is extended to remove conditions, the App would retain stale copies.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L186-L196">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+<pre data-start="186" data-line="187,188,189,190,191,192,193,194,195,196" class="language-go"><code class="language-go">	statusChanged := false
+	for _, cond := range limaVM.Status.Conditions {
+		statusChanged = apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{
+			Type:               cond.Type,
+			Status:             cond.Status,
+			Reason:             cond.Reason,
+			Message:            base.TruncateConditionMessage(cond.Message),
+			ObservedGeneration: app.Generation,
+			LastTransitionTime: cond.LastTransitionTime,
+		}) || statusChanged
+	}</code></pre>
+
+<p><span class="fix-label">Fix:</span> After the mirroring loop, remove App conditions whose types are absent from <code>limaVM.Status.Conditions</code>.</p>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-3">
+  <span class="finding-num">3.</span> Missing unit test for TruncateConditionMessage
+  <span class="pill pill-claude">Claude</span>
+  <a href="#suggestion-3" class="pilcrow">¶</a>
+</div>
+
+<p>This new shared utility operates on rune boundaries and is used by both the LimaVM controller (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/lima/limavm/controllers/limavm_controller.go#L432">line 432</a>) and the App controller (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L192">line 192</a>). A table-driven test covering boundary cases (empty string, exactly at limit, one rune over, multi-byte characters) would match the precedent set by <code>pkg/controllers/base/finalizer_test.go</code>.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/base/conditions.go#L22-L29">pkg/controllers/base/conditions.go</a></div>
+<pre data-start="22" data-line="22,23,24,25,26,27,28,29" class="language-go"><code class="language-go">func TruncateConditionMessage(msg string) string {
+	runes := []rune(msg)
+	if len(runes) &lt;= ConditionMessageMaxLen {
+		return msg
+	}
+	const suffix = "… (truncated)"
+	return string(runes[:ConditionMessageMaxLen-len([]rune(suffix))]) + suffix
+}</code></pre>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-4">
+  <span class="finding-num">4.</span> Hardcoded SSH port and Docker socket in temporary template
+  <span class="pill pill-claude">Claude</span>
+  <span class="pill pill-codex">Codex</span>
+  <a href="#suggestion-4" class="pilcrow">¶</a>
+</div>
+
+<p>The SSH port (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/lima.yaml#L14">line 14</a>) and Docker socket path (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/lima.yaml#L37">line 37</a>) are hardcoded. Concurrent <code>RDD_INSTANCE</code> values would collide on the port, and a non-default instance exposes Docker on the wrong socket path. The template header acknowledges this is temporary. A future version should derive these values from instance configuration, as <code>instance.Index()</code> and <code>instance.ShortDir()</code> already provide.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/lima.yaml#L13-L14">pkg/controllers/app/app/lima.yaml</a></div>
+<pre data-start="13" data-line="14" class="language-yaml"><code class="language-yaml">ssh:
+  localPort: 51422</code></pre>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/lima.yaml#L33-L37">pkg/controllers/app/app/lima.yaml</a></div>
+<pre data-start="33" data-line="37" class="language-yaml"><code class="language-yaml">  guestSocket: /var/run/docker.sock
+  hostPortRange:
+  - 0
+  - 0
+  hostSocket: "{{.Home}}/.rd/docker.sock"</code></pre>
+
+<p>Codex rated this IMPORTANT; Claude rated it SUGGESTION. Given the explicit "temporary" acknowledgment in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controller.go#L18"><code>controller.go:18</code></a>, SUGGESTION is appropriate — the limitation is known and scoped.</p>
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-5">
+  <span class="finding-num">5.</span> Boolean assignment with short-circuit <code>||</code> obscures intent
+  <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-5" class="pilcrow">¶</a>
+</div>
+
+<p>The left operand ensures <code>SetStatusCondition</code> always executes, but the <code>||</code> compound assignment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L188-L195">lines 188-195</a> forces the reader to verify short-circuit evaluation order. Extracting the return value into a separate variable makes the intent explicit.</p>
+</div>
+
+<hr>
+
+<h2 id="design-observations">Design Observations <a href="#design-observations" class="pilcrow">¶</a></h2>
+
+<h3 id="design-concerns">Concerns</h3>
+
+<div class="card card-design">
+<p><strong>Missing deletion guard is a framework gap, not just a PR gap</strong> — <code>pkg/controllers/lima/limavm/controller.go</code> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> (in-scope): The owned finalizer pattern requires both the finalizer on the child and a ValidateDelete webhook on the child's resource type. This PR adds the finalizer but not the webhook. The fix belongs in the Lima controller, not the App controller — the Lima controller owns the LimaVM resource type and its webhook configuration.</p>
+</div>
+
+<h3 id="design-strengths">Strengths</h3>
+
+<div class="card card-design">
+<ul>
+<li><strong>Clean separation of cleanup responsibilities</strong>: The App controller deletes the LimaVM and its own input ConfigMap. The LimaVM's cleanup finalizer handles everything downstream (template ConfigMap, disk files, hostagent process). This follows the framework's "each controller cleans up only the resources it owns" principle. <span class="pill pill-claude">Claude</span></li>
+<li><strong>Idempotent reconciliation</strong>: Every operation is safe to repeat — ConfigMap and LimaVM creation check for existence first, finalizer operations are no-ops when already applied/removed, and condition mirroring writes only when something changed. <span class="pill pill-claude">Claude</span></li>
+<li><strong>Explicit requeue after ConfigMap deletion</strong>: The comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L163-L165">lines 163-165</a> correctly identifies that ConfigMaps are not watched and adds <code>Requeue: true</code> to avoid stalling. <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+<li><strong>Defensive truncation at the mirroring boundary</strong>: Truncating condition messages when mirroring from LimaVM to App (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controllers/app_controller.go#L192">line 192</a>) guards against future bypasses of the LimaVM controller's own truncation. <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>The BATS test suite covers the happy-path lifecycle thoroughly: singleton creation, finalizer and owner reference verification, template ConfigMap lifecycle, condition mirroring, <code>spec.running</code> propagation, validation webhooks, full deletion cascade, and recreate-after-delete.</p>
+
+<p>Untested scenarios ranked by risk:</p>
+<ol>
+<li><strong>Out-of-band LimaVM deletion</strong>: No test verifies that deleting the LimaVM directly (while owned by App) is either rejected by a webhook or handled gracefully by the App controller. This is the scenario that triggers <a href="#critical-1">Critical finding 1</a>.</li>
+<li><strong>Partial creation crash recovery</strong>: Service crash after creating the input ConfigMap but before creating the LimaVM. The code handles this (checks existence), but no test exercises it.</li>
+<li><strong>Deletion during LimaVM startup</strong>: Deleting the App while the LimaVM is actively starting. The test only deletes with <code>running=false</code>.</li>
+</ol>
+</div>
+
+<hr>
+
+<h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<ul>
+<li>The <code>AppSpec.Namespace</code> field has an immutability comment matching the CRD validation rule. Good.</li>
+<li>The <code>lima.yaml</code> template now contradicts the per-instance isolation docs in <code>docs/design/README.md</code> and <code>docs/design/cmd_app.md</code>. Once the template is made instance-aware, the docs should describe how instance-specific values are derived.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p><em>"This is temporary and will be removed once the app controller is fully implemented."</em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6b3a999ff74f6d305f98588d9ed16234b1011b12/pkg/controllers/app/app/controller.go#L18"><code>pkg/controllers/app/app/controller.go:18</code></a>. The embedded template is a bootstrapping mechanism. The hardcoded ports and socket paths (<a href="#suggestion-4">Suggestion 4</a>) are covered by this acknowledgment. The limitation matters more now that the template carries operational values.</p>
+</div>
+
+<hr>
+
+<h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">¶</a></h2>
+
+<h3 id="retro-claude"><span class="pill pill-claude">Claude</span> Opus 4.6</h3>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Duration</strong>: 11 min 36 s</li>
+<li><strong>Unique contributions</strong>: Additive-only condition mirroring (<a href="#suggestion-2">Suggestion 2</a>), missing <code>TruncateConditionMessage</code> unit test (<a href="#suggestion-3">Suggestion 3</a>). Both are valid, forward-looking suggestions.</li>
+<li><strong>Accuracy</strong>: No false positives. All findings are well-calibrated.</li>
+<li><strong>Depth</strong>: Read every changed file, traced into <code>apimeta.SetStatusCondition</code> to confirm it lacks removal semantics. Good cross-reference to <code>finalizer_test.go</code> precedent.</li>
+<li><strong>Coverage</strong>: Complete — all 9 files accounted for in the coverage summary.</li>
+<li><strong>Coverage misses</strong>: Missed the critical deadlock in the deletion handler (<a href="#critical-1">Critical 1</a>) and the missing ValidateDelete webhook (<a href="#important-1">Important 1</a>). Marked <code>app_controller.go</code> with only the suggestion-level condition mirroring finding, missing the two most significant bugs in the same file.</li>
+<li><strong>Signal-to-noise</strong>: High signal. Three actionable suggestions, no noise.</li>
+</ul>
+</div>
+
+<h3 id="retro-codex"><span class="pill pill-codex">Codex</span> GPT 5.4</h3>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Duration</strong>: 3 min 46 s</li>
+<li><strong>Unique contributions</strong>: First to identify the missing LimaVM ValidateDelete webhook as a standalone finding with full framework-doc citations (<a href="#important-1">Important 1</a>).</li>
+<li><strong>Accuracy</strong>: No false positives. Severity inflation on the hardcoded template (rated IMPORTANT for a known-temporary limitation).</li>
+<li><strong>Depth</strong>: Traced the owned finalizer through the framework contract in <code>controllers.md</code>, checked <code>rg</code> for existing ValidateDelete handlers, and cross-referenced design docs for the multi-instance model.</li>
+<li><strong>Coverage</strong>: Complete — all 9 files accounted for.</li>
+<li><strong>Coverage misses</strong>: Did not identify the deadlock consequence (<a href="#critical-1">Critical 1</a>) despite finding the missing webhook that enables it. Stopped at the prevention layer without tracing what happens when the prevention is absent.</li>
+<li><strong>Signal-to-noise</strong>: Good. Two findings, both actionable.</li>
+</ul>
+</div>
+
+<h3 id="retro-gemini"><span class="pill pill-gemini">Gemini</span> 3.1 Pro</h3>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Duration</strong>: 5 min 55 s</li>
+<li><strong>Unique contributions</strong>: Identified the critical App deletion deadlock (<a href="#critical-1">Critical 1</a>) — the highest-impact finding in this review. Also caught the dropped transient error in the deletion path (<a href="#suggestion-1">Suggestion 1</a>).</li>
+<li><strong>Accuracy</strong>: Rated the dropped error as IMPORTANT; downgraded to SUGGESTION in consolidation because transient kine errors are unlikely and the consequence is a small orphaned ConfigMap.</li>
+<li><strong>Depth</strong>: Traced the full deletion switch to identify the deadlock, including the interaction between the owned finalizer and the <code>IsBeingDeleted</code> guard. Also noted the missing webhook in Design Observations.</li>
+<li><strong>Coverage</strong>: Complete — all 9 files accounted for.</li>
+<li><strong>Coverage misses</strong>: None. Found the critical bug that both other agents missed.</li>
+<li><strong>Signal-to-noise</strong>: High signal. One critical, one important, one suggestion — all actionable.</li>
+</ul>
+</div>
+
+<h3 id="retro-summary">Summary</h3>
+
+<div class="card card-neutral">
+<table class="retro-table">
+<tr>
+  <th>Metric</th>
+  <th><span class="pill pill-claude">Claude</span> Opus 4.6</th>
+  <th><span class="pill pill-codex">Codex</span> GPT 5.4</th>
+  <th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th>
+</tr>
+<tr><td>Duration</td><td>11:36</td><td>3:46</td><td>5:55</td></tr>
+<tr><td>Critical</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>Important</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>Suggestion</td><td>3</td><td>0</td><td>1</td></tr>
+<tr><td>Design observations</td><td>4 strengths</td><td>2 strengths</td><td>1 concern</td></tr>
+<tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Unique insights</td><td>2</td><td>1</td><td>2</td></tr>
+<tr><td>Files reviewed</td><td>9</td><td>9</td><td>9</td></tr>
+<tr><td>Coverage misses</td><td>1 (critical deadlock)</td><td>1 (deadlock consequence)</td><td>0</td></tr>
+</table>
+
+<p><strong>Gemini</strong> provided the most value this round, catching the critical deadlock that both other agents missed. <strong>Codex</strong> complemented it by identifying the framework-level prevention (missing webhook) with thorough documentation citations. <strong>Claude</strong> produced the most polished review with the best design observations and forward-looking suggestions, but missed the two most important bugs — a significant coverage gap for the most expensive agent. The multi-agent approach was essential: no single agent found all three key issues (deadlock, missing webhook, and the condition mirroring gap).</p>
+</div>
+
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+  </script>
+</body>
+</html>
