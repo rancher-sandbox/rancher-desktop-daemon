@@ -28,5 +28,6 @@ guestagent
 limactl
 limavm
 pidfile
+rosetta
 syncer
 workdir

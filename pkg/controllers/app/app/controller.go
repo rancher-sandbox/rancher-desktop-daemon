@@ -10,9 +10,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
+	limav1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/app/controllers"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 )
+
+// This is temporary and will be removed once the app controller is fully implemented.
+//
+//go:embed lima.yaml
+var limaTemplateData string
 
 func init() {
 	base.RegisterController(newController())
@@ -53,16 +59,19 @@ func (c *controller) GetCRDData() string {
 }
 
 // RegisterWithManager implements the complete controller registration for both embedded and external modes.
+// It registers the CRD types with the scheme and sets up the controller with the manager.
+// It also registers Lima types, which allows App controller to create and watch LimaVM resources.
 func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
-	// Register the CRD types with the scheme
 	if err := v1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 		return err
 	}
+	if err := limav1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		return err
+	}
 
-	// Create and set up the controller with the manager
 	return (&controllers.AppReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorder(ControllerName + "-controller"),
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		LimaTemplateData: limaTemplateData,
 	}).SetupWithManager(mgr)
 }

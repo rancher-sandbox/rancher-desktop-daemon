@@ -44,6 +44,11 @@ const (
 	// limaVMDefaulterConfigName is the name of the LimaVM MutatingWebhookConfiguration.
 	limaVMDefaulterConfigName = "limavm-defaulter"
 
+	// limaVMValidatorWebhookName is the name used for the LimaVM validating webhook.
+	limaVMValidatorWebhookName = "limavm-validator.lima.rancherdesktop.io"
+	// limaVMValidatorConfigName is the name of the LimaVM ValidatingWebhookConfiguration.
+	limaVMValidatorConfigName = "limavm-validator"
+
 	// configMapValidatorWebhookName is the name used for the ConfigMap validation webhook.
 	configMapValidatorWebhookName = "limavm-configmap-validator.lima.rancherdesktop.io"
 	// configMapValidatorConfigName is the name of the ConfigMap ValidatingWebhookConfiguration.
@@ -121,6 +126,26 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	}
 
 	managers, err := base.SetupWebhookForResource(mgr, &v1alpha1.LimaVM{}, mutatingConfig)
+	if err != nil {
+		return err
+	}
+	c.webhookManagers = append(c.webhookManagers, managers...)
+
+	// Set up LimaVM validating webhook to reject DELETE while an owned finalizer is
+	// present. Without this, a direct `rdd ctl delete limavm rd` is accepted by the
+	// API server; the LimaVM controller removes its cleanup finalizer but never
+	// removes the owned-by-App finalizer, leaving the LimaVM stuck in Terminating.
+	validatingConfig := base.WebhookConfig[*v1alpha1.LimaVM]{
+		Name:        limaVMValidatorConfigName,
+		WebhookName: limaVMValidatorWebhookName,
+		WebhookPort: c.webhookPort,
+		Operations: []admissionregistrationv1.OperationType{
+			admissionregistrationv1.Delete,
+		},
+		Validator: &base.OwnedDeletionGuard[*v1alpha1.LimaVM]{},
+	}
+
+	managers, err = base.SetupWebhookForResource(mgr, &v1alpha1.LimaVM{}, validatingConfig)
 	if err != nil {
 		return err
 	}

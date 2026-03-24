@@ -7,6 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// AppKind is the Kind string for App resources.
+const AppKind = "App"
+
 // AppSpec defines the desired state of App.
 type AppSpec struct {
 	// running specifies whether the VM should be running.
@@ -15,8 +18,11 @@ type AppSpec struct {
 	// Namespace is the namespace where this cluster-scoped App resource
 	// creates and manages its owned namespaced resources (e.g., rancher-desktop).
 	// Defaults to "default" if not specified.
+	// This field is immutable after creation: changing it would orphan existing
+	// owned resources (LimaVM, ConfigMaps) in the original namespace.
 	// +optional
 	// +kubebuilder:default="default"
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="spec.namespace is immutable"
 	Namespace string `json:"namespace,omitempty"`
 }
 

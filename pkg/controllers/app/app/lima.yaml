@@ -1,0 +1,45 @@
+images:
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.1.2/distro.v0.1.2.amd64.qcow2
+  arch: x86_64
+  digest: "sha256:45de5c158399d5bc31e93f42d9c7fcfaf8dd3279ee157c702e9bd86bcaf9e088"
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.1.2/distro.v0.1.2.arm64.qcow2
+  arch: aarch64
+  digest: "sha256:39598a41ebe5c8da0baf428716a63c50598e8306e85bb85043877407eecc8991"
+cpus: 2
+memory: "6442450944"
+mounts:
+- location: "~"
+  writable: true
+ssh:
+  localPort: 51422
+  loadDotSSHPubKeys: false
+firmware:
+  legacyBIOS: false
+containerd:
+  system: false
+  user: false
+portForwards:
+- guestIPMustBeZero: true
+  guestPortRange:
+  - 1
+  - 65535
+  hostIP: 0.0.0.0
+  hostPortRange:
+  - 0
+  - 0
+- guestPortRange:
+  - 0
+  - 0
+  guestSocket: /var/run/docker.sock
+  hostPortRange:
+  - 0
+  - 0
+  hostSocket: "{{.Home}}/.rd/docker.sock"
+hostResolver:
+  hosts:
+    host.docker.internal: host.lima.internal
+    host.rancher-desktop.internal: host.lima.internal
+    lima-rancher-desktop: lima-0
+rosetta:
+  enabled: false
+  binfmt: false

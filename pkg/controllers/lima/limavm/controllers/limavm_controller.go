@@ -429,7 +429,7 @@ func (r *LimaVMReconciler) setCondition(limaVM *v1alpha1.LimaVM, conditionType s
 		Type:    conditionType,
 		Status:  status,
 		Reason:  reason,
-		Message: message,
+		Message: base.TruncateConditionMessage(message),
 	})
 	if changed && r.Recorder != nil {
 		r.Recorder.Eventf(limaVM, nil, corev1.EventTypeNormal, "ConditionChanged", conditionType, message)
