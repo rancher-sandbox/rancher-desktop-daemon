@@ -76,7 +76,7 @@ func (r *LimaVMReconciler) handleDeletion(ctx context.Context, limaVM *v1alpha1.
 		logger.Info("Deleting Lima instance", "instance", limaVM.Name)
 		// Use a timeout because Lima's WSL2 driver calls wsl.exe --unregister
 		// which can hang indefinitely if the WSL subsystem is degraded.
-		deleteCtx, deleteCancel := context.WithTimeout(ctx, 60*time.Second)
+		deleteCtx, deleteCancel := context.WithTimeout(ctx, time.Minute)
 		err = limainstance.Delete(deleteCtx, existingInst, true)
 		deleteCancel()
 		if err != nil {
@@ -634,7 +634,7 @@ func stopInstanceForcibly(ctx context.Context, logger logr.Logger, inst *limatyp
 	// If KillTree failed, the VM driver may still be using the disks.
 	if allKilled {
 		for _, d := range inst.AdditionalDisks {
-			disk, err := store.InspectDisk(d.Name)
+			disk, err := store.InspectDisk(d.Name, nil)
 			if err != nil {
 				logger.V(1).Info("Disk does not exist", "disk", d.Name)
 				continue

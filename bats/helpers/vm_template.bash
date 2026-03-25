@@ -6,7 +6,7 @@
 #
 # Usage in test files:
 #   VM_TEMPLATE=$(vm_template)
-# Supports RDD_VM_TYPE on Unix (expands to vmType: <value> when set).
+# Supports RDD_VM_TYPE on Unix (expands to `vmType: <value>` when set).
 
 : "${RDD_WSL_DISTRO:=finch}"
 
