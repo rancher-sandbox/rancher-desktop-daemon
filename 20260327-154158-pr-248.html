@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260327-154158-pr-248</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+  </style>
+</head>
+<body>
+<main>
+
+<h1>Deep Review: 20260327-154158-pr-248</h1>
+
+<table class="meta-table">
+<tr><td>Date</td><td>2026-03-27 15:41</td></tr>
+<tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+<tr><td>Round</td><td>4</td></tr>
+<tr><td>Author</td><td><a href="https://github.com/Nino-K">@Nino-K</a></td></tr>
+<tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/248" class="gh-ref" data-title="App controller Stop and Start LimaVM" data-state="open" data-type="pr">#248</a> — App controller Stop and Start LimaVM</td></tr>
+<tr><td>Branch</td><td><code>app-controller-stop-start-limavm</code></td></tr>
+<tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/077e2a0"><code>077e2a0</code></a> Fix ObservedGeneration in App Controller<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/3b75992"><code>3b75992</code></a> Add additional BATs for App Controller<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/3b08c6b"><code>3b08c6b</code></a> Update api_app.md to reflect condition definition<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/d39dfd2"><code>d39dfd2</code></a> Prevent Running condition cycle when VM is stopped</td></tr>
+<tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+<tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> — controller-restart regression test still missing; dead variable in BATS</td></tr>
+<tr><td>Wall-clock time</td><td>24 min 39 s</td></tr>
+</table>
+
+<hr>
+
+<h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>Round 3 feedback was largely addressed: the <code>jq_output</code> pattern and doc wording are fixed. The controller code is unchanged and correct. Two items remain from round 3: the missing controller-restart regression test (Important 1) and the misleading commit title on <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/077e2a0"><code>077e2a0</code></a> (Suggestion 1, body fixed but title not). A new minor issue appeared: a dead variable in the rewritten <code>observedGeneration</code> test.</p>
+</div>
+
+<hr>
+
+<h2 id="critical-issues"><span class="section-critical">Critical Issues</span> <a href="#critical-issues" class="pilcrow">¶</a></h2>
+
+<div class="card card-critical">
+<p>None.</p>
+</div>
+
+<hr>
+
+<h2 id="important-issues"><span class="section-important">Important Issues</span> <a href="#important-issues" class="pilcrow">¶</a></h2>
+
+<div class="card card-important" id="important-1">
+<div class="finding-title">
+  <span class="finding-num">1.</span> Controller-restart regression test still missing <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> <span class="pill pill-claude">Claude</span>
+  <a href="#important-1" class="pilcrow">¶</a>
+</div>
+
+<p>The tests cover steady-state start/stop mirroring but never restart the controller. The <code>shouldRun</code> guard at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L131">line 131</a> prevents condition oscillation when a stopped VM has no watcher after controller restart — but no test exercises this path.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L123-L138">pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go</a></div>
+<pre data-start="123" data-line="131"><code class="language-go">	// After a controller restart, the Running condition may be stale (persisted
+	// in kine from the previous controller lifetime). Without a watcher, we
+	// cannot verify it, so reset it to Unknown before proceeding.
+	// Guard with shouldRun: when stopping, handleUnwatchedState inspects the
+	// actual instance and sets False/Stopped directly. Without this guard, a
+	// stopped VM with no watcher oscillates between False/Stopped and
+	// Unknown/Reconciling on every reconcile triggered by the App controller's
+	// Owns() watch.
+	if shouldRun &amp;&amp; phase == phaseUnknown &amp;&amp; !base.HasConditionWithReason(limaVM.Status.Conditions, ConditionRunning, metav1.ConditionUnknown, ReasonReconciling) {
+		logger.Info("No watcher for instance, resetting Running condition to Unknown")
+		if err := r.updateCondition(ctx, limaVM, ConditionRunning, metav1.ConditionUnknown, ReasonReconciling, "Verifying instance state after controller restart"); err != nil {
+			logger.Error(err, "Failed to reset Running condition")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}</code></pre>
+
+<p><span class="fix-label">Fix:</span> add a test that stops the VM, restarts the service, then asserts <code>Running</code> stays <code>False/Stopped</code> on both LimaVM and App.</p>
+</div>
+
+<hr>
+
+<h2 id="suggestions"><span class="section-suggestion">Suggestions</span> <a href="#suggestions" class="pilcrow">¶</a></h2>
+
+<div class="card card-suggestion" id="suggestion-1">
+<div class="finding-title">
+  <span class="finding-num">1.</span> Dead variable <code>observed_gen</code> in observedGeneration test <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-1" class="pilcrow">¶</a>
+</div>
+
+<p><code>observed_gen</code> is assigned at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/bats/tests/32-app-controllers/app.bats#L191">line 191</a> but never referenced. <code>assert_output</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/bats/tests/32-app-controllers/app.bats#L193">line 193</a> checks <code>$output</code> directly.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/bats/tests/32-app-controllers/app.bats#L184-L194">bats/tests/32-app-controllers/app.bats</a></div>
+<pre data-start="184" data-line="191"><code class="language-bash">@test "verify App Running condition observedGeneration reflects App generation" {
+    run -0 rdd ctl get app "${APP_NAME}" -o json
+    run -0 jq_output '.metadata.generation'
+    local app_gen="${output}"
+
+    run -0 rdd ctl get app "${APP_NAME}" -o json
+    run -0 jq_output '.status.conditions[] | select(.type == "Running") | .observedGeneration'
+    local observed_gen="${output}"
+
+    assert_output "${app_gen}"
+}</code></pre>
+
+<p><span class="fix-label">Fix:</span> remove the dead variable.</p>
+<pre><code class="language-diff">     run -0 jq_output '.status.conditions[] | select(.type == "Running") | .observedGeneration'
+-    local observed_gen="${output}"
+-
+     assert_output "${app_gen}"</code></pre>
+</div>
+
+<div class="card card-suggestion" id="suggestion-2">
+<div class="finding-title">
+  <span class="finding-num">2.</span> <code>lastTransitionTime</code> tests use <code>[[ ]]</code> instead of <code>assert_output</code> <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-2" class="pilcrow">¶</a>
+</div>
+
+<p>The timestamp comparison tests at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/bats/tests/32-app-controllers/app.bats#L148">line 148</a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/bats/tests/32-app-controllers/app.bats#L181">line 181</a> capture two values into named variables and compare with <code>[[ "${limavm_ts}" == "${app_ts}" ]]</code>. Since the second <code>run -0 jq_output</code> already leaves its result in <code>$output</code>, <code>assert_output</code> produces better failure diagnostics.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/bats/tests/32-app-controllers/app.bats#L172-L182">bats/tests/32-app-controllers/app.bats</a></div>
+<pre data-start="172" data-line="179,180,181"><code class="language-bash">@test "verify App Running condition preserves LimaVM LastTransitionTime" {
+    run -0 rdd ctl get limavm "${VM_NAME}" --namespace "${RDD_NAMESPACE}" -o json
+    run -0 jq_output '.status.conditions[] | select(.type == "Running") | .lastTransitionTime'
+    local limavm_ts="${output}"
+
+    run -0 rdd ctl get app "${APP_NAME}" -o json
+    run -0 jq_output '.status.conditions[] | select(.type == "Running") | .lastTransitionTime'
+    local app_ts="${output}"
+
+    [[ "${limavm_ts}" == "${app_ts}" ]]
+}</code></pre>
+
+<p><span class="fix-label">Fix:</span></p>
+<pre><code class="language-diff">     run -0 jq_output '.status.conditions[] | select(.type == "Running") | .lastTransitionTime'
+-    local app_ts="${output}"
+-
+-    [[ "${limavm_ts}" == "${app_ts}" ]]
++    assert_output "${limavm_ts}"</code></pre>
+</div>
+
+<hr>
+
+<h2 id="design-observations"><span class="section-design">Design Observations</span> <a href="#design-observations" class="pilcrow">¶</a></h2>
+
+<h3 id="design-strengths">Strengths <a href="#design-strengths" class="pilcrow">¶</a></h3>
+
+<div class="card card-design">
+<ul>
+<li><strong><code>shouldRun</code> guard is precise and well-documented.</strong> Without it, the <code>shouldRun=false</code> + <code>phaseUnknown</code> path cycles: <code>False/Stopped</code> → <code>Unknown/Reconciling</code> → <code>False/Stopped</code> → repeat. The guard breaks the cycle while preserving restart-recovery for <code>shouldRun=true</code>, where <code>startInstance</code> creates a watcher that shifts phase away from <code>phaseUnknown</code>. The comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L126-L130">lines 126–130</a> explains the mechanism clearly. <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+<li><strong>Documentation now matches the implemented model.</strong> The condition table uses actual LimaVM values, the YAML example shows the cluster-scoped singleton with <code>spec.namespace</code>, and mirroring semantics (including <code>lastTransitionTime</code> provenance) are documented. <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>The new tests cover start/stop lifecycle well: Running mirrored as True after start, timestamp preservation, observedGeneration semantics, Running mirrored as False after stop. Untested scenarios:</p>
+<ol>
+<li><strong>Controller restart while stopped</strong> — The path changed at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L131"><code>limavm_lifecycle.go:131</code></a>. No test exercises it.</li>
+<li><strong>Controller restart while running</strong> — The App condition mirror should recover to <code>Running=True/Started</code> after LimaVM orphan recovery, not just the LimaVM itself.</li>
+</ol>
+</div>
+
+<hr>
+
+<h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>Commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/077e2a0"><code>077e2a0</code></a> title still says "Fix ObservedGeneration in App Controller" but the diff changes error handling for ConfigMap Get failures. The body was corrected in this push ("Return errors from ConfigMap Get failures instead of logging and continuing"), but the title was not.</p>
+</div>
+
+<hr>
+
+<h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Round 3 Suggestion 1</strong> — Commit title on <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/077e2a0"><code>077e2a0</code></a> still misleading. Body fixed; title not.</li>
+<li><strong>Round 3 Important 1</strong> — Missing controller-restart regression test. Not addressed in this push.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<ul>
+<li><code>TODO: Non-blocking stop: send SIGINT and return immediately;</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/d39dfd212f3bd069e64f7bec3ea10c63388f4a6b/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L206"><code>limavm_lifecycle.go:206</code></a>. This PR does not worsen this limitation; the <code>shouldRun</code> guard is orthogonal to the blocking stop path.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="improvement-recommendations">Improvement Recommendations <a href="#improvement-recommendations" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">¶</a></h3>
+<p>The <code>[[ ]]</code> vs <code>assert_output</code> pattern (Suggestion 2) is a BATS testing convention: prefer <code>assert_output</code> over manual <code>[[ ]]</code> comparisons because it produces better failure diagnostics. The existing <code>deep-review-context.md</code> bullet covers <code>$(jq_output ...)</code> substitution but does not mention preferring <code>assert_output</code> over <code>[[ ]]</code> for value comparisons. Consider extending the bullet to cover this.</p>
+</div>
+
+<hr>
+
+<h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">¶</a></h2>
+
+<h3 id="retro-claude"><span class="pill pill-claude">Claude</span> Opus 4.6 <a href="#retro-claude" class="pilcrow">¶</a></h3>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Unique contributions:</strong> None — all findings were also raised by at least one other agent.</li>
+<li><strong>Accuracy:</strong> No false positives.</li>
+<li><strong>Depth:</strong> Traced the oscillation cycle through <code>handleRunningState</code> → <code>handleUnwatchedState</code> → status update → App <code>Owns()</code> → re-enqueue. Correctly explained why the guard is sufficient.</li>
+<li><strong>Coverage:</strong> Reviewed all 4 files. No coverage misses.</li>
+<li><strong>Signal-to-noise:</strong> Good. Placed the restart test gap in Testing Assessment rather than as an Important finding, which understates its significance relative to round 3 feedback.</li>
+</ul>
+</div>
+
+<h3 id="retro-codex"><span class="pill pill-codex">Codex</span> GPT 5.4 <a href="#retro-codex" class="pilcrow">¶</a></h3>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Unique contributions:</strong> None — the restart test gap was raised by all three.</li>
+<li><strong>Accuracy:</strong> No false positives.</li>
+<li><strong>Depth:</strong> Referenced the existing restart test pattern in <code>limavm-running.bats</code> as a template. Noted both <code>spec.running=true</code> and <code>spec.running=false</code> restart scenarios need coverage.</li>
+<li><strong>Coverage:</strong> Reviewed all 4 files. No coverage misses.</li>
+<li><strong>Signal-to-noise:</strong> High. Concise, focused on the most important gap.</li>
+</ul>
+</div>
+
+<h3 id="retro-gemini"><span class="pill pill-gemini">Gemini</span> 3.1 Pro <a href="#retro-gemini" class="pilcrow">¶</a></h3>
+
+<div class="card card-neutral">
+<ul>
+<li><strong>Unique contributions:</strong> Caught the remaining <code>[[ ]]</code> comparisons at lines 148 and 181 that could use <code>assert_output</code> — the only agent to flag this.</li>
+<li><strong>Accuracy:</strong> No false positives.</li>
+<li><strong>Depth:</strong> Traced through the <code>jq_output</code> conversion to identify partial adoption of <code>assert_output</code>.</li>
+<li><strong>Coverage:</strong> Reviewed all 4 files. No coverage misses.</li>
+<li><strong>Signal-to-noise:</strong> Good. Two actionable findings.</li>
+</ul>
+</div>
+
+<h3 id="retro-summary">Summary <a href="#retro-summary" class="pilcrow">¶</a></h3>
+
+<div class="card card-neutral">
+<table class="retro-table">
+<tr>
+  <th>Metric</th>
+  <th><span class="pill pill-claude">Claude</span> Opus 4.6</th>
+  <th><span class="pill pill-codex">Codex</span> GPT 5.4</th>
+  <th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th>
+</tr>
+<tr><td>Duration</td><td>9:28</td><td>3:33</td><td>3:32</td></tr>
+<tr><td>Critical</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Important</td><td>0</td><td>1</td><td>1</td></tr>
+<tr><td>Suggestion</td><td>1</td><td>0</td><td>1</td></tr>
+<tr><td>Design observations</td><td>2</td><td>2</td><td>0</td></tr>
+<tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Unique insights</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>Files reviewed</td><td>4</td><td>4</td><td>4</td></tr>
+<tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+</table>
+<p>Gemini had the best round: it raised the only unique finding (remaining <code>[[ ]]</code> comparisons) and correctly identified the dead variable, matching Claude's output in half the time. Codex was concise and focused. Claude took the longest and placed the restart test gap in Testing Assessment rather than elevating it to Important despite round 3 explicitly flagging it.</p>
+</div>
+
+</main>
+
+<script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+<script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+</script>
+</body>
+</html>
