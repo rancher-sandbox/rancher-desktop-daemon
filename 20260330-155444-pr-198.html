@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260330-155444-pr-198</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+  </style>
+</head>
+<body>
+<main>
+
+<h1>Deep Review: 20260330-155444-pr-198</h1>
+
+<table class="meta-table">
+<tr><td>Date</td><td>2026-03-30 15:54</td></tr>
+<tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+<tr><td>Round</td><td>2</td></tr>
+<tr><td>Author</td><td><a href="https://github.com/mook-as">@mook-as</a></td></tr>
+<tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/198" class="gh-ref" data-title="mock controller: Add a mock logs endpoint" data-state="open" data-type="pr">#198</a> — mock controller: Add a mock logs endpoint</td></tr>
+<tr><td>Branch</td><td><code>mook-as/container-api/mock-logs</code></td></tr>
+<tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/1b7060e"><code>1b7060e</code></a> mock controller: Add a mock logs endpoint</td></tr>
+<tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+<tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> — WebSocket upgrader rejects browser clients; error responses mask backend failures</td></tr>
+<tr><td>Wall-clock time</td><td>13 min 29 s</td></tr>
+</table>
+
+<hr>
+
+<h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>This PR adds a mock WebSocket logs endpoint (<code>/passthrough/mock/logs/{container}</code>) that streams container labels as log lines, intended for UI development. It wires the endpoint into the mock controller's passthrough discovery, extracts a reusable <code>curl_has_websocket_support</code> helper, and adds BATS tests covering valid containers, invalid IDs, and nonexistent containers. The main concern: the WebSocket upgrader's default origin check rejects browser connections — the primary use case this endpoint serves.</p>
+</div>
+
+<hr>
+
+<h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">¶</a></h2>
+
+<div class="card card-critical">
+<p>None.</p>
+</div>
+
+<hr>
+
+<h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">¶</a></h2>
+
+<div class="card card-important">
+<div class="finding-title" id="important-1">
+  <span class="finding-num">1.</span> Browser clients rejected by default WebSocket origin check (important, regression) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>
+  <a href="#important-1" class="pilcrow">¶</a>
+</div>
+
+<p>The zero-value <code>Upgrader</code> uses gorilla/websocket's default <code>checkSameOrigin</code>, which rejects requests whose <code>Origin</code> header does not match <code>Host</code>. Browser WebSocket requests always send <code>Origin</code>. When the UI runs on a separate dev server (e.g., Vite on port 5173) or in Electron with a custom origin, the origins diverge and the upgrade fails with 403. The BATS tests pass because <code>curl</code> omits the <code>Origin</code> header, so <code>checkSameOrigin</code> returns true unconditionally.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/mock/logs_passthrough.go#L45-L55">pkg/controllers/mock/logs_passthrough.go</a></div>
+<pre data-start="45" data-line="50,51"><code class="language-go">	log.V(5).Info("Failed to get container", "error", err)
+		http.Error(w, "Failed to get container", http.StatusNotFound)
+		return
+	}
+
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.V(5).Info("Failed to upgrade to WebSocket", "error", err)
+		return
+	}</code></pre>
+
+<p>The existing demo controller at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/app/demo/controller.go#L90-L92"><code>pkg/controllers/app/demo/controller.go:90-92</code></a> explicitly bypasses this check.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/app/demo/controller.go#L88-L93">pkg/controllers/app/demo/controller.go</a></div>
+<pre data-start="88" data-line="90,91"><code class="language-go">func (c *controller) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log := ctrl.LoggerFrom(r.Context())
+	upgrader := &amp;websocket.Upgrader{
+		CheckOrigin: func(_ *http.Request) bool { return true },
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)</code></pre>
+
+<p>Confirmed via <code>git blame</code>: introduced in commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/1b7060e"><code>1b7060e</code></a>.</p>
+
+<p><span class="fix-label">Fix:</span> Match the demo controller's pattern.</p>
+
+<pre><code class="language-diff">-	upgrader := websocket.Upgrader{}
++	upgrader := websocket.Upgrader{
++		CheckOrigin: func(_ *http.Request) bool { return true },
++	}</code></pre>
+
+</div>
+
+<hr>
+
+<h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">¶</a></h2>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-1">
+  <span class="finding-num">1.</span> All API errors return 404 (suggestion, regression) <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-1" class="pilcrow">¶</a>
+</div>
+
+<p>Any error from <code>GetClient().Get()</code> — not-found, kine database issue, context cancellation — returns HTTP 404. During UI development, this masks real backend problems as "container not found." Distinguishing not-found from internal errors improves debuggability.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/mock/logs_passthrough.go#L39-L48">pkg/controllers/mock/logs_passthrough.go</a></div>
+<pre data-start="39" data-line="44,45,46,47"><code class="language-go">	var container v1alpha1.Container
+	err := c.mgr.GetClient().Get(r.Context(), types.NamespacedName{
+		Namespace: apiNamespace,
+		Name:      containerID,
+	}, &amp;container)
+	if err != nil {
+		log.V(5).Info("Failed to get container", "error", err)
+		http.Error(w, "Failed to get container", http.StatusNotFound)
+		return
+	}</code></pre>
+
+<p><span class="fix-label">Fix:</span> Use <code>apierrors.IsNotFound</code> to differentiate (already imported in <code>mock_controller.go</code>).</p>
+
+<pre><code class="language-diff">+	if apierrors.IsNotFound(err) {
++		log.V(5).Info("Container not found", "container", containerID)
++		http.Error(w, "Container not found", http.StatusNotFound)
++		return
++	}
+ 	if err != nil {
+-		log.V(5).Info("Failed to get container", "error", err)
+-		http.Error(w, "Failed to get container", http.StatusNotFound)
++		log.V(5).Info("Failed to get container", "container", containerID, "error", err)
++		http.Error(w, "Failed to get container", http.StatusInternalServerError)
+ 		return
+ 	}</code></pre>
+
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-2">
+  <span class="finding-num">2.</span> Trailing path segments silently ignored (suggestion, gap) <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-2" class="pilcrow">¶</a>
+</div>
+
+<p><code>strings.Cut</code> extracts the first path segment as <code>containerID</code> and discards the rest. A request to <code>/passthrough/mock/logs/1234/extra/stuff</code> succeeds with container ID <code>1234</code>. While harmless for a mock endpoint, it can mask malformed frontend requests during development.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/mock/logs_passthrough.go#L28-L35">pkg/controllers/mock/logs_passthrough.go</a></div>
+<pre data-start="28" data-line="30"><code class="language-go">func (c *controller) handleLogs(w http.ResponseWriter, r *http.Request) {
+	log := ctrl.LoggerFrom(r.Context())
+	containerID, _, _ := strings.Cut(strings.TrimLeft(r.URL.Path, "/"), "/")
+	log.Info("Handling logs request", "container", containerID)
+
+	if !containerIDValidator.MatchString(containerID) {
+		log.V(5).Info("Invalid container ID", "container", containerID)
+		http.Error(w, "Invalid container ID", http.StatusBadRequest)</code></pre>
+
+<p><span class="fix-label">Fix:</span> Check the <code>after</code> return value and reject requests with extra segments.</p>
+
+<pre><code class="language-diff">-	containerID, _, _ := strings.Cut(strings.TrimLeft(r.URL.Path, "/"), "/")
++	containerID, after, _ := strings.Cut(strings.TrimLeft(r.URL.Path, "/"), "/")
++	if after != "" {
++		http.Error(w, "Invalid path", http.StatusBadRequest)
++		return
++	}</code></pre>
+
+</div>
+
+<div class="card card-suggestion">
+<div class="finding-title" id="suggestion-3">
+  <span class="finding-num">3.</span> WebSocket close frame may not reach client (suggestion, gap) <span class="pill pill-gemini">Gemini</span>
+  <a href="#suggestion-3" class="pilcrow">¶</a>
+</div>
+
+<p>The deferred <code>conn.Close()</code> runs immediately after the close-frame write without waiting for the client to echo the close frame. Browser clients may see <code>1006 Abnormal Closure</code> instead of the clean <code>1000 Normal Closure</code>. Acceptable for a mock endpoint, but a brief read loop after sending the close message would produce cleaner client-side behavior.</p>
+
+<div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/mock/logs_passthrough.go#L56-L63">pkg/controllers/mock/logs_passthrough.go</a></div>
+<pre data-start="56" data-line="56,57,58,59,60,61,62,63"><code class="language-go">	defer conn.Close()
+	defer func() {
+		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "Closing connection")
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+		if err != nil {
+			log.V(5).Info("Failed to close WebSocket", "error", err)
+		}
+	}()</code></pre>
+
+</div>
+
+<hr>
+
+<h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">¶</a></h2>
+
+<div class="card card-design">
+<h3>Strengths</h3>
+<ul>
+<li>Reuses the <code>PassthroughController</code> interface and discovery ConfigMap pattern from the demo controller. Endpoint registration is clean and extensible. <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+<li>The WebSocket close sequence (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/mock/logs_passthrough.go#L57-L63">lines 57-63</a>) correctly uses LIFO defer ordering: send close message first, then close the connection. <span class="pill pill-claude">Claude</span></li>
+<li>Extracting <code>curl_has_websocket_support()</code> into <code>commands.bash</code> eliminates duplication across both WebSocket passthrough tests. <span class="pill pill-claude">Claude</span></li>
+<li>Test structure covers three distinct cases: valid container, invalid ID format, and nonexistent container. <span class="pill pill-claude">Claude</span></li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>Coverage is adequate for a mock endpoint:</p>
+<ol>
+<li>No test exercises the endpoint with a browser-style <code>Origin</code> header. The BATS tests use <code>curl</code>, which omits <code>Origin</code>, so they miss the failure described in <a href="#important-1">Important Finding 1</a>.</li>
+<li>Container with nil labels (<code>Status.Labels</code> is nil) is untested, but safe — <code>maps.Keys(nil)</code> returns an empty iterator.</li>
+<li>Empty container ID is implicitly covered by the hex-character regex requiring at least one character (<code>+</code>).</li>
+</ol>
+</div>
+
+<hr>
+
+<h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<p>No documentation changes needed. This is a mock-only endpoint for internal development.</p>
+</div>
+
+<hr>
+
+<h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">¶</a></h2>
+
+<div class="card card-neutral">
+<h3><span class="pill pill-claude">Claude</span></h3>
+<ul>
+<li>Duration: 8 min 34 s</li>
+<li>Found 2 issues: Important 1, Suggestion 1</li>
+<li>Unique contributions: detailed analysis of when the <code>Origin</code> check would and would not fail (passthrough preserving <code>Host</code> header), thorough testing assessment with edge case enumeration (nil labels, empty ID)</li>
+<li>Accuracy: no false positives</li>
+<li>Depth: traced into demo controller for pattern comparison, examined defer ordering</li>
+<li>Coverage: reviewed all 5 files, all accounted for in coverage summary</li>
+<li>Signal-to-noise: high — every finding is actionable</li>
+</ul>
+</div>
+
+<div class="card card-neutral">
+<h3><span class="pill pill-codex">Codex</span></h3>
+<ul>
+<li>Duration: 2 min 36 s</li>
+<li>Found 1 issue: Important 1</li>
+<li>Unique contributions: none — its single finding overlaps with the other two agents</li>
+<li>Accuracy: no false positives</li>
+<li>Depth: traced into <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/app/demo/controller.go"><code>app/demo/controller.go</code></a> for comparison, ran <code>git blame</code></li>
+<li>Coverage: reviewed all 5 files, but missed the error masking and path segment issues</li>
+<li>Coverage misses: <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/1b7060e690cf79f6fcba539e8d7b0203154bae8c/pkg/controllers/mock/logs_passthrough.go#L44-L47"><code>logs_passthrough.go</code> lines 44-47</a> (error masking) flagged by both other agents</li>
+<li>Signal-to-noise: clean but shallow</li>
+</ul>
+</div>
+
+<div class="card card-neutral">
+<h3><span class="pill pill-gemini">Gemini</span></h3>
+<ul>
+<li>Duration: 5 min 16 s</li>
+<li>Found 4 issues: Important 2, Suggestion 2</li>
+<li>Unique contributions: trailing path segments (Suggestion 2), WebSocket close frame timing (Suggestion 3)</li>
+<li>Accuracy: no false positives</li>
+<li>Depth: examined error propagation, WebSocket protocol behavior, and path parsing</li>
+<li>Coverage: reviewed all 5 files, all accounted for</li>
+<li>Signal-to-noise: high — all findings are actionable, no noise</li>
+</ul>
+</div>
+
+<div class="card card-neutral">
+<h3>Summary</h3>
+<table class="retro-table">
+<tr><th>Metric</th><th><span class="pill pill-claude">Claude</span> Opus 4.6</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr>
+<tr><td>Duration</td><td>8:34</td><td>2:36</td><td>5:16</td></tr>
+<tr><td>Critical</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Important</td><td>1</td><td>1</td><td>2</td></tr>
+<tr><td>Suggestion</td><td>1</td><td>0</td><td>2</td></tr>
+<tr><td>Design observations</td><td>4</td><td>1</td><td>0</td></tr>
+<tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>Unique insights</td><td>0</td><td>0</td><td>2</td></tr>
+<tr><td>Files reviewed</td><td>5</td><td>5</td><td>5</td></tr>
+<tr><td>Coverage misses</td><td>0</td><td>1</td><td>0</td></tr>
+</table>
+
+<p>Gemini delivered the most comprehensive review, finding all four consolidated issues including two unique suggestions. Claude provided strong design observations and testing assessment. Codex was fast but shallow, contributing no unique findings. All three agents converged on the highest-value finding (WebSocket origin check), validating the multi-agent approach.</p>
+</div>
+
+</main>
+
+<script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+<script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+</script>
+</body>
+</html>
