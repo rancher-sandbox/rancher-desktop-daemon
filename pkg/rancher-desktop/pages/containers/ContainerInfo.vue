@@ -3,6 +3,13 @@
     class="container-info-page"
     data-testid="container-info"
   >
+    <banner
+      v-if="errorMessage"
+      color="error"
+      @close="clearError"
+    >
+      {{ errorMessage }}
+    </banner>
     <rd-tabbed
       :key="containerId"
       :flat="true"
@@ -19,6 +26,7 @@
         :weight="1"
         @active="activeTab = 'tab-logs'"
       />
+      <!--
       <tab
         label="Shell"
         name="tab-shell"
@@ -26,6 +34,7 @@
         :disabled="!isRunning"
         @active="activeTab = 'tab-shell'"
       />
+      -->
       <template #tab-row-extras>
         <li
           v-if="activeTab === 'tab-logs'"
@@ -89,9 +98,11 @@
           v-if="containerId && activeTab === 'tab-logs'"
           ref="containerLogs"
           :container-id="containerId"
-          :is-container-running="isRunning"
-          :namespace="namespace"
+          :is-running="isRunning"
         />
+        <!--
+        TODO: Re-enabling this feature is filed as
+        https://github.com/rancher-sandbox/rancher-desktop-app/issues/38
         <container-shell
           v-if="shellEverActivated && containerId"
           v-show="activeTab === 'tab-shell'"
@@ -100,6 +111,7 @@
           :is-container-running="isRunning"
           :namespace="namespace"
         />
+        -->
       </div>
     </rd-tabbed>
   </div>
@@ -114,8 +126,6 @@ import ContainerLogs from '@pkg/components/ContainerLogs.vue';
 import ContainerShell from '@pkg/components/ContainerShell.vue';
 import RdTabbed from '@pkg/components/Tabbed/RdTabbed.vue';
 import Tab from '@pkg/components/Tabbed/Tab.vue';
-
-import type { IoRancherdesktopContainersV1alpha1Container as Container } from '@rdd-client';
 
 // Router and Store
 const route = useRoute();
@@ -132,15 +142,15 @@ const activeTab = ref<'tab-logs' | 'tab-shell'>('tab-logs');
 const shellEverActivated = ref(false);
 
 // Vuex integration
-const containers = computed(() => store.state['container-engine'].containers);
-const supportsNamespaces = computed<boolean>(() => store.getters['container-engine/supportsNamespaces']);
-const namespace = computed<string | undefined>(() => store.getters['container-engine/currentNamespace']);
+const supportsNamespaces = computed(() => store.getters['container-engine/supportsNamespaces']);
+const namespace = computed(() => store.getters['container-engine/currentNamespace']);
 
 // Computed properties
+const error = computed(() => store.state['container-engine'].error);
 const containerId = computed(() => route.params.id as string || '');
 
-const currentContainer = computed((): Container | null => {
-  return containers.value?.find(c => c.metadata?.name === containerId.value) ?? null;
+const currentContainer = computed(() => {
+  return store.getters['container-engine/containerById'](containerId.value) ?? null;
 });
 
 const containerName = computed(() => {
@@ -149,6 +159,13 @@ const containerName = computed(() => {
 
 const isRunning = computed(() => {
   return currentContainer.value?.status?.status === 'running';
+});
+
+const errorMessage = computed(() => {
+  if (['containers', 'namespaces'].includes(error.value?.source || '')) {
+    return String(error.value?.error?.message ?? error.value?.error ?? error.value);
+  }
+  return null;
 });
 
 // Watchers
@@ -210,6 +227,12 @@ const handleGlobalKeydown = (event: KeyboardEvent) => {
       searchInput.value?.focus();
       searchInput.value?.select();
     }
+  }
+};
+
+const clearError = () => {
+  if (error.value?.source === 'containers') {
+    store.commit('container-engine/SET_ERROR', undefined);
   }
 };
 

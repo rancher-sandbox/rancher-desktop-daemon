@@ -11,33 +11,24 @@
 import { BadgeState } from '@rancher/components';
 import { defineComponent } from 'vue';
 
-import { mapTypedState } from '@pkg/entry/store';
+import { mapTypedGetters } from '@pkg/entry/store';
 
 export default defineComponent({
   name:       'ContainerStatusBadge',
   components: { BadgeState },
   computed:   {
-    ...mapTypedState('container-engine', ['containers']),
+    ...mapTypedGetters('container-engine', ['containerById']),
     containerId() {
       return this.$route.params.id || '';
     },
     currentContainer() {
-      if (!this.containers || !this.containerId) {
-        return null;
-      }
-      return this.containers[this.containerId];
+      return this.containerById(this.containerId) ?? null;
     },
     containerState() {
-      if (!this.currentContainer) {
-        return 'unknown';
-      }
-      return this.currentContainer.state || this.currentContainer.status || 'unknown';
+      return this.currentContainer?.status?.status || 'unknown';
     },
     isRunning() {
-      if (!this.currentContainer) {
-        return false;
-      }
-      return this.currentContainer.state === 'running' || this.currentContainer.status === 'Up';
+      return this.containerState === 'running';
     },
   },
 });

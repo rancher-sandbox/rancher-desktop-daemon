@@ -34,7 +34,7 @@ import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
 import { shell } from 'electron';
-import { ref, onMounted, onBeforeUnmount, watch, nextTick, useTemplateRef, computed } from 'vue';
+import { ref, onBeforeUnmount, watch, nextTick, useTemplateRef, computed } from 'vue';
 import { useStore } from 'vuex';
 
 import LoadingIndicator from '@pkg/components/LoadingIndicator.vue';
@@ -42,8 +42,9 @@ import { usePassthroughURL } from '@pkg/composables/passthrough';
 
 defineOptions({ name: 'ContainerLogs' });
 
-const { containerId } = defineProps<{
+const { containerId, isRunning } = defineProps<{
   containerId: string;
+  isRunning:   boolean;
 }>();
 
 defineExpose({
@@ -70,9 +71,7 @@ let buffer = '';
  */
 const waitingForInitialLogs = ref(true);
 const container = computed(() => {
-  const containers = store.state['container-engine'].containers;
-
-  return containers?.find(c => c.metadata?.name === containerId);
+  return store.getters['container-engine/containerById'](containerId) ?? null;
 });
 
 /**
@@ -87,6 +86,12 @@ const logURL = computed(() => {
   }
   return new URL(container.value.metadata.name, genericLogURL.value);
 });
+
+// Ref used for triggering reloads when the connection dies.
+const reconnectTrigger = ref(0);
+let reconnectAttempts = 0;
+let reconnectResetTimer: ReturnType<typeof setTimeout> | undefined;
+const maxReconnectAttempts = 5;
 
 const terminalContainer = useTemplateRef('terminalContainer');
 // Hook up the terminal once the container is mounted.
@@ -137,6 +142,14 @@ watch(terminalContainer, async(terminalContainer, _oldValue, onCleanup) => {
 
   fitAddon = new FitAddon();
   t.loadAddon(fitAddon);
+  terminalAborter.signal.addEventListener('abort', () => {
+    try {
+      fitAddon?.dispose();
+    } catch {
+      // Ignore errors here: fitAddon.dispose() can throw incorrectly.
+    }
+    fitAddon = undefined;
+  });
 
   searchAddon = new SearchAddon();
   t.loadAddon(searchAddon);
@@ -153,6 +166,7 @@ watch(terminalContainer, async(terminalContainer, _oldValue, onCleanup) => {
   // Disable key events to allow normal behaviour such as copy/paste.
   t.attachCustomKeyEventHandler(() => false);
   terminal = t;
+  (terminalContainer as any).__xtermTerminal = t;
   t.open(terminalContainer);
 
   await nextTick();
@@ -174,12 +188,16 @@ watch(terminalContainer, async(terminalContainer, _oldValue, onCleanup) => {
 });
 
 // Start streaming logs from the container.
-watch([logURL, container], async([logURL, container], _, cleanUp) => {
-  if (!container || !logURL) {
+watch([logURL, reconnectTrigger], async([logURL], _, cleanUp) => {
+  if (!container.value || !logURL) {
     return;
   }
+  errorMessage.value = undefined;
   const streamAborter = new AbortController();
-  cleanUp(() => streamAborter.abort());
+  cleanUp(() => {
+    streamAborter.abort();
+    clearTimeout(revealTimeout);
+  });
   streamAborter.signal.addEventListener('abort', () => {
     buffer = '';
     terminal?.reset();
@@ -228,6 +246,11 @@ watch([logURL, container], async([logURL, container], _, cleanUp) => {
           nextTick(() => {
             fitAddon?.fit();
             terminal?.scrollToBottom();
+
+            // Once we stop streaming in initial logs, reset the reconnect
+            // attempts so that we can retry again later.
+            reconnectAttempts = 0;
+            clearTimeout(reconnectResetTimer);
           });
         }, 200);
       }
@@ -239,6 +262,12 @@ watch([logURL, container], async([logURL, container], _, cleanUp) => {
       waitingForInitialLogs.value = true;
       clearTimeout(revealTimeout);
 
+      reconnectResetTimer = setTimeout(() => {
+        // If we have no logs after a while, reset the reconnect attempts to
+        // allow retries again.
+        reconnectAttempts = 0;
+      }, 10_000);
+
       revealTimeout = setTimeout(() => {
         waitingForInitialLogs.value = false;
         nextTick(() => {
@@ -249,13 +278,55 @@ watch([logURL, container], async([logURL, container], _, cleanUp) => {
     });
     socket.addEventListener('error', (event) => {
       console.error('WebSocket error:', event);
-      errorMessage.value = `WebSocket error: ${ 'message' in event ? event.message : event }`;
+      if (streamAborter.signal.aborted) {
+        // Do not set error on intentional aborts.
+        return;
+      }
+      let message = String('message' in event ? event.message : event);
+
+      if (message.startsWith('[object')) {
+        message = 'unknown error';
+      }
+      errorMessage.value = `WebSocket error: ${ message }`;
+      handleStreamError();
+    });
+    socket.addEventListener('close', (event) => {
+      console.log('WebSocket closed:', event);
+      if (streamAborter.signal.aborted) {
+        // Do not set error on intentional aborts.
+        return;
+      }
+      if (!event.wasClean || event.code !== 1000) { // 1000 = normal closure
+        errorMessage.value = `WebSocket closed unexpectedly: ${ event.reason || 'code ' + event.code }`;
+      }
+      if (!event.wasClean) {
+        handleStreamError();
+      }
     });
   } catch (err: any) {
     console.error('Error setting up log stream:', err);
     errorMessage.value = `Failed to load logs: ${ err.message || err }`;
   }
 });
+
+function handleStreamError() {
+  if (!isRunning) {
+    // If the container isn't running, we expect the log stream to fail, so
+    // don't show a reconnect button in this case.
+    return;
+  }
+  // On unexpected log streaming error, retry with exponential backoff by
+  // touching the `reconnectTrigger` ref, which is a dependency of the log
+  // streaming watcher.
+  if (reconnectAttempts < maxReconnectAttempts) {
+    const delay = Math.pow(2, reconnectAttempts) * 1_000;
+    setTimeout(() => {
+      reconnectAttempts++;
+      // Trigger a reconnect.
+      reconnectTrigger.value++;
+    }, delay);
+  }
+}
 
 function clearSearch() {
   searchAddon?.clearDecorations();
@@ -296,10 +367,6 @@ function executeSearch(searchFn: () => void) {
   }
 }
 
-onMounted(() => {
-  store.dispatch('container-engine/watchContainers').catch(console.error);
-});
-
 onBeforeUnmount(() => {
   terminalAborter?.abort();
   clearTimeout(searchDebounceTimer);
@@ -333,10 +400,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-
-  &.terminal-hidden {
-    visibility: hidden;
-  }
 
   :deep(.xterm) {
     height: 100%;

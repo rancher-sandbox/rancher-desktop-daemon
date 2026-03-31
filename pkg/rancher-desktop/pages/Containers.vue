@@ -54,7 +54,7 @@
       <template #col:imageName="{ row }: { row: RowItem }">
         <td>
           <span v-tooltip="getTooltipConfig(row.status?.image || 'unknown')">
-            {{ shortSha(row.status?.image || 'unknown') }}
+            {{ shortSha(row.imageName || 'unknown') }}
           </span>
         </td>
       </template>
@@ -155,6 +155,7 @@ interface Action {
 type RowItem = Container & {
   uptime:            string;
   id:                string;
+  imageName:         string | undefined;
   availableActions?: Action[];
   stopContainer?:    (this: Container, containers?: Container[]) => void;
   startContainer?:   (this: Container, containers?: Container[]) => void;
@@ -178,30 +179,30 @@ export default defineComponent({
         {
           name:  'containerName',
           label: this.t('containers.manage.table.header.containerName'),
-          sort:  ['containerName', 'image', 'imageName'],
+          sort:  ['status.name', 'imageName'],
         },
         {
           name:  'imageName',
           label: this.t('containers.manage.table.header.image'),
-          sort:  ['imageName', 'containerName', 'imageName'],
+          sort:  ['imageName', 'status.name'],
         },
         {
           name:  'ports',
           label: this.t('containers.manage.table.header.ports'),
-          sort:  ['ports', 'containerName', 'imageName'],
+          sort:  ['ports', 'status.name', 'imageName'],
         },
         {
           name:  'uptime',
           label: this.t('containers.manage.table.header.started'),
-          sort:  ['si', 'containerName', 'imageName'],
+          sort:  ['status.startedAt', 'status.name', 'imageName'],
           width: 120,
         },
       ],
     };
   },
   computed: {
-    ...mapTypedState('rdd', { namespaceObjects: 'namespaces' }),
-    ...mapTypedState('container-engine', ['containers', 'currentNamespace', 'error']),
+    ...mapTypedState('container-engine', { namespaceObjects: 'namespaces' }),
+    ...mapTypedState('container-engine', ['containers', 'images', 'currentNamespace', 'error']),
     ...mapTypedGetters('container-engine', ['supportsNamespaces']),
     namespaces() {
       return (this.namespaceObjects ?? []).map(ns => ns.metadata?.name).filter(defined);
@@ -228,6 +229,22 @@ export default defineComponent({
           ...container,
           uptime:           container.status.startedAt ? dayjs(container.status.startedAt).toNow(true) : '',
           id:               container.metadata.name!,
+          imageName: (() => {
+            const image = this.images?.find(image => image.status?.id === container.status?.image);
+            return image?.status?.repoTag ?? container.status?.image;
+          })(),
+          projectGroup:     (() => {
+            const labels = container.metadata.labels ?? {};
+            const k8sPodName = labels['io.kubernetes.pod.name'];
+            const k8sNamespace = labels['io.kubernetes.pod.namespace'];
+            const composeProject = labels['com.docker.compose.project'];
+            if (k8sPodName && k8sNamespace) {
+              return `${ k8sNamespace }/${ k8sPodName }`;
+            } else if (composeProject) {
+              return composeProject;
+            }
+            return 'Standalone Containers';
+          })(),
           availableActions: [
             {
               label:      'Info',
@@ -282,8 +299,9 @@ export default defineComponent({
         }));
     },
     errorMessage(): string | null {
-      if (['containers', 'namespaces'].includes(this.error?.source ?? '')) {
-        return `${ this.error?.error }`;
+      if (['containers', 'images', 'namespaces'].includes(this.error?.source ?? '')) {
+        const error = this.error?.error;
+        return String(error?.message ?? error ?? this.error);
       }
       return null;
     },
@@ -299,10 +317,15 @@ export default defineComponent({
         this.SET_ERROR({ error, source: 'containers' });
       },
     }).catch(error => this.SET_ERROR({ error, source: 'containers' }));
+    this.watchImages({
+      callback: (error: Error) => {
+        this.SET_ERROR({ error, source: 'images' });
+      },
+    }).catch(error => this.SET_ERROR({ error, source: 'images' }));
   },
   methods: {
     ...mapTypedActions('page', ['setHeader']),
-    ...mapTypedActions('container-engine', ['containerDelete', 'containerSetState', 'setCurrentNamespace', 'watchContainers']),
+    ...mapTypedActions('container-engine', ['containerDelete', 'containerSetState', 'setCurrentNamespace', 'watchContainers', 'watchImages']),
     ...mapTypedMutations('container-engine', ['SET_ERROR']),
     onChangeNamespace(event: Event) {
       const { value } = event.target as HTMLSelectElement;
@@ -369,12 +392,20 @@ export default defineComponent({
      * @returns {[number, number][]} (host port, container port) tuples, sorted by host port.
      */
     getPortList(container: Container): (readonly [number, number])[] {
-      return container.status?.ports?.flatMap(({ name, bindings }) => {
+      return (container.status?.ports ?? []).flatMap(({ name, bindings }) => {
         const containerPort = parseInt(name.split('/')[0], 10);
-        return bindings.map(binding => {
+        return (bindings ?? []).map(binding => {
           return [parseInt(binding.hostPort, 10), containerPort] as const;
-        }).filter(([hostPort]) => hostPort);
-      }) ?? [];
+        });
+      }).reduce((acc, [hostPort, containerPort]) => {
+        // Avoid duplicates
+        if (hostPort && !acc.some(([existingHostPort]) => existingHostPort === hostPort)) {
+          acc.push([hostPort, containerPort]);
+        }
+        return acc;
+      }, [] as (readonly [number, number])[]).sort(([hostPortA], [hostPortB]) => {
+        return hostPortA - hostPortB;
+      });
     },
     shouldHaveDropdown(ports: (readonly [number, number])[]): boolean {
       if (!ports) {
@@ -398,7 +429,7 @@ export default defineComponent({
 
     clearError() {
       switch (this.error?.source) {
-      case 'namespaces': case 'containers':
+      case 'namespaces': case 'containers': case 'images':
         this.SET_ERROR(undefined);
       }
     },

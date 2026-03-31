@@ -54,6 +54,7 @@ const resources = [
 ] as const;
 
 type errorSource = 'containers' | 'images' | 'volumes' | 'namespaces';
+type resourceKeys = Exclude<keyof ReturnType<typeof resourceState<typeof resources>>, '_watchers'>;
 
 export const state = () => ({
   ...resourceState(resources),
@@ -69,6 +70,9 @@ export const getters = {
   currentNamespace(state, getters): string | undefined {
     return getters.supportsNamespaces ? state.currentNamespace : undefined;
   },
+  containerById(state) {
+    return (id: string) => state.containers?.find(container => container.metadata?.name === id);
+  },
 } satisfies GetterTree<ContainerEngineState>;
 
 export const mutations = {
@@ -83,7 +87,7 @@ export const mutations = {
 
 export const actions = {
   ...resourceWatchActions(resources),
-  setCurrentNamespace({ commit, getters, state }, { namespace }: { namespace: string | undefined }) {
+  setCurrentNamespace({ commit, getters, state, dispatch }, { namespace }: { namespace: string | undefined }) {
     if (namespace === state.currentNamespace) {
       return;
     }
@@ -97,6 +101,11 @@ export const actions = {
       console.log(error);
     } else {
       commit('SET_CURRENT_NAMESPACE', namespace);
+      // Refresh all resources to update the namespace filter.
+      for (const key of Object.keys(state._watchers)) {
+        dispatch(`watch${ key.replace(/^\w/, c => c.toUpperCase()) }`,
+          { options: state._watchers[key as resourceKeys].options });
+      }
     }
   },
   /** Request the given container to transition to the provided state. */
@@ -114,7 +123,7 @@ export const actions = {
       {
         name:            container.metadata!.name!,
         namespace:       container.metadata!.namespace!,
-        body:            { spec: { desiredState: state } },
+        body:            { spec: { state } },
         fieldValidation: 'Strict',
       }).catch((err: Error) => {
       commit('SET_ERROR', { error: err, source: 'containers' });

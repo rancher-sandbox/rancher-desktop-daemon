@@ -210,7 +210,7 @@ export function listNamespacedResource<
  * ResourceStateWatcher defines the type of the _watchers item in the state object.
  */
 type ResourceStateWatcher<N extends string, T extends RDDClient.KubernetesObject> =
-  Record<N, Watcher<N, T>>;
+  Record<N, { watcher: Watcher<N, T>, options: ResourceWatchActionsOptions | undefined }>;
 /**
  * ResourceStateItem defines the state object derived from one specific resource type.
  */
@@ -302,14 +302,14 @@ IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
     let debounceTimer: ReturnType<typeof setTimeout> | undefined;
     return [
       watchMethodName,
-      async(actionContext: ActionContext<any, MutationsType<State>>, options?: ResourceWatchActionsOptions) => {
+      async(actionContext: ActionContext<State>, options?: ResourceWatchActionsOptions) => {
         const { commit, state, dispatch, rootState } = actionContext;
         const rddState = rootState['rdd-connection'];
 
         if (!rddState.config.currentContext) {
           await dispatch('rdd-connection/fetchConfig', {}, { root: true });
         }
-        state._watchers[r.name]?.close();
+        state._watchers[r.name]?.watcher?.close();
         clearTimeout(debounceTimer);
         const client = r.makeClient(rddState.config);
         const watcher = new Watcher(
@@ -335,9 +335,9 @@ IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
             } else {
               console.error(`${ r.name }: Closing connection without error`);
             }
-            const watchers = { ...state._watchers };
+            const watchers: typeof state._watchers = { ...state._watchers };
             delete watchers[r.name];
-            commit('SET__WATCHERS', watchers);
+            commit('SET__WATCHERS', watchers as any);
             setTimeout(async() => {
               await dispatch('rdd-connection/fetchConfig', {}, { root: true });
               await dispatch(watchMethodName, options);
@@ -345,7 +345,7 @@ IntersectMapped<{ [K in keyof T]: ResourceWatchActionsReturn<T[K]> }> {
           },
           rootState['rdd-connection'].watch,
           commit);
-        commit('SET__WATCHERS', { ...state._watchers, [r.name]: watcher });
+        commit('SET__WATCHERS', { ...state._watchers, [r.name]: { watcher, options } } as any);
         debounceTimer = setTimeout(() => watcher.start(), 500);
         await dispatch('rdd-connection/registerDisconnectCallback',
           {
