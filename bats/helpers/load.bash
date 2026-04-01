@@ -95,11 +95,13 @@ teardown_file() {
 
 setup() {
     # Write test markers to RDD log files for easier debugging.
-    # The append may fail if the service is not running; that's fine.
-    local log
-    for log in "${RDD_LOG_DIR}"/rdd.stderr.log "${RDD_LOG_DIR}"/rdd.stdout.log; do
-        echo "=== BATS: ${BATS_TEST_DESCRIPTION} ===" >>"${log}" 2>/dev/null || true
-    done
+    # Skip if the log directory doesn't exist (test may not start a service).
+    if [[ -d "${RDD_LOG_DIR}" ]]; then
+        local log
+        for log in "${RDD_LOG_DIR}"/rdd.stderr.log "${RDD_LOG_DIR}"/rdd.stdout.log; do
+            echo "=== BATS: ${BATS_TEST_DESCRIPTION} ===" >>"${log}" 2>/dev/null || true
+        done
+    fi
 
     call_local_function
 }
