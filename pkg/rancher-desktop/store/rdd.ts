@@ -18,6 +18,13 @@ const resources = [
     list:       listNamespacedResource('ConfigMap'),
   }),
   defineResource({
+    name:       'systemConfigMaps',
+    type:       'ConfigMap',
+    path:       '/api/v1/namespaces/rdd-system/configmaps',
+    makeClient: config => config.makeApiClient(RDDClient.CoreV1Api),
+    list:       client => client.listNamespacedConfigMap({ namespace: 'rdd-system' }),
+  }),
+  defineResource({
     name:       'demos',
     path:       '/apis/app.rancherdesktop.io/v1alpha1/demos',
     makeClient: config => config.makeApiClient(RDDClient.AppRancherdesktopIoV1alpha1Api),

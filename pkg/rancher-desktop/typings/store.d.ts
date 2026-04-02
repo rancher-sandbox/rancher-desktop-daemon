@@ -1,6 +1,6 @@
 import { Store } from 'vuex/types';
 
-import type { Modules } from '@pkg/entry/store';
+import type { Modules, RootGetters } from '@pkg/entry/store';
 
 type Actions<
   module extends string,
@@ -20,6 +20,12 @@ type storeActions = Intersect<Values<{
   [module in keyof Modules]:
   Modules[module] extends { actions: any } ?
     Actions<module, Modules[module]['actions']> : never;
+}>>;
+
+type storeGetters = Intersect<Values<{
+  [module in keyof RootGetters]:
+  { [key in keyof RootGetters[module] as `${ module }/${ key & string }`]:
+    RootGetters[module][key] };
 }>>;
 
 type Mutations<
@@ -64,9 +70,11 @@ declare module 'vuex/types' {
     >(payloadWithType: P, options?: CommitOptions): void;
   }
 
-  export function useStore(): Store<{
+  export function useStore(): Omit<Store<{
     [key in keyof Modules]: ReturnType<Modules[key]['state']>;
-  }>;
+  }>, 'getters'> & {
+    getters: storeGetters;
+  };
 }
 
 declare module 'vue' {

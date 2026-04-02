@@ -1,7 +1,7 @@
-import type { Modules, RootState } from '@pkg/entry/store';
+import type { Modules, RootGetters, RootState } from '@pkg/entry/store';
 import type { UpperSnakeCase } from '@pkg/utils/typeUtils';
 
-import type { CommitOptions, Dispatch, GetterTree, MutationTree, Store } from 'vuex';
+import type { CommitOptions, Dispatch, MutationTree, Store } from 'vuex';
 
 /**
  * MutationsType is used to describe the type that `mutations` should have.
@@ -26,7 +26,7 @@ type MutationsPayloadType<M> = {
  * subset we currently need.  We're not using the types from Vuex as that does
  * not provide typing to match the mutations.
  */
-export interface ActionContext<S, M = MutationsType<S>, G = GetterTree<S, any>> {
+export interface ActionContext<S, M = MutationsType<S>, G = GetterTree<S>> {
   commit:    Commit<M>;
   dispatch:  Dispatch;
   state:     S;
@@ -61,3 +61,5 @@ export type ActionTree<
   M extends MutationsType<S> & MutationTree<S> = MutationsType<S> & MutationTree<S>,
   G extends GetterTree<S, any> = GetterTree<S, any>,
 > = Record<string, Action<S, R, M, G>>;
+
+export type GetterTree<S, R = RootState, G = any> = Record<string, (state: S, getters: G, rootState: R, rootGetters: RootGetters) => any>;

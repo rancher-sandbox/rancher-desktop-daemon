@@ -1,54 +1,50 @@
 <template>
   <div class="container-logs-component">
+    <banner
+      v-if="errorMessage"
+      class="content-state"
+      color="error"
+      data-testid="error-message"
+    >
+      <span class="icon icon-info-circle icon-lg" />
+      {{ errorMessage }}
+    </banner>
+
     <loading-indicator
-      v-if="isLoading || waitingForInitialLogs"
+      v-if="!container || waitingForInitialLogs"
       class="content-state"
       data-testid="loading-indicator"
     >
       Loading logs...
     </loading-indicator>
 
-    <banner
-      v-if="error && !waitingForInitialLogs"
-      class="content-state"
-      color="error"
-      data-testid="error-message"
-    >
-      <span class="icon icon-info-circle icon-lg" />
-      {{ error }}
-    </banner>
-
     <div
-      v-if="!isLoading"
+      v-else
       ref="terminalContainer"
-      :class="['terminal-container', { 'terminal-hidden': waitingForInitialLogs }]"
+      class="terminal-container"
       data-testid="terminal"
     />
   </div>
 </template>
 
 <script lang="ts" setup>
-import v1 from '@docker/extension-api-client-types/dist/v1';
 import { Banner } from '@rancher/components';
 import { FitAddon } from '@xterm/addon-fit';
 import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
 import { shell } from 'electron';
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, onBeforeUnmount, watch, nextTick, useTemplateRef, computed } from 'vue';
+import { useStore } from 'vuex';
 
 import LoadingIndicator from '@pkg/components/LoadingIndicator.vue';
-
-interface RDXSpawnOptions extends v1.SpawnOptions {
-  namespace?: string;
-}
+import { usePassthroughURL } from '@pkg/composables/passthrough';
 
 defineOptions({ name: 'ContainerLogs' });
 
-const props = defineProps<{
-  containerId:         string;
-  isContainerRunning?: boolean;
-  namespace?:          string | null;
+const { containerId, isRunning } = defineProps<{
+  containerId: string;
+  isRunning:   boolean;
 }>();
 
 defineExpose({
@@ -58,183 +54,280 @@ defineExpose({
   searchPrevious,
 });
 
-const isLoading = ref(true);
-const error = ref<string | null>(null);
+const store = useStore();
+const errorMessage = ref<string | undefined>();
 
 let terminal: Terminal | undefined;
 let fitAddon: FitAddon | undefined;
 let searchAddon: SearchAddon | undefined;
-let streamProcess: v1.ExecProcess | undefined;
-let resizeObserver: ResizeObserver | undefined;
-let reconnectAttempts = 0;
-const maxReconnectAttempts = 5;
 let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+let terminalAborter: AbortController | undefined;
+let buffer = '';
 /**
- * Debounce the initial log loading to avoid showing the initial logs streaming
- * in right after loading.
+ * waitingForInitialLogs is used to delay showing the terminal until after the
+ * initial logs have streamed in.  This prevents the user seeing a quick stream
+ * of logs coming in initially.
  */
 const waitingForInitialLogs = ref(true);
+const container = computed(() => {
+  return store.getters['container-engine/containerById'](containerId) ?? null;
+});
 
 /**
  * Timer used with `waitingForInitialLogs` to reveal the terminal after a delay.
  */
 let revealTimeout: ReturnType<typeof setTimeout> | undefined;
 
-const terminalContainer = ref<HTMLElement | null>(null);
+const genericLogURL = usePassthroughURL('logs');
+const logURL = computed(() => {
+  if (!genericLogURL.value || !container.value?.metadata?.name) {
+    return undefined;
+  }
+  return new URL(container.value.metadata.name, genericLogURL.value).href;
+});
 
-async function initializeTerminal() {
-  isLoading.value = false;
+// Ref used for triggering reloads when the connection dies.
+const reconnectTrigger = ref(0);
+let reconnectAttempts = 0;
+let reconnectResetTimer: ReturnType<typeof setTimeout> | undefined;
+const maxReconnectAttempts = 5;
+
+const terminalContainer = useTemplateRef('terminalContainer');
+// Hook up the terminal once the container is mounted.
+watch(terminalContainer, async(terminalContainer, _oldValue, onCleanup) => {
+  terminalAborter?.abort();
+  terminalAborter = undefined;
+
+  if (!terminalContainer) {
+    return;
+  }
+
+  terminalAborter = new AbortController();
+  onCleanup(() => terminalAborter?.abort());
+
+  const t = new Terminal({
+    theme: {
+      background:          '#1a1a1a',
+      foreground:          '#e0e0e0',
+      cursor:              '#1a1a1a', // same as the background to effectively hide the cursor.
+      black:               '#000000',
+      red:                 '#ff5555',
+      green:               '#50fa7b',
+      yellow:              '#f1fa8c',
+      blue:                '#8be9fd',
+      magenta:             '#ff79c6',
+      cyan:                '#8be9fd',
+      white:               '#f8f8f2',
+      brightBlack:         '#6272a4',
+      brightRed:           '#ff6e6e',
+      brightGreen:         '#69ff94',
+      brightYellow:        '#ffffa5',
+      brightBlue:          '#d6acff',
+      brightMagenta:       '#ff92df',
+      brightCyan:          '#a4ffff',
+      brightWhite:         '#ffffff',
+    },
+    fontSize:     14,
+    fontFamily:   '"Courier New", "Monaco", monospace',
+    cursorBlink:  false,
+    disableStdin: true,
+    convertEol:   true,
+    scrollback:   50_000,
+  });
+  terminalAborter.signal.addEventListener('abort', () => {
+    terminal = undefined;
+    t.dispose();
+  });
+
+  fitAddon = new FitAddon();
+  t.loadAddon(fitAddon);
+  terminalAborter.signal.addEventListener('abort', () => {
+    try {
+      fitAddon?.dispose();
+    } catch {
+      // Ignore errors here: fitAddon.dispose() can throw incorrectly.
+    }
+    fitAddon = undefined;
+  });
+
+  searchAddon = new SearchAddon();
+  t.loadAddon(searchAddon);
+  terminalAborter.signal.addEventListener('abort', () => {
+    searchAddon?.dispose();
+    searchAddon = undefined;
+  });
+
+  t.loadAddon(new WebLinksAddon((event: MouseEvent, uri: string) => {
+    event.preventDefault();
+    shell.openExternal(uri);
+  }));
+
+  // Disable key events to allow normal behaviour such as copy/paste.
+  t.attachCustomKeyEventHandler(() => false);
+  (terminalContainer as any).__xtermTerminal = t;
+  t.open(terminalContainer);
+
   await nextTick();
-  if (terminalContainer.value) {
-    terminal = new Terminal({
-      theme: {
-        background:    '#1a1a1a',
-        foreground:    '#e0e0e0',
-        cursor:        '#1a1a1a', // same as the background to effectively hide the cursor.
-        black:         '#000000',
-        red:           '#ff5555',
-        green:         '#50fa7b',
-        yellow:        '#f1fa8c',
-        blue:          '#8be9fd',
-        magenta:       '#ff79c6',
-        cyan:          '#8be9fd',
-        white:         '#f8f8f2',
-        brightBlack:   '#6272a4',
-        brightRed:     '#ff6e6e',
-        brightGreen:   '#69ff94',
-        brightYellow:  '#ffffa5',
-        brightBlue:    '#d6acff',
-        brightMagenta: '#ff92df',
-        brightCyan:    '#a4ffff',
-        brightWhite:   '#ffffff',
-      },
-      fontSize:     14,
-      fontFamily:   '"Courier New", "Monaco", monospace',
-      cursorBlink:  false,
-      disableStdin: true,
-      convertEol:   true,
-      scrollback:   50_000,
+  if (buffer) {
+    // If we have data streamed in before the terminal showed up, write it now.
+    // This shouldn't be necessary as we show the terminal as soon as the socket
+    // opens, but it's still possible to end up with a race if the first message
+    // comes in before the terminal container watch fires.
+    t.write(buffer);
+    buffer = '';
+  }
+  terminal = t;
+
+  const resizeObserver = new ResizeObserver(fitAddon.fit.bind(fitAddon));
+  resizeObserver.observe(terminalContainer);
+  terminalAborter.signal.addEventListener('abort', () => {
+    resizeObserver.disconnect();
+  });
+  fitAddon.fit();
+});
+
+// Start streaming logs from the container.
+watch([logURL, reconnectTrigger], async([logURL], _, cleanUp) => {
+  if (!container.value || !logURL) {
+    return;
+  }
+  errorMessage.value = undefined;
+  const streamAborter = new AbortController();
+  cleanUp(() => {
+    streamAborter.abort();
+    clearTimeout(revealTimeout);
+    clearTimeout(reconnectTimer);
+    clearTimeout(reconnectResetTimer);
+  });
+  streamAborter.signal.addEventListener('abort', () => {
+    buffer = '';
+    terminal?.reset();
+  });
+
+  // Wait a bit for the rendering to finish, so we don't end up creating many
+  // connections before Vue finished its thing.  `nextTick` still causes
+  // spurious events to fire, so use a longer timeout here.
+  await new Promise(resolve => setTimeout(resolve, 200));
+  if (streamAborter.signal.aborted) {
+    return;
+  }
+
+  try {
+    buffer = '';
+
+    // Authentication for the log stream is handled in the main process via the
+    // webRequest.onBeforeSendHeaders listener; see `@pkg/window/index.ts`.
+    const socket = new WebSocket(logURL);
+    streamAborter.signal.addEventListener('abort', () => socket.close());
+    socket.addEventListener('message', (event) => {
+      if (typeof event.data !== 'string') {
+        return;
+      }
+      if (streamAborter.signal.aborted) {
+        // We can get here if we closed the connection at the WebSocket level
+        // (i.e. sent a "close" message), but the server hasn't paid attention
+        // to it yet and kept sending things to us.
+        socket.close();
+        return;
+      }
+      const t = terminal;
+      if (!t) {
+        buffer += event.data;
+        return;
+      }
+      errorMessage.value = undefined;
+      t.write(event.data);
+      if (waitingForInitialLogs.value) {
+        // If we're still waiting for the initial logs, delay the reveal
+        // until after all of the initial logs have streamed in.
+        clearTimeout(revealTimeout);
+
+        revealTimeout = setTimeout(() => {
+          waitingForInitialLogs.value = false;
+          nextTick(() => {
+            fitAddon?.fit();
+            terminal?.scrollToBottom();
+
+            // Once we stop streaming in initial logs, reset the reconnect
+            // attempts so that we can retry again later.
+            reconnectAttempts = 0;
+            clearTimeout(reconnectResetTimer);
+          });
+        }, 200);
+      }
     });
+    socket.addEventListener('open', () => {
+      // Once the connection is open, reset the initial wait to avoid the logs
+      // streaming in quickly.  Do not do the reset earlier, so that the user
+      // can still look at the last known logs during a disconnect.
+      waitingForInitialLogs.value = true;
+      clearTimeout(revealTimeout);
 
-    fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
+      reconnectResetTimer = setTimeout(() => {
+        // If we have no logs after a while, reset the reconnect attempts to
+        // allow retries again.
+        reconnectAttempts = 0;
+      }, 10_000);
 
-    searchAddon = new SearchAddon();
-    terminal.loadAddon(searchAddon);
+      revealTimeout = setTimeout(() => {
+        waitingForInitialLogs.value = false;
+        nextTick(() => {
+          fitAddon?.fit();
+          terminal?.scrollToBottom();
+        });
+      }, 500);
+    });
+    socket.addEventListener('error', (event) => {
+      console.error('WebSocket error:', event);
+      if (streamAborter.signal.aborted) {
+        // Do not set error on intentional aborts.
+        return;
+      }
+      let message = String('message' in event ? event.message : event);
 
-    terminal.loadAddon(new WebLinksAddon((event, uri) => {
-      event.preventDefault();
-      shell.openExternal(uri);
-    }));
-
-    // Disable key events to allow normal behaviour such as copy/paste.
-    terminal.attachCustomKeyEventHandler(() => false);
-
-    terminal.open(terminalContainer.value);
-
-    // Expose terminal instance for e2e testing
-    (terminalContainer.value as any).__xtermTerminal = terminal;
-
-    await nextTick();
-    resizeObserver = new ResizeObserver(fitAddon.fit.bind(fitAddon));
-    resizeObserver.observe(terminalContainer.value);
-    fitAddon.fit();
+      if (message.startsWith('[object')) {
+        message = 'unknown error';
+      }
+      errorMessage.value = `WebSocket error: ${ message }`;
+      handleStreamError();
+    });
+    socket.addEventListener('close', (event) => {
+      console.log('WebSocket closed:', event);
+      if (streamAborter.signal.aborted) {
+        // Do not set error on intentional aborts.
+        return;
+      }
+      if (!event.wasClean || event.code !== 1000) { // 1000 = normal closure
+        errorMessage.value = `WebSocket closed unexpectedly: ${ event.reason || 'code ' + event.code }`;
+        handleStreamError();
+      }
+    });
+  } catch (err: any) {
+    console.error('Error setting up log stream:', err);
+    errorMessage.value = `Failed to load logs: ${ err.message || err }`;
   }
-}
+});
 
-async function startStreaming() {
-  try {
-    error.value = null;
-    waitingForInitialLogs.value = true;
+let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
-    if (!terminal) {
-      await initializeTerminal();
-    }
-
-    const streamOptions: RDXSpawnOptions = {
-      cwd:    '/',
-      stream: {
-        onOutput: (data) => {
-          const output = (data.stdout || data.stderr);
-
-          if (terminal && output) {
-            terminal.write(output);
-
-            if (waitingForInitialLogs.value) {
-              // If we're still waiting for the initial logs, delay the reveal
-              // until after all of the initial logs have streamed in.
-              clearTimeout(revealTimeout);
-
-              revealTimeout = setTimeout(() => {
-                waitingForInitialLogs.value = false;
-                nextTick(() => {
-                  fitAddon?.fit();
-                  terminal?.scrollToBottom();
-                });
-              }, 200);
-            }
-          }
-        },
-        onError: (err: Error) => {
-          console.error('Stream error:', err);
-          handleStreamError(err);
-        },
-        onClose: (code: number) => {
-          streamProcess = undefined;
-          if (code !== 0 && props.isContainerRunning) {
-            handleStreamError(new Error(`Stream closed with code ${ code }`));
-          }
-        },
-        splitOutputLines: false,
-      },
-    };
-
-    if (props.namespace) {
-      streamOptions.namespace = props.namespace;
-    }
-
-    const streamArgs = ['--follow', '--timestamps', '--tail', '10000', props.containerId];
-    streamProcess = window.ddClient.docker.cli.exec('logs', streamArgs, streamOptions);
-    reconnectAttempts = 0;
-
-    // If we haven't received any logs within 500ms, reveal the terminal anyway.
-    revealTimeout = setTimeout(() => {
-      waitingForInitialLogs.value = false;
-    }, 500);
-  } catch (err: unknown) {
-    console.error('Error starting log stream:', err);
-    waitingForInitialLogs.value = false;
-
-    const errorMessages: Record<string, string> = {
-      'No such container':  'Container not found. It may have been removed.',
-      'permission denied':  'Permission denied. Check Docker access permissions.',
-      'connection refused': 'Cannot connect to Docker. Is Docker running?',
-    };
-
-    error.value = Object.entries(errorMessages)
-      .find(([key]) => err instanceof Error && err.message.includes(key))?.[1] ??
-      (err instanceof Error ? err.message : 'Failed to fetch logs');
+function handleStreamError() {
+  clearTimeout(reconnectTimer);
+  if (!isRunning) {
+    // If the container isn't running, we expect the log stream to fail, so
+    // don't show a reconnect button in this case.
+    return;
   }
-}
-
-function stopStreaming() {
-  try {
-    streamProcess?.close();
-  } catch (err) {
-    console.error('Error stopping log stream:', err);
-  }
-  streamProcess = undefined;
-}
-
-function handleStreamError(err: Error) {
-  if (reconnectAttempts < maxReconnectAttempts && props.isContainerRunning) {
-    reconnectAttempts++;
-    const delay = Math.pow(2, reconnectAttempts - 1) * 1000;
-    setTimeout(startStreaming, delay);
-  } else {
-    const retryMessage = reconnectAttempts >= maxReconnectAttempts ? ' (max retries exceeded)' : '';
-
-    error.value = `Streaming error: ${ err.message }${ retryMessage }`;
+  // On unexpected log streaming error, retry with exponential backoff by
+  // touching the `reconnectTrigger` ref, which is a dependency of the log
+  // streaming watcher.
+  if (reconnectAttempts < maxReconnectAttempts) {
+    const delay = Math.pow(2, reconnectAttempts) * 1_000;
+    reconnectTimer = setTimeout(() => {
+      reconnectAttempts++;
+      // Trigger a reconnect.
+      reconnectTrigger.value++;
+    }, delay);
   }
 }
 
@@ -277,45 +370,12 @@ function executeSearch(searchFn: () => void) {
   }
 }
 
-function cleanup() {
-  stopStreaming();
-  if (terminal) {
-    try {
-      resizeObserver?.disconnect();
-      searchAddon?.clearDecorations();
-      searchAddon?.dispose();
-      searchAddon = undefined;
-      fitAddon?.dispose();
-      fitAddon = undefined;
-      terminal.dispose();
-      terminal = undefined;
-    } catch (err) {
-      console.error('Error disposing terminal:', err);
-    }
-  }
+onBeforeUnmount(() => {
+  terminalAborter?.abort();
   clearTimeout(searchDebounceTimer);
   clearTimeout(revealTimeout);
-}
-
-async function initializeLogs() {
-  if (window.ddClient) {
-    await startStreaming();
-  }
-}
-
-onMounted(() => {
-  initializeLogs();
-});
-
-onBeforeUnmount(() => {
-  cleanup();
-});
-
-watch(() => props.containerId, () => {
-  if (terminal) {
-    cleanup();
-  }
-  initializeLogs();
+  clearTimeout(reconnectTimer);
+  clearTimeout(reconnectResetTimer);
 });
 </script>
 
@@ -345,10 +405,6 @@ watch(() => props.containerId, () => {
   flex-direction: column;
   flex: 1;
   min-height: 0;
-
-  &.terminal-hidden {
-    visibility: hidden;
-  }
 
   :deep(.xterm) {
     height: 100%;

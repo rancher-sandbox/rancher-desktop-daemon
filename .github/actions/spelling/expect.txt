@@ -442,6 +442,7 @@ pagerduty
 pageup
 parsesection
 pascalize
+passthroughs
 pathspec
 pcs
 pdp
