@@ -12,7 +12,7 @@ require (
 	github.com/k3s-io/kine v1.14.2
 	github.com/lima-vm/lima/v2 v2.1.0
 	github.com/mattn/go-isatty v0.0.20
-	github.com/mikefarah/yq/v4 v4.52.4
+	github.com/mikefarah/yq/v4 v4.52.5
 	github.com/moby/moby/api v1.54.0
 	github.com/muesli/reflow v0.3.0
 	github.com/nxadm/tail v1.4.11
@@ -368,7 +368,7 @@ require (
 	github.com/yeya24/promlinter v0.3.0 // indirect
 	github.com/ykadowak/zerologlint v0.1.5 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	github.com/zclconf/go-cty v1.17.0 // indirect
+	github.com/zclconf/go-cty v1.18.0 // indirect
 	gitlab.com/bosi/decorder v0.4.2 // indirect
 	go-simpler.org/musttag v0.14.0 // indirect
 	go-simpler.org/sloglint v0.11.1 // indirect
