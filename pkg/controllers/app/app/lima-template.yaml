@@ -32,7 +32,7 @@ provision:
 - mode: system
   script: |
     #!/bin/bash
-    set -eux
+    set -e -u -x
     mkdir -p /etc/rancher-desktop
     printf 'CONTAINER_ENGINE=%s\nKUBERNETES_ENABLED=%s\nKUBERNETES_VERSION=%s\n' \
       '{{.Param.CONTAINER_ENGINE}}' \
