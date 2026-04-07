@@ -1,5 +1,7 @@
-import { defineResource, listNamespacedResource, ListResourceOptions, resourceMutations, resourceState, resourceWatchActions } from '@pkg/store/rddConnection';
-import { ActionTree, GetterTree, MutationsType } from '@pkg/store/ts-helpers';
+import { Plugin } from 'vuex';
+
+import { defineResource, listNamespacedResource, ListResourceOptions, resourceActionName, resourceMutations, resourceState, resourceWatchActions } from '@pkg/store/rddConnection';
+import { ActionContext, ActionTree, GetterTree, MutationsType } from '@pkg/store/ts-helpers';
 import * as RDDClient from '@rdd-client';
 
 type ContainerEngineState = ReturnType<typeof state>;
@@ -10,9 +12,11 @@ function namespacedResourcePath(typePlural: string) {
   };
 }
 
-function resourceFieldSelector(untypedState: any): string | undefined {
-  const state: ContainerEngineState = untypedState;
-  return state.currentNamespace ? `status.namespace=${ state.currentNamespace }` : undefined;
+function resourceFieldSelector(untypedContext: any): string | undefined {
+  const context: ActionContext<ContainerEngineState> = untypedContext;
+  const currentNamespace = context.getters.currentNamespace;
+
+  return currentNamespace ? `status.namespace=${ currentNamespace }` : undefined;
 }
 
 const resources = [
@@ -241,3 +245,19 @@ export const actions = {
     }
   },
 } satisfies ActionTree<ContainerEngineState, any, typeof mutations>;
+
+export const plugins: Plugin<ContainerEngineState>[] = [
+  function(store) {
+    for (const resource of resources) {
+      const methodName = resourceActionName('container-engine/setupWatch', resource.name);
+
+      store.dispatch(methodName, {
+        callback: (error: Error) => {
+          store.commit('SET_ERROR', { error, source: resource.name });
+        },
+      }).catch((error: Error) => {
+        store.commit('SET_ERROR', { error, source: resource.name });
+      });
+    }
+  },
+];

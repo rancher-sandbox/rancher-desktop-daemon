@@ -82,28 +82,20 @@ export default defineComponent({
   mounted() {
     // TODO: Handle setting change (for namespaces).
 
-    this.watchNamespaces({
-      namespace: this.kubeNamespace,
-      callback:  (error) => {
-        this.SET_ERROR({ error, source: 'namespaces' });
-      },
-    });
-    this.watchImages({
-      namespace: this.kubeNamespace,
-      callback:  (error) => {
-        this.SET_ERROR({ error, source: 'images' });
-      },
-    });
+    this.watchNamespaces();
+    this.watchImages();
 
     ipcRenderer.on('extensions/changed', this.fetchExtensions);
     this.fetchExtensions();
   },
   beforeUnmount() {
+    this.unwatchNamespaces();
+    this.unwatchImages();
     ipcRenderer.removeListener('extensions/changed', this.fetchExtensions);
   },
 
   methods: {
-    ...mapTypedActions('container-engine', ['setCurrentNamespace', 'watchImages', 'watchNamespaces']),
+    ...mapTypedActions('container-engine', ['setCurrentNamespace', 'watchImages', 'watchNamespaces', 'unwatchImages', 'unwatchNamespaces']),
     ...mapTypedMutations('container-engine', ['SET_ERROR']),
     ...mapTypedActions('extensions', { fetchExtensions: 'fetch' }),
     ...mapTypedActions('page', ['setAction', 'setHeader']),

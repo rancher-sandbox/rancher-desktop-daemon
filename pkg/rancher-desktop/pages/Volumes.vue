@@ -189,14 +189,13 @@ export default defineComponent({
       description: '',
     });
 
-    this.watchVolumes({
-      callback: error => {
-        this.SET_ERROR({ error, source: 'volumes' });
-      },
-    });
+    this.watchVolumes();
+  },
+  beforeUnmount() {
+    this.unwatchVolumes();
   },
   methods: {
-    ...mapTypedActions('container-engine', ['volumeDelete', 'watchVolumes']),
+    ...mapTypedActions('container-engine', ['volumeDelete', 'watchVolumes', 'unwatchVolumes']),
     ...mapTypedActions('page', ['setHeader']),
     ...mapTypedMutations('container-engine', ['SET_ERROR', 'SET_CURRENT_NAMESPACE']),
     checkSelectedNamespace() {

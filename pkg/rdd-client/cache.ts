@@ -50,16 +50,16 @@ export class ListWatch<T extends KubernetesObject> implements ObjectCache<T>, In
   private readonly path:           string;
   private readonly watch:          Watch;
   private readonly listFn:         ListPromise<T>;
-  private readonly labelSelector?: string;
-  private readonly fieldSelector?: string;
+  private readonly labelSelector?: string | (() => string | undefined);
+  private readonly fieldSelector?: string | (() => string | undefined);
 
   public constructor(
     path: string,
     watch: Watch,
     listFn: ListPromise<T>,
     autoStart = true,
-    labelSelector?: string,
-    fieldSelector?: string,
+    labelSelector?: string | (() => string | undefined),
+    fieldSelector?: string | (() => string | undefined),
   ) {
     this.path = path;
     this.watch = watch;
@@ -198,11 +198,13 @@ export class ListWatch<T extends KubernetesObject> implements ObjectCache<T>, In
       labelSelector:   string | undefined;
       fieldSelector:   string | undefined;
     };
-    if (this.labelSelector !== undefined) {
-      queryParams.labelSelector = ObjectSerializer.serialize(this.labelSelector, 'string');
+    const labelSelector = typeof this.labelSelector === 'function' ? this.labelSelector() : this.labelSelector;
+    if (labelSelector !== undefined) {
+      queryParams.labelSelector = ObjectSerializer.serialize(labelSelector, 'string');
     }
-    if (this.fieldSelector !== undefined) {
-      queryParams.fieldSelector = ObjectSerializer.serialize(this.fieldSelector, 'string');
+    const fieldSelector = typeof this.fieldSelector === 'function' ? this.fieldSelector() : this.fieldSelector;
+    if (fieldSelector !== undefined) {
+      queryParams.fieldSelector = ObjectSerializer.serialize(fieldSelector, 'string');
     }
     this.request = await this.watch.watch(
       this.path,

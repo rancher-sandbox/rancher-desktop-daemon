@@ -239,17 +239,14 @@ const clearError = () => {
 // Event handlers
 // Lifecycle hooks
 onMounted(() => {
-  store.dispatch('container-engine/watchContainers', {
-    callback: (error) => {
-      store.commit('container-engine/SET_ERROR', { error, source: 'containers' });
-    },
-  }).catch(console.error);
+  store.dispatch('container-engine/watchContainers');
 
   window.addEventListener('keydown', handleGlobalKeydown);
 });
 
 onBeforeUnmount(() => {
   store.dispatch('page/setHeader', { action: null });
+  store.dispatch('container-engine/unwatchContainers');
 
   window.removeEventListener('keydown', handleGlobalKeydown);
 });

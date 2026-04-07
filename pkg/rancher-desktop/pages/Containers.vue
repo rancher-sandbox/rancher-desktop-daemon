@@ -317,20 +317,16 @@ export default defineComponent({
       description: '',
     });
 
-    this.watchContainers({
-      callback: (error: Error) => {
-        this.SET_ERROR({ error, source: 'containers' });
-      },
-    }).catch(error => this.SET_ERROR({ error, source: 'containers' }));
-    this.watchImages({
-      callback: (error: Error) => {
-        this.SET_ERROR({ error, source: 'images' });
-      },
-    }).catch(error => this.SET_ERROR({ error, source: 'images' }));
+    this.watchContainers();
+    this.watchImages();
+  },
+  beforeUnmount() {
+    this.unwatchContainers();
+    this.unwatchImages();
   },
   methods: {
     ...mapTypedActions('page', ['setHeader']),
-    ...mapTypedActions('container-engine', ['containerDelete', 'containerSetState', 'setCurrentNamespace', 'watchContainers', 'watchImages']),
+    ...mapTypedActions('container-engine', ['containerDelete', 'containerSetState', 'setCurrentNamespace', 'watchContainers', 'watchImages', 'unwatchContainers', 'unwatchImages']),
     ...mapTypedMutations('container-engine', ['SET_ERROR']),
     onChangeNamespace(event: Event) {
       const { value } = event.target as HTMLSelectElement;

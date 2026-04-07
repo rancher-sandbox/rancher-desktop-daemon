@@ -1,4 +1,6 @@
-import { defineResource, listNamespacedResource, resourceMutations, resourceState, resourceWatchActions } from '@pkg/store/rddConnection';
+import { Plugin } from 'vuex';
+
+import { defineResource, listNamespacedResource, resourceActionName, resourceMutations, resourceState, resourceWatchActions } from '@pkg/store/rddConnection';
 import { ActionTree, MutationsType } from '@pkg/store/ts-helpers';
 import * as RDDClient from '@rdd-client';
 
@@ -43,3 +45,19 @@ export const mutations = {
 export const actions = {
   ...resourceWatchActions(resources),
 } satisfies ActionTree<RDDState, /* root */ any, typeof mutations>;
+
+export const plugins: Plugin<RDDState>[] = [
+  function(store) {
+    for (const resource of resources) {
+      const methodName = resourceActionName('rdd/setupWatch', resource.name);
+
+      store.dispatch(methodName, {
+        callback: (error: Error) => {
+          console.error(`Error watching ${ resource.name }:`, error);
+        },
+      }).catch((error: Error) => {
+        console.error(`Failed to set up watch for ${ resource.name }:`, error);
+      });
+    }
+  },
+];
