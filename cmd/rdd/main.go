@@ -149,6 +149,7 @@ func main() {
 		hostagent.NewCommand(),
 		newKubectlCommand(),
 		newServiceCommand(context.Background()),
+		newSetCommand(),
 		newVersionCommand(),
 	)
 	if err := cli.RunNoErrOutput(cmd); err != nil {

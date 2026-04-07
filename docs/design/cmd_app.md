@@ -2,19 +2,38 @@
 
 The application commands use short option names for usability. Unlike the `rdctl` tool from "Rancher Desktop 1" they will use e.g. `--cpus` instead of `--virtual-machine.number-cpus`.
 
+## `rdd set [--dry-run] PROPERTY=VALUE [PROPERTY=VALUE ...]`
+
+Set one or more properties on the App singleton resource. Properties use dot notation for nested fields.
+
+Valid property names and types are derived from the App CRD's OpenAPI schema at runtime, so the command automatically supports new properties as they are added to the CRD.
+
+If the App resource does not exist, it is created with default settings before the specified values are applied.
+
+- `--dry-run`: Validate changes against the API server's admission controller without persisting them. If the App does not exist, it is created with defaults (the VM will not start) so that the admission controller can validate the patch.
+
+Examples:
+
+```shell
+rdd set running=true
+rdd set running=true containerEngine.name=containerd
+rdd set kubernetes.enabled=true kubernetes.version=1.32.2
+rdd set --dry-run running=true
+```
+
 ## `rdd create`
 
 
 ## `rdd start`
 
 ```bash
-rdd ctl patch app rancher-desktop --type=merge -p '{"spec":{"running":true}}'
+rdd ctl patch app app --type=merge -p '{"spec":{"running":true}}'
 ```
 
 ## `rdd stop`
 
 ```bash
-rdd ctl patch app rancher-desktop --type=merge -p '{"spec":{"running":false}}'
+rdd ctl patch app app --type=merge -p '{"spec":{"running":false}}'
 ```
 
 
