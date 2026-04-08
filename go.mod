@@ -22,7 +22,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.6.9
 	golang.org/x/mod v0.34.0
 	golang.org/x/sync v0.20.0
-	golang.org/x/sys v0.42.0
+	golang.org/x/sys v0.43.0
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 	gotest.tools/v3 v3.5.2
 	k8s.io/api v0.35.3
