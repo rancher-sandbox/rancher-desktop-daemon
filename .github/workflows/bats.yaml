@@ -100,18 +100,33 @@ jobs:
         # (~317 CPU-seconds over a 24-minute BATS job, ~22% of one core).
         # On a 2-vCPU machine that crowds out gzip/xz decompression and
         # causes intermittent BATS timeouts when the runner happens to
-        # be saturated during a Lima cache-hit decompression. Stopping
-        # the running process is not enough on its own — the
-        # Microsoft Compatibility Appraiser and related scheduled tasks
-        # under \Microsoft\Windows\Application Experience\ will respawn
-        # it within minutes. Disabling the tasks (and the DiagTrack
-        # service for good measure) keeps it dead for the duration of
-        # the job.
-        Stop-Process -Name CompatTelRunner -Force -ErrorAction SilentlyContinue
-        Get-ScheduledTask -TaskPath '\Microsoft\Windows\Application Experience\' -ErrorAction SilentlyContinue |
-          Disable-ScheduledTask -ErrorAction SilentlyContinue | Out-Null
-        Get-Service -Name DiagTrack -ErrorAction SilentlyContinue |
-          Stop-Service -Force -ErrorAction SilentlyContinue
+        # be saturated during a Lima cache-hit decompression.
+        #
+        # Disable-ScheduledTask from PowerShell silently fails on tasks
+        # under \Microsoft\Windows\ because they are owned by SYSTEM and
+        # an admin (even runneradmin) can't modify them via the PS API.
+        # schtasks.exe has different permission semantics and works.
+        Write-Output "--- Disabling Microsoft Compatibility Telemetry ---"
+        $tasks = @(
+          '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser',
+          '\Microsoft\Windows\Application Experience\ProgramDataUpdater',
+          '\Microsoft\Windows\Application Experience\StartupAppTask',
+          '\Microsoft\Windows\Application Experience\PcaPatchDbTask',
+          '\Microsoft\Windows\Customer Experience Improvement Program\Consolidator',
+          '\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip'
+        )
+        foreach ($t in $tasks) {
+          schtasks.exe /Change /TN $t /Disable
+        }
+        Write-Output "--- DiagTrack service ---"
+        sc.exe stop  diagtrack
+        sc.exe config diagtrack start= disabled
+        Write-Output "--- Killing any running CompatTelRunner ---"
+        taskkill.exe /F /IM CompatTelRunner.exe 2>$null
+        Write-Output "--- Verification ---"
+        schtasks.exe /Query /TN '\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser' /FO LIST 2>&1
+        Get-Service DiagTrack -ErrorAction SilentlyContinue | Format-List Name,Status,StartType
+        Get-Process CompatTelRunner -ErrorAction SilentlyContinue | Format-List Id,ProcessName
 
         # Update any pre-installed WSL
         # Sometimes this fails; retry in a loop.
