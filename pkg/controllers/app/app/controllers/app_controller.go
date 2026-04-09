@@ -211,7 +211,9 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 					"containerEngine", app.Spec.ContainerEngine.Name,
 					"kubernetesEnabled", app.Spec.Kubernetes.Enabled,
 					"kubernetesVersion", app.Spec.Kubernetes.Version)
-				return ctrl.Result{}, nil
+				// ConfigMaps are not watched, so requeue to let the
+				// reconciler evaluate remaining spec fields (e.g. running).
+				return ctrl.Result{Requeue: true}, nil
 			}
 		}
 	}
