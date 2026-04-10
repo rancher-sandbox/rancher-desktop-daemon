@@ -64,28 +64,16 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Handle deletion, delete the LimaVM and wait for it to finish cleaning up.
+	// Handle deletion, delete owned resources.
 	if base.IsBeingDeleted(&app) {
 		log.Info("App resource is being deleted, performing cleanup")
 
 		namespace := app.GetResourceNamespace()
+
+		// Delete the LimaVM and wait for it to finish cleaning up.
 		limaVM := &limav1alpha1.LimaVM{}
 		err := r.Get(ctx, client.ObjectKey{Name: limaVMName, Namespace: namespace}, limaVM)
-		switch {
-		case apierrors.IsNotFound(err):
-			// LimaVM is gone. Clean up any ConfigMaps that may have been left behind.
-			inputCM := &corev1.ConfigMap{}
-			if cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM); cmErr == nil {
-				if cmErr := r.Delete(ctx, inputCM); cmErr != nil && !apierrors.IsNotFound(cmErr) {
-					return ctrl.Result{}, fmt.Errorf("failed to delete input ConfigMap during cleanup: %w", cmErr)
-				}
-			} else if !apierrors.IsNotFound(cmErr) {
-				return ctrl.Result{}, fmt.Errorf("failed to fetch input ConfigMap during cleanup: %w", cmErr)
-			}
-			return ctrl.Result{}, base.RemoveCleanupFinalizer(ctx, r.Client, &app)
-		case err != nil:
-			return ctrl.Result{}, err
-		default:
+		if err == nil {
 			if err := base.RemoveOwnedFinalizer(ctx, r.Client, limaVM, v1alpha1.AppKind); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to remove owned finalizer from LimaVM: %w", err)
 			}
@@ -98,7 +86,34 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 				log.Info("Waiting for LimaVM deletion to complete")
 			}
 			return ctrl.Result{RequeueAfter: requeueAfterDeletion}, nil
+		} else if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to fetch LimaVM: %w", err)
 		}
+
+		// LimaVM is gone. Clean up any ConfigMaps that may have been left behind.
+		inputCM := &corev1.ConfigMap{}
+		if cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM); cmErr == nil {
+			if cmErr := r.Delete(ctx, inputCM); cmErr != nil && !apierrors.IsNotFound(cmErr) {
+				return ctrl.Result{}, fmt.Errorf("failed to delete input ConfigMap during cleanup: %w", cmErr)
+			}
+		} else if !apierrors.IsNotFound(cmErr) {
+			return ctrl.Result{}, fmt.Errorf("failed to fetch input ConfigMap during cleanup: %w", cmErr)
+		}
+
+		// Remove the namespace if it was created by this controller.
+		ns := &corev1.Namespace{}
+		if nsErr := r.Get(ctx, client.ObjectKey{Name: namespace}, ns); nsErr == nil {
+			if metav1.IsControlledBy(ns, &app) {
+				if nsErr := r.Delete(ctx, ns); nsErr != nil && !apierrors.IsNotFound(nsErr) {
+					return ctrl.Result{}, fmt.Errorf("failed to delete namespace during cleanup: %w", nsErr)
+				}
+			}
+		} else if !apierrors.IsNotFound(nsErr) {
+			return ctrl.Result{}, fmt.Errorf("failed to fetch namespace during cleanup: %w", nsErr)
+		}
+
+		// Everything has been deleted, remove the App finalizer to allow the App resource to be removed.
+		return ctrl.Result{}, base.RemoveCleanupFinalizer(ctx, r.Client, &app)
 	}
 
 	// Make sure the App is finalized so deletion goes through cleanup.
@@ -109,6 +124,25 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 	}
 
 	namespace := app.GetResourceNamespace()
+
+	// Create the namespace if it does not exist.
+	ns := &corev1.Namespace{}
+	err := r.Get(ctx, client.ObjectKey{Name: namespace}, ns)
+	if apierrors.IsNotFound(err) {
+		ns = &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+		if err := ctrl.SetControllerReference(&app, ns, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to set owner reference on namespace: %w", err)
+		}
+		if err := r.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, fmt.Errorf("failed to create namespace: %w", err)
+		}
+	} else if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to fetch namespace: %w", err)
+	}
 
 	// Check whether the LimaVM already exists. If not, create the input ConfigMap and LimaVM.
 	limaVM := &limav1alpha1.LimaVM{}
