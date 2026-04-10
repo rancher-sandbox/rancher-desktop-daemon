@@ -99,7 +99,10 @@ setup() {
     if [[ -d "${RDD_LOG_DIR}" ]]; then
         local log
         for log in "${RDD_LOG_DIR}"/rdd.stderr.log "${RDD_LOG_DIR}"/rdd.stdout.log; do
-            echo "=== BATS: ${BATS_TEST_DESCRIPTION} ===" >>"${log}" 2>/dev/null || true
+            printf "=== BATS: %s %s ===\n" \
+                "$(date +"%Y-%m-%dT%H:%M:%S%z")" \
+                "${BATS_TEST_DESCRIPTION}" \
+                >>"${log}" 2>/dev/null || true
         done
     fi
 
