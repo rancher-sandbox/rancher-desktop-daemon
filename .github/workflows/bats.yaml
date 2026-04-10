@@ -139,6 +139,10 @@ jobs:
       with:
         go-version-file: go.mod
 
+    - name: "Windows: disable Compatibility Telemetry"
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/disable-compat-telemetry
+
     - name: "Windows: WSL debugging"
       if: runner.os == 'Windows'
       shell: pwsh
