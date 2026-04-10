@@ -20,7 +20,7 @@ apiVersion: rdd.rancherdesktop.io/v1alpha1
 kind: Notary
 metadata:
   name: ${name}
-  namespace: default
+  namespace: "${RDD_NAMESPACE}"
 spec:
   value: "${value}"
   configMapName: "${config_map_name}"
@@ -40,12 +40,13 @@ wait_for_notary_status() {
 }
 
 @test 'create Notary resource' {
+    rdd ctl create namespace "${RDD_NAMESPACE}" || true
     delete_resource "notary" "basic"
     create_notary "basic" "initial-value" "basic-history"
 }
 
 @test 'verify Notary is created in Kubernetes' {
-    rdd ctl wait --for=create notary basic --timeout=15s
+    rdd ctl wait --for=create notary --namespace "${RDD_NAMESPACE}" basic --timeout=15s
 }
 
 @test 'wait for controller to create ConfigMap' {
@@ -53,7 +54,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify ConfigMap has correct name and content' {
-    run -0 rdd ctl get configmap "basic-history" -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" "basic-history" -o json
     local json="${output}"
 
     run -0 jq -r '.data.change_000' <<<"${json}"
@@ -67,7 +68,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify ConfigMap has correct labels and owner references' {
-    run -0 rdd ctl get configmap "basic-history" -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" "basic-history" -o json
     local json="${output}"
 
     # Check labels
@@ -92,7 +93,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify Notary status is updated' {
-    run -0 rdd ctl get notary basic -o json
+    run -0 rdd ctl get notary --namespace "${RDD_NAMESPACE}" basic -o json
     local json="${output}"
 
     run -0 jq -r 'has("status")' <<<"${json}"
@@ -117,7 +118,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify ConfigMap records the change' {
-    run -0 rdd ctl get configmap "basic-history" -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" "basic-history" -o json
     local json="${output}"
 
     run -0 jq -r '.data.change_000' <<<"${json}"
@@ -134,7 +135,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify Notary status shows updated change count' {
-    run -0 rdd ctl get notary basic -o json
+    run -0 rdd ctl get notary --namespace "${RDD_NAMESPACE}" basic -o json
     local json="${output}"
 
     run -0 jq -r '.status.lastRecordedValue' <<<"${json}"
@@ -156,7 +157,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify ConfigMap records multiple changes' {
-    run -0 rdd ctl get configmap "basic-history" -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" "basic-history" -o json
     local json="${output}"
 
     # Verify all changes are recorded
@@ -188,7 +189,7 @@ wait_for_notary_status() {
     sleep 2
 
     # Check that no new change was recorded
-    run -0 rdd ctl get configmap "basic-history" -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" "basic-history" -o json
     local json="${output}"
 
     run -0 jq -r '.data.change_003' <<<"${json}"
@@ -203,7 +204,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify Notary has finalizer for cleanup' {
-    run -0 rdd ctl get notary basic -o jsonpath='{.metadata.finalizers}'
+    run -0 rdd ctl get notary --namespace "${RDD_NAMESPACE}" basic -o jsonpath='{.metadata.finalizers}'
     assert_output --partial "rdd.rancherdesktop.io/cleanup"
 }
 
@@ -212,7 +213,7 @@ wait_for_notary_status() {
 }
 
 @test 'verify parent resource deletion triggers finalizer cleanup' {
-    run -1 rdd ctl get notary basic
+    run -1 rdd ctl get notary --namespace "${RDD_NAMESPACE}" basic
 }
 
 @test 'wait for ConfigMaps to be cleaned up by finalizer' {

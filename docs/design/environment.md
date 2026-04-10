@@ -21,7 +21,7 @@ These variables configure the BATS test framework. They have no effect on `rdd` 
 | Variable | Description | Default |
 | --- | --- | --- |
 | `RDD_TRACE` | Enables verbose trace output in BATS tests. | `false` |
-| `RDD_NAMESPACE` | Default Kubernetes namespace for BATS controller tests. | `default` |
+| `RDD_NAMESPACE` | Default Kubernetes namespace for BATS controller tests. | `rdd-bats` |
 | `RDD_VM_TYPE` | Lima VM type for tests that boot a VM (`qemu` or `vz`). Useful for reproducing QEMU-specific failures on macOS. | Lima's default (`vz` on macOS, `qemu` on Linux) |
 
 ## Path Variables

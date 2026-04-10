@@ -15,7 +15,7 @@ apiVersion: rdd.rancherdesktop.io/v1alpha1
 kind: ConfigMapReplicaSet
 metadata:
   name: ${name}
-  namespace: default
+  namespace: ${RDD_NAMESPACE}
 spec:
   replicas: ${replicas}
   data:
@@ -41,11 +41,12 @@ wait_for_configmaps() {
 }
 
 @test 'create ConfigMapReplicaSet resource' {
+    rdd ctl create namespace "${RDD_NAMESPACE}" || true
     create_configmapreplicaset "basic" 3
 }
 
 @test 'verify ConfigMapReplicaSet is created in Kubernetes' {
-    rdd ctl wait --for=create ConfigMapReplicaSet basic --timeout=15s
+    rdd ctl wait --for=create ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic --timeout=15s
 }
 
 @test 'wait for controller to create 3 ConfigMaps' {
@@ -53,7 +54,8 @@ wait_for_configmaps() {
 }
 
 @test 'verify ConfigMaps have correct names' {
-    run -0 rdd ctl get configmaps -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=basic -o json
+    run -0 rdd ctl get configmaps --namespace "${RDD_NAMESPACE}" -o json \
+        -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=basic
     run -0 jq_output '.items[].metadata.name'
     assert_line "basic-0"
     assert_line "basic-1"
@@ -62,7 +64,7 @@ wait_for_configmaps() {
 
 @test 'verify ConfigMap content includes original data plus index' {
     # Check first ConfigMap contains original data plus index
-    run -0 rdd ctl get configmap basic-0 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-0 -o json
     local basic0_json="${output}"
 
     run -0 jq -r '.data | keys[]' <<<"${basic0_json}"
@@ -76,16 +78,16 @@ wait_for_configmaps() {
     run -0 jq -r '.data."app.properties"' <<<"${basic0_json}"
     assert_output --partial "server.port=8080"
 
-    run -0 rdd ctl get configmap basic-0 -o jsonpath='{.data.index}'
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-0 -o jsonpath='{.data.index}'
     assert_output "0"
 
     # Check second ConfigMap has different index
-    run -0 rdd ctl get configmap basic-1 -o jsonpath='{.data.index}'
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-1 -o jsonpath='{.data.index}'
     assert_output "1"
 }
 
 @test 'verify ConfigMap owner references are set' {
-    run -0 rdd ctl get configmap basic-0 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-0 -o json
     local configmap_json="${output}"
 
     # Verify owner reference exists and has correct kind
@@ -105,7 +107,7 @@ wait_for_configmaps() {
 
 @test 'debug owner references before deletion' {
     # Extract and validate complete owner reference structure
-    run -0 rdd ctl get ConfigMapReplicaSet basic -o json
+    run -0 rdd ctl get ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic -o json
     local parent_json="${output}"
 
     run -0 jq -r '.metadata.uid' <<<"${parent_json}"
@@ -115,7 +117,7 @@ wait_for_configmaps() {
     local parent_api_version=${output}
 
     # Verify owner reference structure
-    run -0 rdd ctl get configmap basic-0 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-0 -o json
     local configmap="${output}"
 
     # Verify critical owner reference fields
@@ -136,7 +138,8 @@ wait_for_configmaps() {
 }
 
 @test 'scale ConfigMapReplicaSet up to 5 replicas' {
-    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"replicas":5}}'
+    rdd ctl patch ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic \
+        --type='merge' -p='{"spec":{"replicas":5}}'
 }
 
 @test 'wait for scaling up to complete (5 ConfigMaps)' {
@@ -144,7 +147,8 @@ wait_for_configmaps() {
 }
 
 @test 'verify all 5 ConfigMaps exist after scaling up' {
-    run -0 rdd ctl get configmaps -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=basic -o json
+    run -0 rdd ctl get configmaps --namespace "${RDD_NAMESPACE}" -o json \
+        -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=basic
     local configmaps="${output}"
 
     # Verify we have exactly 5 ConfigMaps
@@ -161,7 +165,8 @@ wait_for_configmaps() {
 }
 
 @test 'scale ConfigMapReplicaSet down to 2 replicas' {
-    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"replicas":2}}'
+    rdd ctl patch ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic \
+        --type='merge' -p='{"spec":{"replicas":2}}'
 }
 
 @test 'wait for scaling down to complete (2 ConfigMaps)' {
@@ -169,7 +174,8 @@ wait_for_configmaps() {
 }
 
 @test 'verify only 2 ConfigMaps remain after scaling down' {
-    run -0 rdd ctl get configmaps -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=basic -o json
+    run -0 rdd ctl get configmaps --namespace "${RDD_NAMESPACE}" -o json \
+        -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=basic
     local configmaps="${output}"
 
     # Verify we have exactly 2 ConfigMaps
@@ -184,16 +190,18 @@ wait_for_configmaps() {
 
 @test 'update ConfigMapReplicaSet data' {
     # Update the ConfigMapReplicaSet data
-    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"data":{"config.yaml":"updated: true\n''version: 2.0.0\n","new-file.txt":"This is a new file"}}}'
+    rdd ctl patch ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic \
+        --type='merge' -p='{"spec":{"data":{"config.yaml":"updated: true\n''version: 2.0.0\n","new-file.txt":"This is a new file"}}}'
 
     # Increase replica count from 2 to 4 to create new replicas with updated data
-    rdd ctl patch ConfigMapReplicaSet basic --type='merge' -p='{"spec":{"replicas":4}}'
+    rdd ctl patch ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic \
+        --type='merge' -p='{"spec":{"replicas":4}}'
 
     # Wait for new ConfigMaps to be created
     wait_for_configmaps "basic" 4
 
     # Verify old ConfigMaps (0,1) still have original data
-    run -0 rdd ctl get configmap basic-0 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-0 -o json
     local basic0_json="${output}"
 
     run -0 jq -r '.data."config.yaml"' <<<"${basic0_json}"
@@ -210,7 +218,7 @@ wait_for_configmaps() {
     run -0 jq -r '.data | has("new-file.txt")' <<<"${basic0_json}"
     assert_output "false"
 
-    run -0 rdd ctl get configmap basic-1 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-1 -o json
     local basic1_json="${output}"
 
     run -0 jq -r '.data."config.yaml"' <<<"${basic1_json}"
@@ -228,7 +236,7 @@ wait_for_configmaps() {
     assert_output "false"
 
     # Verify new ConfigMaps (2,3) have updated data
-    run -0 rdd ctl get configmap basic-2 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-2 -o json
     local basic2_json="${output}"
 
     run -0 jq -r '.data."config.yaml"' <<<"${basic2_json}"
@@ -241,7 +249,7 @@ wait_for_configmaps() {
     run -0 jq -r '.data.index' <<<"${basic2_json}"
     assert_output "2"
 
-    run -0 rdd ctl get configmap basic-3 -o json
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-3 -o json
     local basic3_json="${output}"
 
     run -0 jq -r '.data."config.yaml"' <<<"${basic3_json}"
@@ -258,11 +266,13 @@ wait_for_configmaps() {
 @test 'verify ConfigMapReplicaSet has finalizer for cleanup' {
     # Check that the ConfigMapReplicaSet has the cleanup finalizer
     # Check ConfigMap finalizers (should be empty)
-    run -0 rdd ctl get configmap basic-0 -o jsonpath='{.metadata.finalizers}'
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" basic-0 \
+        -o jsonpath='{.metadata.finalizers}'
     refute_output
 
     # Check parent resource finalizers (should have shared cleanup finalizer)
-    run -0 rdd ctl get ConfigMapReplicaSet basic -o jsonpath='{.metadata.finalizers}'
+    run -0 rdd ctl get ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic \
+        -o jsonpath='{.metadata.finalizers}'
     assert_output --partial "rdd.rancherdesktop.io/cleanup"
 }
 
@@ -273,7 +283,7 @@ wait_for_configmaps() {
 @test 'verify parent resource deletion triggers finalizer cleanup' {
     # Parent should be deleted by the finalizer after ConfigMaps are cleaned up
     # The finalizer should handle cleanup automatically
-    run -1 rdd ctl get ConfigMapReplicaSet basic
+    run -1 rdd ctl get ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" basic
 }
 
 @test 'wait for ConfigMaps to be cleaned up by finalizer' {
@@ -285,7 +295,8 @@ wait_for_configmaps() {
 }
 
 @test 'verify zero replicas ConfigMapReplicaSet is created' {
-    rdd ctl wait --for=create ConfigMapReplicaSet zero --timeout=60s
+    rdd ctl wait --for=create ConfigMapReplicaSet \
+        --namespace "${RDD_NAMESPACE}" zero --timeout=60s
 }
 
 @test 'verify no ConfigMaps are created for zero replicas' {
@@ -301,7 +312,8 @@ wait_for_configmaps() {
 }
 
 @test 'verify single ConfigMap has correct name' {
-    run -0 rdd ctl get configmaps -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=single -o json
+    run -0 rdd ctl get configmaps --namespace "${RDD_NAMESPACE}" -o json \
+        -l app.kubernetes.io/managed-by=rdd-configmapreplicaset,app.kubernetes.io/instance=single
     local configmaps="${output}"
 
     # Verify we have exactly 1 ConfigMap
@@ -314,7 +326,7 @@ wait_for_configmaps() {
 }
 
 @test 'verify single ConfigMap has correct index' {
-    run -0 rdd ctl get configmap single-0 -o jsonpath='{.data.index}'
+    run -0 rdd ctl get configmap --namespace "${RDD_NAMESPACE}" single-0 -o jsonpath='{.data.index}'
     assert_output "0"
 }
 
@@ -325,7 +337,8 @@ wait_for_configmaps() {
     wait_for_configmaps "status" 3
 
     # Check the status of the ConfigMapReplicaSet
-    run -0 rdd ctl get ConfigMapReplicaSet status -o json
+    run -0 rdd ctl get ConfigMapReplicaSet --namespace "${RDD_NAMESPACE}" status \
+        -o json
     run -0 jq -r 'has("status")' <<<"${output}"
     assert_output "true"
 }
