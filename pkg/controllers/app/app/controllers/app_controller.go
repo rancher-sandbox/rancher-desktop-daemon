@@ -44,7 +44,7 @@ type AppReconciler struct {
 
 func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) string {
 	return baseTemplate + fmt.Sprintf(
-		"\nparam:\n  CONTAINER_ENGINE: %s\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n",
+		"\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: \"{{.Home}}\"\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n",
 		spec.ContainerEngine.Name,
 		spec.Kubernetes.Enabled,
 		spec.Kubernetes.Version,
