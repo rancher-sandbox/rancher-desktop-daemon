@@ -1,0 +1,56 @@
+name: Windows Typeperf Sampler
+description: >-
+  Low-overhead perf counter collection using typeperf. Writes a TSV file
+  with system and per-process counters every second, then summarizes the
+  top processes by CPU and working set when stopped.
+
+inputs:
+  command:
+    description: '"start" to launch typeperf, "stop" to terminate it and produce a summary.'
+    required: true
+  output-dir:
+    description: Directory for the TSV data and summary text files.
+    required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Start typeperf
+    if: runner.os == 'Windows' && inputs.command == 'start'
+    shell: pwsh
+    run: |
+      $outputDir = "${{ inputs.output-dir }}"
+      if (-not (Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+      }
+      $counterFile = "${{ github.action_path }}/typeperf-counters.txt"
+      $tsvFile = "$outputDir/typeperf.tsv"
+      $proc = Start-Process -PassThru -WindowStyle Hidden -FilePath typeperf `
+        -ArgumentList "-cf", $counterFile, "-f", "TSV", "-o", $tsvFile, "-si", "1"
+      $proc.Id | Set-Content -Path "$outputDir/typeperf.pid"
+      Write-Output "typeperf started, pid=$($proc.Id), output=$tsvFile"
+
+  - name: Stop typeperf and summarize
+    if: runner.os == 'Windows' && inputs.command == 'stop'
+    shell: pwsh
+    run: |
+      $outputDir = "${{ inputs.output-dir }}"
+      $pidFile = "$outputDir/typeperf.pid"
+      if (Test-Path $pidFile) {
+        $typeperfPid = Get-Content $pidFile
+        Stop-Process -Id $typeperfPid -Force -ErrorAction SilentlyContinue
+        Wait-Process -Id $typeperfPid -Timeout 5 -ErrorAction SilentlyContinue
+        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+        Write-Output "stopped typeperf pid=$typeperfPid"
+      }
+      $tsvFile = "$outputDir/typeperf.tsv"
+      if (Test-Path $tsvFile) {
+        $size = (Get-Item $tsvFile).Length / 1MB
+        $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
+        Write-Output ("typeperf.tsv: {0:N1} MB, {1} lines" -f $size, $lines)
+        go run "${{ github.action_path }}/summarize-typeperf.go" `
+          $tsvFile 10 > "$outputDir/typeperf-summary.txt"
+        Write-Output "summary written to $outputDir/typeperf-summary.txt"
+      } else {
+        Write-Output "typeperf.tsv not found, skipping summary"
+      }

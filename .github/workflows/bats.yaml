@@ -162,11 +162,27 @@ jobs:
         output-path: rdd-logs/_diag/perf-sampler.jsonl
       continue-on-error: true
 
+    - name: "Windows: start typeperf sampler"
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/windows-typeperf-sampler
+      with:
+        command: start
+        output-dir: rdd-logs/_diag
+      continue-on-error: true
+
     - run: make -C bats --keep-going --jobs=$(nproc) --output-sync=target
       shell: run-in-shell {0}
       env:
         RDD_TRACE: true
         RDD_LOG_LEVEL: trace
+
+    - name: "Windows: stop typeperf sampler"
+      if: always() && runner.os == 'Windows'
+      uses: ./.github/actions/windows-typeperf-sampler
+      with:
+        command: stop
+        output-dir: rdd-logs/_diag
+      continue-on-error: true
 
     - name: "Windows: stop perf sampler"
       if: always() && runner.os == 'Windows'
