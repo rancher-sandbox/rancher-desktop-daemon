@@ -275,8 +275,12 @@ running container that uses that image.
 apiVersion: containers.rancherdesktop.io/v1alpha1
 kind: Volume
 metadata:
-  name: volume-name-12345 # based on containerd name / namespace?
-  namespace: default # Not related to containerd namespace
+  # `vol-` followed by the hex SHA-256 of the original Docker volume
+  # name. Docker permits characters (uppercase, underscore) that are
+  # invalid in RFC 1123 subdomains, so the controller hashes the name
+  # and stores the original in `.status.name`.
+  name: vol-d404559327842434dee6f7a10d8998594be5b49a7ef9a91a42ca2b3d0174ab9d
+  namespace: rancher-desktop
 status:
   name: volume-name
   namespace: k8s.io # Refers to a `ContainerNamespace` object

@@ -229,6 +229,7 @@ spec:
         type: object
     selectableFields:
     - jsonPath: .status.namespace
+    - jsonPath: .status.name
     served: true
     storage: true
     subresources:

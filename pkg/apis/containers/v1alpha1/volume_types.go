@@ -50,6 +50,7 @@ type VolumeStatus struct {
 // +kubebuilder:resource:categories="all"
 // +kubebuilder:subresource:status
 // +kubebuilder:selectablefield:JSONPath=.status.namespace
+// +kubebuilder:selectablefield:JSONPath=.status.name
 // +kubebuilder:printcolumn:name="Driver",type=string,JSONPath=`.status.driver`
 
 // Volume is the Schema for the volumes API.

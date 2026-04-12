@@ -6,6 +6,7 @@ require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Microsoft/go-winio v0.6.2
+	github.com/containerd/errdefs v1.0.0
 	github.com/containers/gvisor-tap-vsock v0.8.8
 	github.com/coreos/go-semver v0.3.1
 	github.com/go-logr/logr v1.4.3
@@ -17,6 +18,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mikefarah/yq/v4 v4.52.5
 	github.com/moby/moby/api v1.54.1
+	github.com/moby/moby/client v0.4.0
 	github.com/muesli/reflow v0.3.0
 	github.com/nxadm/tail v1.4.11
 	github.com/sirupsen/logrus v1.9.4
@@ -115,6 +117,7 @@ require (
 	github.com/cilium/ebpf v0.21.0 // indirect
 	github.com/ckaznocha/intrange v0.3.1 // indirect
 	github.com/containerd/continuity v0.4.5 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/ltag v0.3.0 // indirect
 	github.com/coreos/go-oidc v2.3.0+incompatible // indirect
@@ -132,6 +135,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/times v1.6.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
+	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect
