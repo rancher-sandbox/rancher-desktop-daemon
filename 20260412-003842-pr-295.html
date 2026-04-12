@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260412-003842-pr-295</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260412-003842-pr-295</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-12 00:38</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/295" class="gh-ref" data-title="Container Engine watcher" data-state="open" data-type="pr">#295</a> — Container Engine watcher</td></tr>
+      <tr><td>Branch</td><td><code>docker</code></td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/cc5875e"><code>cc5875e</code></a> ci: capture support bundle when BATS targets time out<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/02d4d91"><code>02d4d91</code></a> Make rdd set wait for the desired state by default<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/4b062fb"><code>4b062fb</code></a> Add BATS integration tests for the engine controller<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/86969f8"><code>86969f8</code></a> Document engine mirroring and container state transitions<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/6dfa5ad"><code>6dfa5ad</code></a> Allow container spec.state transitions via webhook<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/174fc06"><code>174fc06</code></a> Add engine controller that mirrors Docker state into K8s<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/87f1df1"><code>87f1df1</code></a> Add DockerSocket() helper and Docker client dependency<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/32a0109"><code>32a0109</code></a> Work around distro proxy bug; update docker socket path<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/536ccb2"><code>536ccb2</code></a> Rosetta is now a vz driver option, not a global option</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Rework</span> &mdash; one critical data-path bug breaks <code>fullSync</code> for any Docker volume with <code>_</code> or uppercase, plus eight important regressions around finalizer/cleanup error handling, containerd backend support, the new <code>rdd set</code> wait semantics, and per-reconcile list sweeps.</td></tr>
+      <tr><td>Wall-clock time</td><td><code>1 h 26 min 58 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>This PR introduces the engine controller that mirrors Docker state into Kubernetes resources, adds a &quot;wait for desired state&quot; default to <code>rdd set</code>, ships BATS coverage for the new flow, and adds a CI support-bundle wrapper that captures diagnostics when BATS targets hang. The design cleanly separates user intent (<code>spec.state</code>) from engine reality (<code>status.status</code>), and the finalizer/mirror contract is sensibly documented. However, the implementation ships one critical regression (volume name sanitization allows characters that K8s rejects, crashing the entire full sync on common volume names), plus eight important issues clustered around finalizer error handling (dropped K8s resources on Docker errors, silently-swallowed Conflict errors, edge-triggered cleanup that can&#39;t retry), containerd backend support, the semantics of the new wait logic, and per-reconcile O(N) list sweeps that multiply under event load.</p>
+    <p>Structure: 1 critical, 8 important, 8 suggestions.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+      <div class="finding-title" id="C1">
+        <span class="finding-num">C1.</span> <code>sanitizeKubernetesObjectName</code> leaves volume names that fail RFC 1123 validation, breaking the entire fullSync <span class="pill pill-gemini">Gemini</span><a href="#C1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_images.go#L22-L34">pkg/controllers/app/engine/controllers/sync_images.go</a></div>
+      <pre data-start="22" data-line="27-29"><code class="language-go">	containersv1alpha1 &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1&quot;
+	containersv1alpha1apply &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1/applyconfiguration/containers/v1alpha1&quot;
+)
+
+// sanitizeKubernetesObjectName replaces characters not allowed in K8s names.
+func sanitizeKubernetesObjectName(input string) string {
+	return strings.NewReplacer(&quot;/&quot;, &quot;-&quot;, &quot;:&quot;, &quot;.&quot;).Replace(input)
+}
+
+// syncAllImages lists all Docker images and creates/updates K8s resources,
+// then removes stale ones.
+func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)</code></pre>
+    <p>Docker permits underscores and uppercase letters in volume names (e.g., <code>My_Volume</code>, <code>project_db_data</code>, any Compose-created volume), but <code>sanitizeKubernetesObjectName</code> only replaces <code>/</code> and <code>:</code>. When <code>applyVolume</code> calls <code>w.k8s.Apply(...)</code> with a name containing <code>_</code> or <code>A-Z</code>, the Kubernetes API server rejects it due to RFC 1123 subdomain validation on <code>metadata.name</code>.</p>
+    <p>The failure is not localized. <code>syncAllVolumes</code> collects errors from each <code>applyVolume</code> and returns <code>errors.Join(errs...)</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_volumes.go#L89"><code>pkg/controllers/app/engine/controllers/sync_volumes.go:89</code></a>; <code>fullSync</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L316-L329"><code>pkg/controllers/app/engine/controllers/docker_watcher.go:316-329</code></a> joins and returns that to <code>newDockerWatcher</code>, which aborts the watcher entirely. One volume with an uppercase letter or underscore means the engine never connects, <code>ContainerEngineReady</code> stays <code>False</code>, and <code>rdd set running=true</code> hangs for its full 5-minute timeout.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_volumes.go#L84-L94">pkg/controllers/app/engine/controllers/sync_volumes.go</a></div>
+      <pre data-start="84" data-line="89"><code class="language-go">				errs = append(errs, err)
+			}
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// syncVolume looks up a single volume by name and creates/updates the K8s resource.
+func (w *dockerWatcher) syncVolume(ctx context.Context, name string) error {
+	result, err := w.cli.VolumeInspect(ctx, name, dockerclient.VolumeInspectOptions{})</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L311-L334">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="311" data-line="316-329"><code class="language-go">	log.Info(&quot;Starting full sync&quot;)
+
+	if err := w.ensureNamespace(ctx); err != nil {
+		return fmt.Errorf(&quot;failed to ensure namespace: %w&quot;, err)
+	}
+
+	var errs []error
+
+	if err := w.syncContainerNamespace(ctx); err != nil {
+		errs = append(errs, fmt.Errorf(&quot;failed to sync container namespace: %w&quot;, err))
+	}
+	if err := w.syncAllContainers(ctx); err != nil {
+		errs = append(errs, fmt.Errorf(&quot;failed to sync containers: %w&quot;, err))
+	}
+	if err := w.syncAllImages(ctx); err != nil {
+		errs = append(errs, fmt.Errorf(&quot;failed to sync images: %w&quot;, err))
+	}
+	if err := w.syncAllVolumes(ctx); err != nil {
+		errs = append(errs, fmt.Errorf(&quot;failed to sync volumes: %w&quot;, err))
+	}
+
+	log.Info(&quot;Full sync complete&quot;)
+	return errors.Join(errs...)
+}</code></pre>
+    <p>Fix: produce a deterministic encoding that always yields a valid RFC 1123 subdomain — e.g. <code>fmt.Sprintf(&quot;vol-%x&quot;, sha256.Sum256([]byte(vol.Name)))</code> — and keep the original Docker name in <code>status.name</code> (which <code>deleteVolume</code> already uses for the reverse path via <code>v.Status.Name</code>). The same treatment is needed for image tags since they can contain uppercase characters as well.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Engine controller unconditionally targets Docker, so containerd backends never satisfy <code>ContainerEngineReady</code> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L71-L112">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="71" data-line="76-107"><code class="language-go">	var app appv1alpha1.App
+	if err := r.Get(ctx, client.ObjectKey{Name: appName}, &amp;app); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	running := meta.IsStatusConditionTrue(app.Status.Conditions, &quot;Running&quot;)
+
+	r.watcherMu.Lock()
+	watcherRunning := r.watcher != nil
+	watcherDied := watcherRunning &amp;&amp; !r.watcher.alive()
+	if watcherDied {
+		r.watcher.stop()
+		r.watcher = nil
+		watcherRunning = false
+	}
+	r.watcherMu.Unlock()
+
+	// Watcher died unexpectedly (Docker socket gone, engine restarted, etc.).
+	// Clean up mirror resources and set the condition to Disconnected.
+	if watcherDied {
+		log.Info(&quot;Docker watcher died, cleaning up mirror resources&quot;)
+		if err := r.cleanupMirrorResources(ctx); err != nil {
+			log.Error(err, &quot;Failed to clean up mirror resources&quot;)
+			return ctrl.Result{}, err
+		}
+		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;Disconnected&quot;, &quot;Container engine connection lost&quot;); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if running &amp;&amp; !watcherRunning {
+		log.Info(&quot;App is running, starting Docker watcher&quot;)
+		if err := r.startWatcher(ctx); err != nil {
+			log.Error(err, &quot;Failed to start Docker watcher&quot;)
+			_ = r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;ConnectFailed&quot;, err.Error())
+			return ctrl.Result{}, err
+		}
+		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionTrue, &quot;Connected&quot;, &quot;Container engine synced&quot;); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil</code></pre>
+    <p>The engine reconciler decides the watcher lifecycle purely from the App&#39;s <code>Running</code> condition; it never consults <code>app.Spec.ContainerEngine.Name</code>. Meanwhile <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/app/lima-template.yaml#L47-L52"><code>lima-template.yaml:47-52</code></a> explicitly disables <code>docker.service</code> when <code>PARAM_CONTAINER_ENGINE=containerd</code>, and <code>newDockerWatcher</code> unconditionally pings the Docker socket. So for a containerd-backed VM, the reconciler enters an endless <code>ConnectFailed</code> loop.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/app/lima-template.yaml#L42-L57">pkg/controllers/app/app/lima-template.yaml</a></div>
+      <pre data-start="42" data-line="47-52"><code class="language-yaml">
+    # Write the selected container engine; docker.service and containerd.service
+    mkdir -p /etc/sysconfig
+    echo &quot;CONTAINER_ENGINE=${PARAM_CONTAINER_ENGINE}&quot; &gt;/etc/sysconfig/rancher-desktop
+
+    # Enable the requested container engine and disable the other.
+    # containerd.service has a Conflicts=docker, so we must not start both.
+    CONTAINERD_ACTION=$([[ $PARAM_CONTAINER_ENGINE = containerd ]] &amp;&amp; echo enable || echo disable)
+    DOCKER_ACTION=$([[ $PARAM_CONTAINER_ENGINE = moby ]] &amp;&amp; echo enable || echo disable)
+    systemctl &quot;$CONTAINERD_ACTION&quot; containerd.service buildkitd.service
+    systemctl &quot;$DOCKER_ACTION&quot; docker.service docker.socket
+
+    if [[ $PARAM_KUBERNETES_ENABLED == &quot;true&quot; ]]; then
+        export INSTALL_K3S_VERSION=&quot;v${PARAM_KUBERNETES_VERSION}+k3s1&quot;
+        INSTALLED_VERSION=&quot;&quot;
+        [[ -x /usr/local/bin/k3s ]] &amp;&amp; INSTALLED_VERSION=$(/usr/local/bin/k3s --version | awk &#39;{print $3; exit}&#39;)</code></pre>
+    <p>This intersects directly with the new <code>rdd set</code> wait path: the help text at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L70-L72"><code>cmd/rdd/set.go:70-72</code></a> advertises <code>rdd set running=true containerEngine.name=containerd</code> as a supported example, and <code>waitForDesiredState</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L450-L454"><code>cmd/rdd/set.go:450-454</code></a> waits for <code>ContainerEngineReady=True</code>. In containerd mode that condition can never become True, so the command always hangs until the 300-second timeout.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L65-L77">cmd/rdd/set.go</a></div>
+      <pre data-start="65" data-line="70-72"><code class="language-go">			By default, rdd set waits for the desired state: when running=true
+			is set, it waits for the container engine to be ready; when
+			running=false, it waits for the VM to stop. Use --timeout=0 to
+			skip waiting.
+
+			Examples:
+			  rdd set running=true
+			  rdd set running=true containerEngine.name=containerd
+			  rdd set kubernetes.enabled=true kubernetes.version=1.32.2
+			  rdd set --dry-run running=true
+			  rdd set --timeout=0 running=true
+		`),
+		Args: cobra.MinimumNArgs(1),</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L445-L459">cmd/rdd/set.go</a></div>
+      <pre data-start="445" data-line="450-454"><code class="language-go">
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	const cond = &quot;ContainerEngineReady&quot;
+	if runningVal == &quot;true&quot; {
+		logrus.Info(&quot;Waiting for container engine to be ready&quot;)
+		return watchCondition(ctx, config, func(obj *unstructured.Unstructured) bool {
+			return conditionStatus(obj, cond) == metav1.ConditionTrue
+		})
+	}
+	logrus.Info(&quot;Waiting for container engine to disconnect&quot;)
+	return watchCondition(ctx, config, func(obj *unstructured.Unstructured) bool {
+		// Absent or False both count as disconnected — if the engine never
+		// connected (e.g. App was never running, or using containerd), there</code></pre>
+    <p>Fix: gate the watcher on <code>app.Spec.ContainerEngine.Name == &quot;moby&quot;</code> (or any other Docker-compatible engine you add later). For containerd, either short-circuit <code>ContainerEngineReady</code> to a distinct terminal reason (e.g. <code>Unsupported</code> / <code>NotApplicable</code>) so the CLI can detect &quot;nothing to wait for,&quot; or skip the condition entirely and drive the CLI off the App&#39;s <code>Running</code> condition instead. Either way, the &quot;waiting for container engine&quot; branch in <code>waitForDesiredState</code> needs a matching adjustment.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> <code>ContainerNamespace</code> mirror finalizer is never processed on user delete — objects stick in <code>Terminating</code> until the next VM shutdown <span class="pill pill-codex">Codex</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_volumes.go#L39-L55">pkg/controllers/app/engine/controllers/sync_volumes.go</a></div>
+      <pre data-start="39" data-line="44-50"><code class="language-go">	}
+	return nil
+}
+
+// syncContainerNamespace creates the &quot;moby&quot; ContainerNamespace resource.
+func (w *dockerWatcher) syncContainerNamespace(ctx context.Context) error {
+	applyConfig := containersv1alpha1apply.ContainerNamespace(containerNamespace, apiNamespace).
+		WithFinalizers(mirrorFinalizer)
+
+	return w.k8s.Apply(ctx, applyConfig,
+		client.ForceOwnership, client.FieldOwner(controllerName))
+}
+
+// syncAllVolumes lists all Docker volumes and creates/updates K8s resources,
+// then removes stale ones.
+func (w *dockerWatcher) syncAllVolumes(ctx context.Context) error {
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)</code></pre>
+    <p><code>syncContainerNamespace</code> now adds the <code>engine.rancherdesktop.io/docker-mirror</code> finalizer to the <code>moby</code> ContainerNamespace.</p>
+    <p><code>processFinalizers</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L266-L281"><code>engine_reconciler.go:266-281</code></a> only covers Containers, Images, and Volumes, and <code>SetupWithManager</code> at lines 354-361 does not watch ContainerNamespaces.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L261-L286">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="261" data-line="266-281"><code class="language-go">	return nil
+}
+
+// processFinalizers handles resources with a deletion timestamp by deleting
+// the corresponding Docker object and removing the finalizer.
+func (r *EngineReconciler) processFinalizers(ctx context.Context) error {
+	r.watcherMu.Lock()
+	w := r.watcher
+	r.watcherMu.Unlock()
+	if w == nil {
+		return nil
+	}
+
+	if err := r.processContainerFinalizers(ctx, w); err != nil {
+		return err
+	}
+	if err := r.processImageFinalizers(ctx, w); err != nil {
+		return err
+	}
+	return r.processVolumeFinalizers(ctx, w)
+}
+
+func (r *EngineReconciler) processContainerFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var containers containersv1alpha1.ContainerList
+	if err := r.List(ctx, &amp;containers, client.InNamespace(apiNamespace)); err != nil {
+		return err</code></pre>
+    <p>The existing <code>ValidateDelete</code> webhook at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/containernamespace/container_namespace_webhooks.go#L24-L29"><code>pkg/controllers/containers/containernamespace/container_namespace_webhooks.go:24-29</code></a> returns only a warning, so users can still issue <code>kubectl delete containernamespace/moby</code>. The object gets a deletion timestamp, retains the mirror finalizer, and is never unstuck until the next VM stop (when <code>cleanupMirrorResources</code> strips finalizers wholesale). The pre-existing &quot;namespace delete TODO&quot; just graduated into a visible dead end.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/containernamespace/container_namespace_webhooks.go#L19-L34">pkg/controllers/containers/containernamespace/container_namespace_webhooks.go</a></div>
+      <pre data-start="19" data-line="24-29"><code class="language-go">func (c *deleteValidator) ValidateCreate(context.Context, *v1alpha1.ContainerNamespace) (ctrlwebhookadmission.Warnings, error) {
+	return nil, errors.New(&quot;webhook does not implement create&quot;)
+}
+
+// ValidateDelete implements [ctrlwebhookadmission.Validator].
+func (c *deleteValidator) ValidateDelete(context.Context, *v1alpha1.ContainerNamespace) (ctrlwebhookadmission.Warnings, error) {
+	// TODO: We should validate that:
+	// The namespace to be deleted must be empty before allowing the delete.
+	// Additionally, when using moby backend: we do not delete the `moby` namespace.
+	return ctrlwebhookadmission.Warnings{&quot;namespace delete validation not implemented&quot;}, nil
+}
+
+// ValidateUpdate implements [ctrlwebhookadmission.Validator].
+func (c *deleteValidator) ValidateUpdate(context.Context, *v1alpha1.ContainerNamespace, *v1alpha1.ContainerNamespace) (ctrlwebhookadmission.Warnings, error) {
+	return nil, errors.New(&quot;webhook does not implement update&quot;)
+}</code></pre>
+    <p>Fix: either stop adding the mirror finalizer to ContainerNamespace at all (it isn&#39;t reverse-managed and <code>cleanupMirrorResources</code> can still sweep it at stop time), or add a dedicated ContainerNamespace watch + finalizer handler and tighten the delete webhook to reject user-initiated deletes of system-managed namespaces up front.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I3">
+        <span class="finding-num">I3.</span> Finalizer is removed even when the Docker-side delete fails, silently orphaning the real Docker object <span class="pill pill-codex">Codex</span><a href="#I3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L278-L345">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="278" data-line="283-340"><code class="language-go">		return err
+	}
+	return r.processVolumeFinalizers(ctx, w)
+}
+
+func (r *EngineReconciler) processContainerFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var containers containersv1alpha1.ContainerList
+	if err := r.List(ctx, &amp;containers, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	for i := range containers.Items {
+		c := &amp;containers.Items[i]
+		if c.DeletionTimestamp == nil || !hasFinalizer(c, mirrorFinalizer) {
+			continue
+		}
+		w.deleteContainer(ctx, c.Name)
+		if removeFinalizer(c, mirrorFinalizer) {
+			if err := r.Update(ctx, c); err != nil {
+				return fmt.Errorf(&quot;failed to remove finalizer from container %s: %w&quot;, c.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *EngineReconciler) processImageFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var images containersv1alpha1.ImageList
+	if err := r.List(ctx, &amp;images, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	for i := range images.Items {
+		img := &amp;images.Items[i]
+		if img.DeletionTimestamp == nil || !hasFinalizer(img, mirrorFinalizer) {
+			continue
+		}
+		w.deleteImage(ctx, img)
+		if removeFinalizer(img, mirrorFinalizer) {
+			if err := r.Update(ctx, img); err != nil {
+				return fmt.Errorf(&quot;failed to remove finalizer from image %s: %w&quot;, img.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var volumes containersv1alpha1.VolumeList
+	if err := r.List(ctx, &amp;volumes, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	for i := range volumes.Items {
+		v := &amp;volumes.Items[i]
+		if v.DeletionTimestamp == nil || !hasFinalizer(v, mirrorFinalizer) {
+			continue
+		}
+		w.deleteVolume(ctx, v.Status.Name)
+		if removeFinalizer(v, mirrorFinalizer) {
+			if err := r.Update(ctx, v); err != nil {
+				return fmt.Errorf(&quot;failed to remove finalizer from volume %s: %w&quot;, v.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *EngineReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.reconcileChan = make(chan event.GenericEvent, 1)</code></pre>
+    <p><code>deleteContainer</code> / <code>deleteImage</code> / <code>deleteVolume</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L273-L304"><code>docker_watcher.go:273-304</code></a> swallow all Docker errors (<code>V(1)</code> log only). The finalizer callers (<code>processContainerFinalizers</code>, <code>processImageFinalizers</code>, <code>processVolumeFinalizers</code>) then unconditionally strip the finalizer and delete the K8s mirror.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L268-L309">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="268" data-line="273-304"><code class="language-go">	return nil
+}
+
+// deleteContainer removes a container from Docker. Errors are logged but not
+// returned, since the container may already be gone.
+func (w *dockerWatcher) deleteContainer(ctx context.Context, id string) {
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)
+	_, err := w.cli.ContainerRemove(ctx, id, dockerclient.ContainerRemoveOptions{Force: true})
+	if err != nil {
+		log.V(1).Info(&quot;Failed to remove container from Docker (may already be gone)&quot;,
+			&quot;id&quot;, id, &quot;error&quot;, err)
+	}
+}
+
+// deleteImage removes an image from Docker.
+func (w *dockerWatcher) deleteImage(ctx context.Context, img *containersv1alpha1.Image) {
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)
+	// Use the tag if available, otherwise the raw image ID.
+	ref := img.Status.ID
+	if img.Status.RepoTag != &quot;&quot; {
+		ref = img.Status.RepoTag
+	}
+	_, err := w.cli.ImageRemove(ctx, ref, dockerclient.ImageRemoveOptions{})
+	if err != nil {
+		log.V(1).Info(&quot;Failed to remove image from Docker (may already be gone)&quot;,
+			&quot;ref&quot;, ref, &quot;error&quot;, err)
+	}
+}
+
+// deleteVolume removes a volume from Docker.
+func (w *dockerWatcher) deleteVolume(ctx context.Context, name string) {
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)
+	_, err := w.cli.VolumeRemove(ctx, name, dockerclient.VolumeRemoveOptions{Force: true})
+	if err != nil {
+		log.V(1).Info(&quot;Failed to remove volume from Docker (may already be gone)&quot;,
+			&quot;name&quot;, name, &quot;error&quot;, err)
+	}
+}
+
+// fullSync lists all containers, images, and volumes from Docker and creates
+// corresponding K8s resources. It also removes stale K8s resources.
+func (w *dockerWatcher) fullSync(ctx context.Context) error {</code></pre>
+    <p>This directly violates the contract in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/docs/design/api_containers.md#L56-L59"><code>docs/design/api_containers.md:56-59</code></a>: &quot;the finalizer handler deletes the corresponding object in the container engine, then removes the finalizer to allow K8s garbage collection.&quot; A transient Docker daemon error, permission error, or conflict (container still running, image in use, volume mounted) leaves the real Docker object in place while the Kubernetes mirror is gone for good. Eventual divergence is guaranteed unless the next <code>fullSync</code> rebuilds the mirror — and a user who tried to delete it via the API will be surprised that it has been silently recreated.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/docs/design/api_containers.md#L51-L64">docs/design/api_containers.md</a></div>
+      <pre data-start="51" data-line="56-59"><code class="language-plaintext">controller removes all mirror resources and sets `ContainerEngineReady` to
+`False`.
+
+### Finalizer lifecycle
+
+Each mirror resource carries the `engine.rancherdesktop.io/docker-mirror`
+finalizer.  When a user deletes a resource through the K8s API, the finalizer
+handler deletes the corresponding object in the container engine, then removes
+the finalizer to allow K8s garbage collection.
+
+When the container engine deletes an object (the user ran `docker rm` or
+`nerdctl rm`, for example), the engine controller strips the finalizer and
+deletes the K8s resource directly, so no reverse engine call occurs.
+</code></pre>
+    <p>Fix: make the delete helpers return errors. Ignore only the &quot;not found&quot; / already-gone cases (e.g. <code>errdefs.IsNotFound</code>), treat all other errors as a failure, and leave the finalizer in place so <code>processFinalizers</code> retries on the next reconcile. If the error is persistently terminal (e.g. &quot;container is in use&quot;), surface it on the Container&#39;s conditions so the user can see why deletion is blocked.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I4">
+        <span class="finding-num">I4.</span> <code>rdd set running=false</code> wait returns on <code>ContainerEngineReady</code> change, not on the VM actually stopping <span class="pill pill-codex">Codex</span><a href="#I4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L431-L467">cmd/rdd/set.go</a></div>
+      <pre data-start="431" data-line="436-462"><code class="language-go">// properties that were set. If running=true was set, it waits for the
+// container engine to be ready. If running=false was set, it waits for the
+// container engine to disconnect (or confirms it is already disconnected).
+// Other property changes do not wait.
+//
+// TODO: changes that trigger a VM restart without changing &quot;running&quot; (e.g.
+// containerEngine.name) are not waited on. This requires a &quot;Reconciled&quot;
+// condition with observedGeneration on the App resource so the CLI can
+// detect when the full reconcile chain has settled.
+func waitForDesiredState(ctx context.Context, config *rest.Config, properties map[string]string, timeout time.Duration) error {
+	runningVal, ok := properties[&quot;running&quot;]
+	if !ok {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	const cond = &quot;ContainerEngineReady&quot;
+	if runningVal == &quot;true&quot; {
+		logrus.Info(&quot;Waiting for container engine to be ready&quot;)
+		return watchCondition(ctx, config, func(obj *unstructured.Unstructured) bool {
+			return conditionStatus(obj, cond) == metav1.ConditionTrue
+		})
+	}
+	logrus.Info(&quot;Waiting for container engine to disconnect&quot;)
+	return watchCondition(ctx, config, func(obj *unstructured.Unstructured) bool {
+		// Absent or False both count as disconnected — if the engine never
+		// connected (e.g. App was never running, or using containerd), there
+		// is nothing to wait for.
+		return conditionStatus(obj, cond) != metav1.ConditionTrue
+	})
+}
+
+// watchCondition lists the App once, then watches for updates, returning when
+// the provided predicate is satisfied or the context expires.
+func watchCondition(ctx context.Context, config *rest.Config, satisfied func(*unstructured.Unstructured) bool) error {</code></pre>
+    <p>The help text at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L65-L67"><code>cmd/rdd/set.go:65-67</code></a> promises that <code>running=false</code> &quot;waits for the VM to stop&quot;, but <code>waitForDesiredState</code> returns as soon as <code>ContainerEngineReady</code> is absent or <code>False</code>. That condition is already <code>False</code> on the engine controller&#39;s <code>ConnectFailed</code> path, can be <code>False</code> while the App controller is still propagating <code>running=false</code> to the LimaVM, and can flip to <code>False</code> long before the LimaVM actually finishes shutting down. In those windows the command reports success while the VM is still running.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L60-L72">cmd/rdd/set.go</a></div>
+      <pre data-start="60" data-line="65-67"><code class="language-go">
+			Valid property names and types are derived from the App CRD at
+			runtime. If the App resource does not exist, it is created with
+			default settings before applying the specified values.
+
+			By default, rdd set waits for the desired state: when running=true
+			is set, it waits for the container engine to be ready; when
+			running=false, it waits for the VM to stop. Use --timeout=0 to
+			skip waiting.
+
+			Examples:
+			  rdd set running=true
+			  rdd set running=true containerEngine.name=containerd</code></pre>
+    <p>Fix: for <code>running=false</code>, wait on the App&#39;s <code>Running</code> condition going to <code>False</code> (or the LimaVM&#39;s equivalent stopped condition). Reserve <code>ContainerEngineReady</code> for the <code>running=true</code> / Docker branch. This also sidesteps the I1 containerd hang on the <code>running=true</code> side once the gating there is fixed.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I5">
+        <span class="finding-num">I5.</span> Cleanup on VM stop is fragile end-to-end: no Conflict retry, first-error short-circuit, and an edge-triggered outer guard that makes retries impossible <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#I5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L73-L131">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="73" data-line="78-126"><code class="language-go">		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	running := meta.IsStatusConditionTrue(app.Status.Conditions, &quot;Running&quot;)
+
+	r.watcherMu.Lock()
+	watcherRunning := r.watcher != nil
+	watcherDied := watcherRunning &amp;&amp; !r.watcher.alive()
+	if watcherDied {
+		r.watcher.stop()
+		r.watcher = nil
+		watcherRunning = false
+	}
+	r.watcherMu.Unlock()
+
+	// Watcher died unexpectedly (Docker socket gone, engine restarted, etc.).
+	// Clean up mirror resources and set the condition to Disconnected.
+	if watcherDied {
+		log.Info(&quot;Docker watcher died, cleaning up mirror resources&quot;)
+		if err := r.cleanupMirrorResources(ctx); err != nil {
+			log.Error(err, &quot;Failed to clean up mirror resources&quot;)
+			return ctrl.Result{}, err
+		}
+		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;Disconnected&quot;, &quot;Container engine connection lost&quot;); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if running &amp;&amp; !watcherRunning {
+		log.Info(&quot;App is running, starting Docker watcher&quot;)
+		if err := r.startWatcher(ctx); err != nil {
+			log.Error(err, &quot;Failed to start Docker watcher&quot;)
+			_ = r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;ConnectFailed&quot;, err.Error())
+			return ctrl.Result{}, err
+		}
+		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionTrue, &quot;Connected&quot;, &quot;Container engine synced&quot;); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !running &amp;&amp; watcherRunning {
+		log.Info(&quot;App is not running, stopping Docker watcher&quot;)
+		r.stopWatcher()
+		if err := r.cleanupMirrorResources(ctx); err != nil {
+			log.Error(err, &quot;Failed to clean up mirror resources&quot;)
+			return ctrl.Result{}, err
+		}
+		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;Stopped&quot;, &quot;Container engine stopped&quot;); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Handle container spec changes (state transitions).
+	if running {
+		if err := r.reconcileContainerSpecs(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to reconcile container specs: %w&quot;, err)</code></pre>
+    <p>Three stacked weaknesses turn any transient problem during cleanup into lasting damage:</p>
+    <ol>
+      <li><strong>Inner loop has no Conflict retry</strong> <span class="pill pill-claude">Claude</span>. <code>deleteAllOfType</code> calls <code>r.Update(ctx, obj)</code> to strip finalizers with no <code>retry.RetryOnConflict</code> wrapper. A stale cache or concurrent modification during shutdown returns <code>Conflict</code>, which propagates up as a generic error.</li>
+      <li><strong>First error short-circuits the remaining types</strong> <span class="pill pill-claude">Claude</span>. <code>cleanupMirrorResources</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L190-L207"><code>engine_reconciler.go:190-207</code></a> calls <code>deleteAllOfType</code> four times in sequence for Container / Volume / Image / ContainerNamespace. Any error in the first call returns before the remaining three run, leaving a half-cleaned state across kinds.</li>
+      <li><strong>Outer retry is edge-triggered on in-memory watcher state</strong> <span class="pill pill-gemini">Gemini</span>. <code>stopWatcher()</code> sets <code>r.watcher = nil</code> <em>before</em> <code>cleanupMirrorResources</code> runs at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L115-L124"><code>engine_reconciler.go:115-124</code></a>. When cleanup returns an error the reconcile requeues — but on the retry, <code>watcherRunning</code> is now <code>false</code>, the <code>!running &amp;&amp; watcherRunning</code> branch is skipped entirely, and no further cleanup attempt happens until the user stops the VM again.</li>
+    </ol>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L110-L129">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="110" data-line="115-124"><code class="language-go">			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !running &amp;&amp; watcherRunning {
+		log.Info(&quot;App is not running, stopping Docker watcher&quot;)
+		r.stopWatcher()
+		if err := r.cleanupMirrorResources(ctx); err != nil {
+			log.Error(err, &quot;Failed to clean up mirror resources&quot;)
+			return ctrl.Result{}, err
+		}
+		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;Stopped&quot;, &quot;Container engine stopped&quot;); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Handle container spec changes (state transitions).
+	if running {</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L185-L212">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="185" data-line="190-207"><code class="language-go">	}
+	return r.Status().Update(ctx, app)
+}
+
+// cleanupMirrorResources removes all mirror resources (finalizers stripped first).
+func (r *EngineReconciler) cleanupMirrorResources(ctx context.Context) error {
+	log := logf.FromContext(ctx)
+	log.Info(&quot;Cleaning up all mirror resources&quot;)
+
+	if err := r.deleteAllOfType(ctx, &amp;containersv1alpha1.ContainerList{}); err != nil {
+		return fmt.Errorf(&quot;failed to delete containers: %w&quot;, err)
+	}
+	if err := r.deleteAllOfType(ctx, &amp;containersv1alpha1.VolumeList{}); err != nil {
+		return fmt.Errorf(&quot;failed to delete volumes: %w&quot;, err)
+	}
+	if err := r.deleteAllOfType(ctx, &amp;containersv1alpha1.ImageList{}); err != nil {
+		return fmt.Errorf(&quot;failed to delete images: %w&quot;, err)
+	}
+	if err := r.deleteAllOfType(ctx, &amp;containersv1alpha1.ContainerNamespaceList{}); err != nil {
+		return fmt.Errorf(&quot;failed to delete container namespaces: %w&quot;, err)
+	}
+	return nil
+}
+
+// deleteAllOfType lists resources, strips finalizers, and deletes them.
+func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.ObjectList) error {
+	if err := r.List(ctx, list, client.InNamespace(apiNamespace)); err != nil {
+		return err</code></pre>
+    <p>A successful next start partially self-heals via the <code>syncAllContainers</code> / <code>syncAllImages</code> / <code>syncAllVolumes</code> stale-item pruning, so this is not permanent orphaning — but between stop and that next start, the resources are visible to <code>rdd ctl get</code> and violate the BATS assertion at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/bats/tests/32-app-controllers/engine.bats#L160-L168"><code>bats/tests/32-app-controllers/engine.bats:160-168</code></a>. Objects mid-deletion (finalizer already stripped, Delete not yet issued) can also land in a broken state.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/bats/tests/32-app-controllers/engine.bats#L155-L173">bats/tests/32-app-controllers/engine.bats</a></div>
+      <pre data-start="155" data-line="160-168"><code class="language-plaintext">    # Make sure we have at least one resource to verify cleanup.
+    rdd ctl wait --for=create --namespace=&quot;${NAMESPACE}&quot; \
+        containernamespace/moby --timeout=10s
+
+    rdd set running=false
+
+    run -0 rdd ctl get containers --namespace=&quot;${NAMESPACE}&quot; --output=name
+    refute_output
+    run -0 rdd ctl get images --namespace=&quot;${NAMESPACE}&quot; --output=name
+    refute_output
+    run -0 rdd ctl get volumes --namespace=&quot;${NAMESPACE}&quot; --output=name
+    refute_output
+    run -0 rdd ctl get containernamespaces --namespace=&quot;${NAMESPACE}&quot; --output=name
+    refute_output
+}
+
+@test &quot;restarting VM restores ContainerEngineReady and moby namespace&quot; {
+    rdd set running=true
+    rdd ctl wait --for=create --namespace=&quot;${NAMESPACE}&quot; \</code></pre>
+    <p>Fix: (1) wrap the inner <code>Update</code> in <code>retry.RetryOnConflict</code> with the default backoff; (2) collect errors across the four types with <code>errors.Join</code> instead of returning on the first; (3) decouple &quot;cleanup needed&quot; from the in-memory watcher pointer — run cleanup whenever <code>!running</code> regardless of <code>watcherRunning</code>, or persist a short-lived &quot;cleanup pending&quot; condition on the App.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I6">
+        <span class="finding-num">I6.</span> Initial <code>fullSync</code> issues N sequential <code>Inspect</code> calls per container/image, amplifying cold-start latency <span class="pill pill-gemini">Gemini</span><a href="#I6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_containers.go#L34-L50">pkg/controllers/app/engine/controllers/sync_containers.go</a></div>
+      <pre data-start="34" data-line="39-45"><code class="language-go">	}
+
+	// Track which container IDs exist in Docker.
+	dockerIDs := make(map[string]bool, len(listResult.Items))
+
+	var errs []error
+	for _, dc := range listResult.Items {
+		dockerIDs[dc.ID] = true
+		if err := w.syncContainer(ctx, dc.ID); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	// Remove stale K8s containers.
+	var k8sContainers containersv1alpha1.ContainerList
+	if err := w.k8s.List(ctx, &amp;k8sContainers, client.InNamespace(apiNamespace)); err != nil {
+		return fmt.Errorf(&quot;failed to list K8s containers: %w&quot;, err)</code></pre>
+    <p><code>syncAllContainers</code> calls <code>ContainerList</code>, then loops and calls <code>ContainerInspect</code> once per container. <code>syncAllImages</code> does the same with <code>ImageList</code> + <code>ImageInspect</code>. A developer laptop with several hundred images (not uncommon on a long-lived machine) hits the Docker socket hundreds of times sequentially before the watcher goroutine enters its event loop, and every hit goes through the Lima port-forwarded Unix socket. Observed startup latency for <code>rdd set running=true</code> will grow linearly with the image count, and the operation is entirely serial — <code>newDockerWatcher</code> holds <code>watcherMu</code> the whole time.</p>
+    <p>This also intersects with I1: even in the correct Docker case, any developer with a bloated local cache pays this cost on every VM restart.</p>
+    <p>Fix: seed the initial mirror from <code>List</code> responses where the shape is sufficient (image list has <code>RepoTags</code>, <code>Size</code>, <code>Labels</code>, etc.), and defer <code>Inspect</code> to event-driven updates or lazy per-resource fetches when a user actually queries a field that only <code>Inspect</code> exposes. If an Inspect is still needed for full status, do it concurrently with a small worker pool so startup isn&#39;t bounded by serial round-trips.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I7">
+        <span class="finding-num">I7.</span> Every App reconcile re-lists Containers, Images, and Volumes; per-event work scales O(N) with mirror size <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#I7" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L123-L145">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="123" data-line="128-140"><code class="language-go">			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Handle container spec changes (state transitions).
+	if running {
+		if err := r.reconcileContainerSpecs(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to reconcile container specs: %w&quot;, err)
+		}
+	}
+
+	// Handle finalizer processing for resources being deleted.
+	if running {
+		if err := r.processFinalizers(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to process finalizers: %w&quot;, err)
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// startWatcher creates and starts a Docker watcher goroutine.</code></pre>
+    <p>Every reconcile with <code>running=true</code> executes four unfiltered list operations:</p>
+    <ul>
+      <li><code>List(ContainerList)</code> in <code>reconcileContainerSpecs</code> at line 247</li>
+      <li><code>List(ContainerList)</code> in <code>processContainerFinalizers</code> at line 285</li>
+      <li><code>List(ImageList)</code> in <code>processImageFinalizers</code> at line 305</li>
+      <li><code>List(VolumeList)</code> in <code>processVolumeFinalizers</code> at line 325</li>
+    </ul>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L242-L252">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="242" data-line="247"><code class="language-go">	if w == nil {
+		return nil
+	}
+
+	var containers containersv1alpha1.ContainerList
+	if err := r.List(ctx, &amp;containers, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+
+	for i := range containers.Items {
+		c := &amp;containers.Items[i]</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L280-L330">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="280" data-line="285-325"><code class="language-go">	return r.processVolumeFinalizers(ctx, w)
+}
+
+func (r *EngineReconciler) processContainerFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var containers containersv1alpha1.ContainerList
+	if err := r.List(ctx, &amp;containers, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	for i := range containers.Items {
+		c := &amp;containers.Items[i]
+		if c.DeletionTimestamp == nil || !hasFinalizer(c, mirrorFinalizer) {
+			continue
+		}
+		w.deleteContainer(ctx, c.Name)
+		if removeFinalizer(c, mirrorFinalizer) {
+			if err := r.Update(ctx, c); err != nil {
+				return fmt.Errorf(&quot;failed to remove finalizer from container %s: %w&quot;, c.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *EngineReconciler) processImageFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var images containersv1alpha1.ImageList
+	if err := r.List(ctx, &amp;images, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	for i := range images.Items {
+		img := &amp;images.Items[i]
+		if img.DeletionTimestamp == nil || !hasFinalizer(img, mirrorFinalizer) {
+			continue
+		}
+		w.deleteImage(ctx, img)
+		if removeFinalizer(img, mirrorFinalizer) {
+			if err := r.Update(ctx, img); err != nil {
+				return fmt.Errorf(&quot;failed to remove finalizer from image %s: %w&quot;, img.Name, err)
+			}
+		}
+	}
+	return nil
+}
+
+func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var volumes containersv1alpha1.VolumeList
+	if err := r.List(ctx, &amp;volumes, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	for i := range volumes.Items {
+		v := &amp;volumes.Items[i]
+		if v.DeletionTimestamp == nil || !hasFinalizer(v, mirrorFinalizer) {</code></pre>
+    <p>The reconcile fires on <em>every</em> Container / Image / Volume watch event via <code>Watches(&amp;containersv1alpha1.Container{}, enqueueApp)</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L358-L360"><code>engine_reconciler.go:358-360</code></a>, and each status update the Docker watcher writes back generates one such event. So every container status change on a host with N mirrored containers performs 3·N K8s reads and a nested <code>reconcileContainerState</code> sweep that calls <code>ContainerStart</code> / <code>ContainerStop</code> against Docker for every container with a non-<code>unknown</code> spec. On a busy system with dozens of containers cycling the multiplier is immediate and user-visible.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L353-L365">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="353" data-line="358-360"><code class="language-go">
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&amp;appv1alpha1.App{}).
+		Named(&quot;engine-reconciler&quot;).
+		WatchesRawSource(source.Channel(r.reconcileChan, enqueueApp)).
+		Watches(&amp;containersv1alpha1.Container{}, enqueueApp).
+		Watches(&amp;containersv1alpha1.Image{}, enqueueApp).
+		Watches(&amp;containersv1alpha1.Volume{}, enqueueApp).
+		Complete(r)
+}
+
+// hasFinalizer checks whether an object has the specified finalizer.
+func hasFinalizer(obj metav1.Object, finalizer string) bool {</code></pre>
+    <p>The same architecture also made it easy to miss <code>ContainerNamespace</code> coverage entirely (see I2) — the App-level sweep approach has no compile-time guarantee that every mirrored kind has a finalizer handler.</p>
+    <p>Fix: split the engine controller into (a) an App-level session manager that only owns the Docker watcher lifecycle and (b) per-resource reconcilers (<code>Container</code>, <code>Image</code>, <code>Volume</code>, <code>ContainerNamespace</code>) that handle their own finalizer and spec updates with <code>For()</code> predicates filtering to &quot;deletion timestamp set&quot; or &quot;spec generation changed.&quot; That removes the O(N) sweeps and makes coverage explicit per kind.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I8">
+        <span class="finding-num">I8.</span> <code>removeMirrorResource</code> uses <code>IgnoreNotFound</code> on <code>Update</code>, silently swallowing <code>Conflict</code> / <code>Forbidden</code> / every other error <span class="pill pill-claude">Claude</span><a href="#I8" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L220-L241">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="220" data-line="225-236"><code class="language-go">	}
+}
+
+// removeMirrorResource removes the finalizer from a mirror resource and deletes
+// it. This is used when Docker has already deleted the object.
+func (w *dockerWatcher) removeMirrorResource(ctx context.Context, obj client.Object, name string) error {
+	key := client.ObjectKey{Name: name, Namespace: apiNamespace}
+	if err := w.k8s.Get(ctx, key, obj); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if removeFinalizer(obj, mirrorFinalizer) {
+		if err := w.k8s.Update(ctx, obj); err != nil {
+			return client.IgnoreNotFound(err)
+		}
+	}
+	return client.IgnoreNotFound(w.k8s.Delete(ctx, obj))
+}
+
+// reconcileContainerState checks if the user set spec.state to &quot;running&quot; or
+// &quot;created&quot; and calls Docker start/stop accordingly. The engine creates
+// containers with spec.state=&quot;unknown&quot;, which the reconciler ignores.
+func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containersv1alpha1.Container) error {</code></pre>
+    <p><code>client.IgnoreNotFound</code> returns <code>nil</code> only for <code>IsNotFound</code> errors and passes everything else through — but here it is being used as a generic &quot;swallow if it fails&quot; on <code>Update</code>, which is wrong. <code>Conflict</code> on the finalizer-strip <code>Update</code> (the common optimistic-concurrency outcome when two goroutines race on the same mirror object) is silently treated as success, and the subsequent <code>Delete</code> then runs against a stale snapshot. The only expected benign error on <code>Update</code> here is <code>NotFound</code> (object deleted out from under us); everything else should surface.</p>
+    <p>This path is reachable for every Docker <code>Destroy</code> event through <code>handleContainerEvent</code> / <code>handleImageEvent</code> / <code>handleVolumeEvent</code>, which makes it a frequent trigger in normal use. Combined with I5 above, a Conflict here leads to a finalizer that was never actually removed plus a Delete that appears to succeed locally — exactly the kind of divergence the finalizer contract is meant to prevent.</p>
+    <p>Fix: drop <code>IgnoreNotFound</code> on the <code>Update</code> and either (a) propagate the error so the event loop retries, or (b) wrap in <code>retry.RetryOnConflict</code> with a bounded backoff and only propagate on terminal errors. Keep <code>IgnoreNotFound</code> on the final <code>Delete</code> — that one is correct.</p>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> Design doc still documents <code>ContainerCreateRequest.spec.state</code> as defaulting to <code>running</code> <span class="pill pill-codex">Codex</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/docs/design/api_containers.md#L151-L165">docs/design/api_containers.md</a></div>
+      <pre data-start="151" data-line="156-160"><code class="language-yaml">apiVersion: containers.rancherdesktop.io/v1alpha1
+kind: ContainerCreateRequest
+metadata:
+  name: whatever-12345
+  namespace: rancher-desktop
+spec:
+  name: magical_gates # If unset, generate one randomly
+  namespace: k8s.io # Refers to a `ContainerNamespace` object
+  state: running # Default to `running`
+  path: /bin/sh # defaults to image entry point / command
+  args: [-c, &#39;sleep inf&#39;] # defaults to image entry point / command
+  image: &quot;sha256:999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b&quot; # accepts image tag
+  ports: # merged with image defaults
+    - name: 80/tcp
+      bindings:</code></pre>
+    <p>The API default in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/apis/containers/v1alpha1/container_types.go#L217-L220"><code>pkg/apis/containers/v1alpha1/container_types.go:217-220</code></a> and the generated CRD at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/container/crd.yaml#L133"><code>pkg/controllers/containers/container/crd.yaml:133</code></a> both say <code>default: unknown</code>. Consumers reading the design doc will get the wrong startup semantics for create requests.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/apis/containers/v1alpha1/container_types.go#L212-L225">pkg/apis/containers/v1alpha1/container_types.go</a></div>
+      <pre data-start="212" data-line="217-220"><code class="language-go">	// +optional
+	Labels map[string]string `json:&quot;labels&quot;`
+
+	// State is the desired state of the container.
+	//
+	// +required
+	// +kubebuilder:default:=unknown
+	// +kubebuilder:validation:Enum=created;running;unknown
+	State ContainerStatusValue `json:&quot;state&quot;`
+}
+
+// ContainerCreateRequestStatus defines the status for a container creation request.
+type ContainerCreateRequestStatus struct {
+	// Name is the name of the created container; this is the container ID.</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/container/crd.yaml#L128-L138">pkg/controllers/containers/container/crd.yaml</a></div>
+      <pre data-start="128" data-line="133"><code class="language-yaml">                  - unknown
+                - enum:
+                  - created
+                  - running
+                  - unknown
+                default: unknown
+                description: State is the desired state of the container.
+                type: string
+            required:
+            - image
+            - state</code></pre>
+    <p>Fix: update the example to <code>state: unknown</code> (and drop the <code>Default to running</code> comment), or, if create-requests really should auto-start, change the API default back to <code>running</code> and document why the Container default is different.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> <code>applyContainer</code> only sets the finalizer on first create; a manually stripped finalizer never gets restored <span class="pill pill-gemini">Gemini</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_containers.go#L81-L102">pkg/controllers/app/engine/controllers/sync_containers.go</a></div>
+      <pre data-start="81" data-line="86-97"><code class="language-go">
+	// Create the resource if it doesn&#39;t exist. spec.state is always set to
+	// &quot;unknown&quot; on creation — meaning the engine mirrors Docker state without
+	// expressing intent. The user can later set it to &quot;running&quot; or &quot;created&quot;
+	// to control the container; the reconciler ignores &quot;unknown&quot;.
+	var existing containersv1alpha1.Container
+	err := w.k8s.Get(ctx, client.ObjectKey{Name: inspect.ID, Namespace: apiNamespace}, &amp;existing)
+	if apierrors.IsNotFound(err) {
+		applyConfig := containersv1alpha1apply.Container(inspect.ID, apiNamespace).
+			WithFinalizers(mirrorFinalizer).
+			WithSpec(containersv1alpha1apply.ContainerSpec().WithState(containersv1alpha1.ContainerStatusUnknown))
+		if err := w.k8s.Apply(ctx, applyConfig, client.ForceOwnership, client.FieldOwner(controllerName)); err != nil {
+			return fmt.Errorf(&quot;failed to create container %s: %w&quot;, inspect.ID, err)
+		}
+	} else if err != nil {
+		return fmt.Errorf(&quot;failed to get container %s: %w&quot;, inspect.ID, err)
+	}
+
+	// Build status.
+	statusApply := containersv1alpha1apply.ContainerStatus().
+		WithName(name).
+		WithNamespace(namespace).</code></pre>
+    <p><code>applyContainer</code> deliberately only writes <code>spec</code> on first create so that later syncs do not clobber a user-initiated <code>spec.state</code>. That&#39;s correct for the spec, but as a side effect it also means the mirror finalizer is only written once — if it is ever missing on a subsequent sync (manually stripped, or a new API server behavior), it never gets restored. Since Apply supports setting only specific fields, the structural metadata (finalizers, labels) can be applied unconditionally on every sync without touching <code>spec.state</code>.</p>
+    <p>Fix: split the apply into two field-owner scopes: one that always writes finalizers and any owner-managed metadata, and one that only writes <code>spec.state=unknown</code> on the not-found path.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> <code>rdd set</code> watch loop aborts on any watch-channel closure instead of reconnecting <span class="pill pill-gemini">Gemini</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L491-L504">cmd/rdd/set.go</a></div>
+      <pre data-start="491" data-line="496-499"><code class="language-go">
+	for {
+		select {
+		case &lt;-ctx.Done():
+			return errors.New(&quot;timed out waiting for App state&quot;)
+		case event, ok := &lt;-watcher.ResultChan():
+			if !ok {
+				return errors.New(&quot;watch channel closed while waiting for App state&quot;)
+			}
+			obj, ok := event.Object.(*unstructured.Unstructured)
+			if !ok {
+				continue
+			}
+			if satisfied(obj) {</code></pre>
+    <p>Kubernetes watches routinely close for benign reasons: API server timeouts, proxies cutting idle connections, resource-version compaction. Returning a hard error on closure means any sufficiently long-running <code>rdd set</code> may fail even though the desired state would eventually be reached. The <code>rdd set</code> timeout is 300s by default, which is already in range for a typical watch disconnect.</p>
+    <p>Fix: wrap the watch in a retry loop, ideally via <code>k8s.io/client-go/tools/watch</code> (<code>watchtools.UntilWithSync</code> or similar), so a benign channel close resumes from the last observed resource version.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> <code>reconcileContainerState</code> ignores intermediate container states (<code>paused</code>, <code>restarting</code>), so <code>spec.state=created</code> silently no-ops on them <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L249-L273">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="249" data-line="254-268"><code class="language-go">		return nil
+	}
+
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)
+
+	switch desired {
+	case containersv1alpha1.ContainerStatusRunning:
+		if actual != containersv1alpha1.ContainerStatusRunning {
+			log.Info(&quot;Starting container&quot;, &quot;id&quot;, c.Name)
+			_, err := w.cli.ContainerStart(ctx, c.Name, dockerclient.ContainerStartOptions{})
+			return err
+		}
+	case containersv1alpha1.ContainerStatusCreated:
+		if actual == containersv1alpha1.ContainerStatusRunning {
+			log.Info(&quot;Stopping container&quot;, &quot;id&quot;, c.Name)
+			_, err := w.cli.ContainerStop(ctx, c.Name, dockerclient.ContainerStopOptions{})
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteContainer removes a container from Docker. Errors are logged but not
+// returned, since the container may already be gone.
+func (w *dockerWatcher) deleteContainer(ctx context.Context, id string) {</code></pre>
+    <p>The <code>desired=created</code> branch only stops the container when <code>actual == ContainerStatusRunning</code>. If a user patches <code>spec.state=created</code> on a container that happens to be in <code>paused</code> or <code>restarting</code> state, the reconciler returns <code>nil</code> and waits for a <code>running</code> status it may never see — the user&#39;s intent is dropped silently. Docker&#39;s <code>ContainerStop</code> handles paused containers natively.</p>
+    <p>Fix: drop the narrow <code>actual == running</code> guard and call <code>ContainerStop</code> for any non-<code>created</code>, non-<code>exited</code> / non-<code>dead</code> state (or just unconditionally and let Docker short-circuit).</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>bats-with-timeout.sh</code> hand-rolls <code>instance.LogDir()</code> logic, with a comment acknowledging the duplication <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/scripts/bats-with-timeout.sh#L17-L33">scripts/bats-with-timeout.sh</a></div>
+      <pre data-start="17" data-line="22-28"><code class="language-bash"># Usage: bats-with-timeout.sh &lt;seconds&gt; &lt;label&gt; &lt;command&gt; [args...]
+
+set -o errexit -o nounset -o pipefail
+
+timeout_seconds=$1
+label=$2
+shift 2
+
+instance=&quot;${RDD_INSTANCE:-2}&quot;
+
+# Compute log_dir without calling rdd (it may be hung). Must match
+# pkg/instance/instance.go LogDir().
+instance_name=&quot;rancher-desktop-${instance}&quot;
+case &quot;$(uname -s)&quot; in
+    Linux)   log_dir=&quot;${HOME}/.local/state/${instance_name}&quot; ;;
+    Darwin)  log_dir=&quot;${HOME}/Library/Logs/${instance_name}&quot; ;;
+    MINGW*|MSYS*|CYGWIN*) log_dir=&quot;${LOCALAPPDATA:-${HOME}/AppData/Local}/${instance_name}-logs&quot; ;;</code></pre>
+    <p>The shell script duplicates the OS → log-dir mapping because <code>rdd</code> itself may be hung at timeout time. That reason is legitimate — but the two implementations will drift.</p>
+    <p>Fix: expose the log-dir path as a lightweight helper that doesn&#39;t touch the control plane (e.g., <code>rdd debug log-dir</code> or a standalone <code>rdd-log-dir</code> printing binary) so the shell script can call it even when the service is hung. As a cheaper alternative, add a CI test that asserts the shell mapping matches <code>instance.LogDir()</code> across all three platforms.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> Support-bundle output is capped at 30–50 lines via <code>head</code>, which silently truncates the exact diagnostic detail we&#39;d want after a hang <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/scripts/bats-with-timeout.sh#L61-L72">scripts/bats-with-timeout.sh</a></div>
+      <pre data-start="61" data-line="66-67"><code class="language-bash">
+# Check whether a cmdline belongs to the current RDD_INSTANCE. The
+# instance name appears in any path derived from it (~/.rd&lt;instance&gt;/,
+# rancher-desktop-&lt;instance&gt;/, ...) and in sh wrapper argv as
+# `RDD_INSTANCE=&lt;instance&gt;`.
+matches_our_instance() {
+    case &quot;$1&quot; in
+        *&quot;${instance}&quot;*) return 0 ;;
+    esac
+    return 1
+}
+</code></pre>
+    <p>The bundle already exists as a post-mortem artifact rather than a live log stream, so the reason to cap output is unclear — and the cap hides the specific file descriptors or sockets that would identify the cause of a hang. <code>head -30</code> on <code>lsof -p</code> of a busy process is almost certain to drop the interesting fd.</p>
+    <p>Fix: remove the <code>head</code> caps, or hoist them to a configurable <code>BATS_SUPPORT_BUNDLE_MAX_LINES</code> that defaults high (or to 0 for unlimited) and stays low only on explicit opt-in.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S7">
+        <span class="finding-num">S7.</span> Add a comment explaining why <code>applyContainer</code> uses a Get-then-Apply pattern instead of pure server-side Apply <span class="pill pill-claude">Claude</span><a href="#S7" class="pilcrow">&#182;</a>
+      </div>
+    <p>The Get-then-Apply pattern is correct: server-side Apply with field ownership would <em>still</em> reassert <code>spec.state=unknown</code> on every sync (a field the engine controller does not own after creation), which would clobber user-initiated <code>spec.state=running</code> / <code>spec.state=created</code>. The Get check ensures <code>WithSpec</code> is only called on the not-found path.</p>
+    <p>Fix: a two-line comment above the <code>Get</code> call explaining the invariant — &quot;spec.state must be written exactly once, on creation; subsequent syncs must not reassert it to avoid clobbering user intent.&quot; Saves the next reader from puzzling out why the Apply omits <code>WithSpec</code> unconditionally.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S8">
+        <span class="finding-num">S8.</span> Dead <code>scheme</code> field in <code>dockerWatcher</code> <span class="pill pill-claude">Claude</span><a href="#S8" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L25-L35">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="25" data-line="30"><code class="language-go">// dockerWatcher manages a Docker client connection and event stream. It
+// performs a full sync on connect and then watches for incremental changes.
+type dockerWatcher struct {
+	cli    *dockerclient.Client
+	k8s    client.Client
+	scheme *runtime.Scheme
+
+	cancel context.CancelFunc
+	done   chan struct{}
+
+	// reconcileChan is used to trigger reconciliation in the engine reconciler.</code></pre>
+    <p><code>scheme *runtime.Scheme</code> is plumbed through <code>newDockerWatcher</code>, stored on the struct, and never read anywhere in the package (verified with <code>grep -n &#39;w\.scheme&#39;</code>). Remove the field and propagate the removal up through <code>EngineReconciler.startWatcher</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L154"><code>engine_reconciler.go:154</code></a> and the controller wiring at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controller.go#L59"><code>pkg/controllers/app/engine/controller.go:59</code></a>.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L149-L159">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="149" data-line="154"><code class="language-go">
+	if r.watcher != nil {
+		return nil
+	}
+
+	w, err := newDockerWatcher(ctx, r.Client, r.Scheme, r.reconcileChan)
+	if err != nil {
+		return err
+	}
+	r.watcher = w
+	return nil</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controller.go#L54-L60">pkg/controllers/app/engine/controller.go</a></div>
+      <pre data-start="54" data-line="59"><code class="language-go">	}
+
+	return (&amp;controllers.EngineReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr)
+}</code></pre>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <p><strong>Concerns</strong></p>
+    <ul>
+      <li><strong>Docker-only coupling in shared APIs</strong> <em>(in-scope)</em> <span class="pill pill-gemini">Gemini</span> — The <code>Container</code>, <code>Image</code>, <code>Volume</code>, and <code>ContainerNamespace</code> types live under <code>pkg/apis/containers</code>, implying general container-engine support, but the engine controller is deeply coupled to Docker (hardcoded <code>moby</code> namespace, direct moby SDK). If containerd support is on the near roadmap, consider introducing an engine interface and an engine-specific implementation now — before Docker assumptions leak further into the API surface.</li>
+      <li><strong>Webhook registration is load-bearing but fragile</strong> <em>(future)</em> <span class="pill pill-claude">Claude</span> — The engine controller&#39;s creates and deletes intentionally bypass the Container webhook&#39;s &quot;create not implemented&quot; rejection because the Container webhook only registers <code>Update</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/container/container_controller.go#L88-L90"><code>pkg/controllers/containers/container/container_controller.go:88-90</code></a> and the ContainerNamespace webhook only registers <code>Delete</code>. The arrangement works but is invisible from the engine controller&#39;s perspective — any future change that registers the Container webhook for <code>Create</code> would break the engine silently with a generic error. A comment at the registration sites (or a small assertion that the engine controller&#39;s <code>apiNamespace</code> is exempt) would make the dependency explicit.</li>
+    </ul>
+    <p><strong>Strengths</strong></p>
+    <ul>
+      <li><em>(in-scope)</em> <span class="pill pill-codex">Codex</span> — The explicit <code>cleanupMirrorResources</code> on VM stop respects the project&#39;s &quot;no garbage collector&quot; constraint and puts the engine controller in charge of its own mirror ownership, which is the right direction for this architecture.</li>
+      <li><em>(in-scope)</em> <span class="pill pill-codex">Codex</span> — The new <code>bats-with-timeout.sh</code> diagnostic wrapper collects operator-useful state (process tree, wchan, Go goroutine dumps via SIGQUIT, lsof, <code>sample</code>) when a BATS target hangs instead of just killing it. This should make future CI hangs far easier to root-cause.</li>
+      <li><em>(in-scope)</em> <span class="pill pill-gemini">Gemini</span> — The design successfully isolates user intent (<code>spec.state = unknown | running | created</code>) from mirrored engine reality (<code>status.status</code>), so users can direct intent via the API without fighting the controller&#39;s continuous mirroring. The webhook at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/container/container_webhooks.go#L34-L61"><code>container_webhooks.go:34-61</code></a> enforces exactly this invariant.</li>
+      <li><em>(in-scope)</em> <span class="pill pill-claude">Claude</span> — The <code>ValidateUpdate</code> spec-normalization trick at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/containers/container/container_webhooks.go#L49-L53"><code>pkg/controllers/containers/container/container_webhooks.go:49-53</code></a> (copy old spec, overwrite <code>State</code> with the new value, deep-equal against new) is a clean, future-proof way to enforce &quot;only <code>spec.state</code> may change&quot; — any field added to <code>ContainerSpec</code> later is automatically immutable without touching the webhook. Nice pattern.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The new <code>bats/tests/32-app-controllers/engine.bats</code> covers the happy-path end-to-end flow well: full sync of the <code>moby</code> namespace, image/container/volume create &amp; delete events, <code>spec.state</code> transitions in both directions, and VM-stop cleanup with a post-stop &quot;every list returns empty&quot; assertion. That is a strong foundation.</p>
+    <p>Gaps the findings above would have caught:</p>
+    <ol>
+      <li><em></em>Volume / image names outside <code>[a-z0-9.-]</code><em></em> (C1): no test creates a Docker volume with an uppercase letter or underscore (e.g., <code>docker volume create My_Volume</code>). Adding one would have immediately surfaced the K8s naming crash.</li>
+      <li><em></em><code>containerd</code> backend startup<em></em> (I1): no test runs <code>rdd set running=true containerEngine.name=containerd</code> to assert either success or a clear &quot;unsupported&quot; error. The unconditional Docker-watcher path is currently unexercised for non-Docker engines.</li>
+      <li><strong>Docker-side delete failures</strong> (I3): no test covers the case where <code>ContainerRemove</code> / <code>ImageRemove</code> / <code>VolumeRemove</code> returns a transient error. A lightweight way to force this is to delete a container that&#39;s mid-stop, or an image referenced by a running container.</li>
+      <li><em></em><code>ContainerNamespace</code> user delete<em></em> (I2): a test that does <code>rdd ctl delete containernamespace/moby</code> would have immediately shown the finalizer hang.</li>
+      <li><em></em><code>running=false</code> wait with degraded engine<em></em> (I4): no test exercises <code>rdd set running=false</code> from a state where <code>ContainerEngineReady</code> is already <code>False</code>, which is exactly the false-positive return case.</li>
+      <li><strong>Cleanup failure retry</strong> (I5): no test exercises what happens when <code>cleanupMirrorResources</code> fails partway through (e.g., deleting <code>rancher-desktop</code> namespace concurrently) and the VM is then left in <code>running=false</code>.</li>
+      <li><strong>Watcher-died mid-session recovery</strong> <span class="pill pill-claude">Claude</span>: no test exercises the <code>watcherDied</code> path — e.g., restart the Docker daemon while the App stays running and confirm the reconciler cleans up mirror resources, sets <code>ContainerEngineReady=Disconnected</code>, and recovers on the next reconcile. Docker-engine restarts are common enough to matter.</li>
+      <li><strong>Concurrent user patch vs. controller status update</strong> <span class="pill pill-claude">Claude</span>: no test locks in the Server-Side Apply field-ownership guarantee — i.e., that a user <code>kubectl patch spec.state=running</code> concurrent with an engine status update does not clobber either write.</li>
+      <li><em></em><code>parseContainerName</code> edge cases<em></em> <span class="pill pill-claude">Claude</span> — the helper at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_containers.go#L157-L164"><code>pkg/controllers/app/engine/controllers/sync_containers.go:157-164</code></a> has no direct test; names with extra slashes (<code>/ns/name/with/slashes</code>) are not exercised.</li>
+      <li><em></em><code>reconcileContainerState</code> against intermediate states<em></em> (S4): no test patches <code>spec.state=created</code> while the container is <code>paused</code> or <code>restarting</code>.</li>
+      <li><em></em>Non-default <code>RDD_INSTANCE</code><em></em> <span class="pill pill-codex">Codex</span> — The engine BATS suite hardcodes <code>DOCKER_HOST=unix://${HOME}/.rd2/docker.sock</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/bats/tests/32-app-controllers/engine.bats#L14"><code>engine.bats:14</code></a>, which matches the hardcoded instance in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/instance/instance.go#L128-L136"><code>pkg/instance/instance.go:128-136</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/app/lima-template.yaml#L30"><code>lima-template.yaml:30</code></a>. Once those TODOs are resolved, the BATS setup will also need to derive the socket path from the instance suffix.</li>
+    </ol>
+    <p>There are also no unit tests for the reconciler or watcher internals; all coverage rides on the BATS end-to-end flow. <span class="pill pill-claude">Claude</span> specifically called out envtest-level coverage of the sync/apply/finalizer logic as the biggest testing gap.</p>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p><code>docs/design/api_containers.md</code> gained useful new sections on engine mirroring, finalizer lifecycle, and <code>spec.state</code> transitions, and they match the implementation for the <code>moby</code> / Docker case. Two accuracy problems remain:</p>
+    <ol>
+      <li>The <code>ContainerCreateRequest</code> example at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/docs/design/api_containers.md#L156-L160"><code>docs/design/api_containers.md:156-160</code></a> still shows <code>state: running # Default to running</code>, but the code now defaults to <code>unknown</code> (S1).</li>
+      <li>The &quot;engine-specific namespaces for containerd&quot; phrasing at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/docs/design/api_containers.md#L37-L38"><code>docs/design/api_containers.md:37-38</code></a> overstates current implementation — the controller hardcodes the <code>moby</code> namespace and, as called out in I1, cannot run against containerd at all today. Either add a &quot;Docker only in the current release&quot; qualifier, or qualify the sentence so readers don&#39;t expect containerd support.</li>
+    </ol>
+    <p>The new CLI help in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L65-L72"><code>cmd/rdd/set.go:65-72</code></a> similarly promises behavior that the code doesn&#39;t yet deliver for <code>running=false</code> (I4) and for <code>containerEngine.name=containerd</code> (I1). Updating it along with the fix is worth doing as part of the same change.</p>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The branch is nine commits, each focused and individually reviewable (Rosetta option cleanup, socket path + distro workaround, Docker client dep, engine controller, webhook, design doc, BATS tests, <code>rdd set</code> wait, CI timeout wrapper). Commit order is logical — dependencies first, feature on top, tests and CI last — and most commits build on each other cleanly. No commit mixes unrelated concerns. Nothing to fix here.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><em></em>Docker socket hardcoded to <code>.rd2</code><em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/instance/instance.go#L127-L128"><code>pkg/instance/instance.go:127-128</code></a>, <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/app/lima-template.yaml#L30"><code>pkg/controllers/app/app/lima-template.yaml:30</code></a>, <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/bats/tests/32-app-controllers/engine.bats#L12-L14"><code>bats/tests/32-app-controllers/engine.bats:12-14</code></a> <span class="pill pill-codex">Codex</span>. All three locations carry a TODO noting the Lima template still hardcodes <code>.rd2</code> until the template derives the socket path from the instance suffix. The new controller and BATS tests both depend on this path, so the hardcode matters more now than before — but it is an explicit, acknowledged limitation.</li>
+      <li><strong>Docker socket access not wired up for Windows/WSL2</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/bats/tests/32-app-controllers/engine.bats#L17-L20"><code>bats/tests/32-app-controllers/engine.bats:17-20</code></a>. The <code>local_setup_file</code> helper skips the whole engine BATS suite on Windows; the current skip is consistent with the known limitation.</li>
+      <li><em></em><code>containerEngine.name</code> changes still not waited on<em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L436-L439"><code>cmd/rdd/set.go:436-439</code></a>. The TODO accurately acknowledges that VM-restarting property changes are not covered by the new default waiting until a <code>Reconciled</code> condition with <code>observedGeneration</code> exists. This is tracked elsewhere.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Claude&#39;s review was initially lost to a launcher bug (see Review Process Notes): the <code>claude --print</code> mode only captures the last assistant text block, and Claude emitted its findings across many text blocks as it worked. The full structured review was recovered post-hoc from the session JSONL and folded into this report. Claude&#39;s unique contributions are the strongest set of the three: the <code>removeMirrorResource</code> <code>IgnoreNotFound</code>-masking bug (I8), the compound cleanup weakness (Conflict-retry + first-error short-circuit) that strengthened I5, and the O(N) per-reconcile sweep concern that promoted the architectural observation into an actionable Important finding (I7). It also contributed four useful Suggestions (S4–S7) and a small dead-code cleanup (S8) that neither other agent caught. Its execution pattern — read a file, build a theory, verify with a targeted grep, write a finding — is visible in the tool-call mix and delivered zero false positives.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Codex produced the widest &quot;contract-violation&quot; set: the <code>ContainerNamespace</code> finalizer stuckness (I2), the <code>running=false</code> wait-semantics regression (I4), and the &quot;finalizer stripped even when Docker delete fails&quot; contract violation (I3) are all unique to it. Its severity calibration was restrained — it intentionally chose zero criticals and classified everything as Important, which in hindsight left C1 slightly underweighted compared to Gemini&#39;s read but was otherwise well-tuned.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Gemini was fast and aggressive and caught the one true critical in the change — the volume-name sanitization crash (C1). It also raised real important issues: the edge-triggered cleanup bug (I5), the N+1 startup latency (I6), and the watch-channel-closure concern. Its weakness was an obvious false positive: it claimed a bash syntax error <code>&quot;$ @&quot;</code> in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/scripts/bats-with-timeout.sh#L143"><code>scripts/bats-with-timeout.sh:143</code></a> that does not exist in the file (the actual code is <code>&quot;$@&quot;</code>). That finding carried a <strong>critical</strong> label and an Executive Summary pull quote, so without verification it would have completely dominated the consolidated output. Gemini also upgraded the edge-trigger cleanup bug to critical on a plausible-but-overblown &quot;permanent orphaning&quot; argument — partial self-healing on the next fullSync brings it back to Important. Net: strong unique findings, but the only agent that needed a correction on severity and hallucinated a finding outright.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.6</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>15m 59s</td><td>6m 54s</td><td>6m 33s</td></tr>
+        <tr><td>Findings</td><td>3I 5S</td><td>4I 1S</td><td>1C 2I 2S</td></tr>
+        <tr><td>Tool calls</td><td>88 (Bash 39, Read 28, Grep 13)</td><td>50 (shell 50)</td><td>6 (grep<em>search 3, run</em>shell_command 3)</td></tr>
+        <tr><td>Design observations</td><td>2</td><td>3</td><td>2</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>1</td></tr>
+        <tr><td>Unique insights</td><td>5</td><td>3</td><td>3</td></tr>
+        <tr><td>Files reviewed</td><td>21</td><td>21</td><td>21</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>3I 5S</strong></td><td><strong>4I 1S</strong></td><td><strong>1C 2I 2S</strong></td></tr>
+        <tr><td>Downgraded</td><td>1 (I→S)</td><td>0</td><td>1 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Reconciliation:</strong> Gemini C1 (&quot;bash syntax error in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/scripts/bats-with-timeout.sh#L144"><code>bats-with-timeout.sh:144</code></a>&quot;): rejected as a false positive — verified the file directly, the actual code is <code>&quot;$@&quot; &amp;</code> with no space. Gemini C2 (&quot;edge-triggered cleanup permanently orphans resources&quot;): critical → important (merged into I5) — the failure mode is real but <code>syncAllContainers</code> / <code>syncAllImages</code> / <code>syncAllVolumes</code> stale-item pruning partially self-heals on the next successful start, so &quot;permanent&quot; is overstated. Gemini C3 (&quot;volume naming&quot;): kept as critical (C1 in the consolidated report), since one misnamed volume is enough to break the entire engine startup. Claude I4 (&quot;dead <code>scheme</code> field&quot;): important → suggestion (S8) — a hygiene cleanup rather than a correctness or performance concern.</p>
+    <p>Overall assessment: Claude and Codex each contributed the highest-signal set for their respective problem classes — Claude for cleanup / concurrency error handling and perf architecture, Codex for contract violations and CLI semantics. Gemini contributed the data-path critical (C1) and the reconciler state-machine concern (I5) plus the efficiency finding (I6). No two agents alone would have produced the full consolidated set; all three were necessary.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="skill-improvements">Skill improvements <a href="#skill-improvements" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><em></em>Launcher bug fixed post-consolidation: <code>claude --print</code> only captures the last assistant text block, not the full response.<em></em> During this review, Claude wrote a complete 18KB structured review — 4 Important findings, 7 Suggestions, full coverage summary — across many <code>assistant</code> text blocks as it worked, then emitted a one-paragraph wrap-up as its final message. <code>launch.go</code> was piping <code>claude --print</code> stdout directly to the review file, so only the wrap-up survived. The full review was recovered from the session JSONL and folded into this consolidated report, and the skill&#39;s <code>launch.go</code> now invokes Claude with <code>--print --verbose --output-format stream-json</code>, post-processes the NDJSON stream to concatenate every <code>assistant</code> text block, and writes the result to the review file. Future Claude reviews will capture the complete output. (Claude was also switched to <code>claude-opus-4-6[1m]</code> to get the 1M context variant, closing a smaller latent issue that would have eventually bitten larger PRs.)</li>
+    </ul>
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li>None for this review. <code>deep-review-context.md</code> already describes the controller registration pattern, the finalizer / CRD lifecycle, and the BATS <code>RDD_INSTANCE</code> isolation, all of which held up against this PR.</li>
+    </ul>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
