@@ -192,17 +192,17 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
         <span class="finding-num">I1.</span> Env-var filter&#39;s regex matches only exact names, dropping every prefix alternative <span class="pill pill-claude">Claude</span><a href="#I1" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L165-L175">.github/actions/windows-machine-info/machine-info.ps1</a></div>
-      <pre data-start="165" data-line="170"><code class="language-powershell">                      @{N=&#39;CPU_sec&#39;;E={if ($_.CPU) { [math]::Round($_.CPU,1) } else { &#39;&#39; }}},
+      <pre data-start="165" data-line="170"><code class="language-powershell">    Get-Service vmms, vmcompute, hns, WslService -ErrorAction SilentlyContinue |
+        Select-Object Name, Status, StartType | Format-Table -AutoSize
+
+    Write-Output &quot;=== Top 20 processes by working set ===&quot;
+    Get-Process | Sort-Object -Property WS -Descending | Select-Object -First 20 |
+        Select-Object @{N=&#39;WS_MB&#39;;E={[math]::Round($_.WorkingSet64/1MB,1)}},
+                      @{N=&#39;CPU_sec&#39;;E={if ($_.CPU) { [math]::Round($_.CPU,1) } else { &#39;&#39; }}},
                       Id, Handles, ProcessName |
         Format-Table -AutoSize
 
-    Write-Output &quot;=== Environment ===&quot;
-    Get-ChildItem env: | Where-Object { $_.Name -match &#39;^(LOCALAPPDATA|TEMP|TMP|USERPROFILE|HOMEDRIVE|GITHUB_|RUNNER_|RDD_|MSYS|PATH)$&#39; } |
-        Sort-Object Name | Format-Table -AutoSize Name, Value
-}
-finally {
-    Stop-Transcript | Out-Null
-}</code></pre>
+    Write-Output &quot;=== Environment ===&quot;</code></pre>
     <p><code>^(...)$</code> anchors force each alternative to match the whole variable name. <code>LOCALAPPDATA</code>, <code>TEMP</code>, <code>TMP</code>, <code>USERPROFILE</code>, <code>HOMEDRIVE</code>, and <code>PATH</code> are exact names and match fine. But <code>GITHUB_</code>, <code>RUNNER_</code>, <code>RDD_</code>, and <code>MSYS</code> were intended as prefixes — no environment variable is literally named <code>GITHUB_</code> or <code>RUNNER_</code>. Every <code>GITHUB_WORKSPACE</code>, <code>GITHUB_ACTIONS</code>, <code>GITHUB_SHA</code>, <code>RUNNER_OS</code>, <code>RUNNER_TEMP</code>, <code>RDD_TRACE</code>, <code>RDD_LOG_LEVEL</code>, <code>MSYSTEM</code>, <code>MSYS2_PATH_TYPE</code> fails the <code>$</code> anchor and is dropped. I verified the behavior with <code>python3 -c &quot;import re; re.match(r&#39;^(GITHUB_|...)$&#39;, &#39;GITHUB_WORKSPACE&#39;)&quot;</code> — no match.</p>
     <p>The whole point of this section is correlating runner state with flaky timeouts. Losing the Actions metadata and the RDD tuning knobs defeats most of the value; right now the block only exposes <code>LOCALAPPDATA</code>, <code>TEMP</code>, <code>TMP</code>, <code>USERPROFILE</code>, <code>HOMEDRIVE</code>, and <code>PATH</code>.</p>
     <p>Fix: turn the prefix entries into proper patterns. (Intentionally keep <code>GITHUB_TOKEN</code> out by not adding a <code>GITHUB_.*TOKEN.*</code> catch-all, though <code>GITHUB_TOKEN</code> is not set on composite-action steps unless explicitly mapped.)</p>
@@ -214,8 +214,9 @@ finally {
       <div class="finding-title" id="I2">
         <span class="finding-num">I2.</span> Stop step deletes the raw BLG even when <code>relog</code> failed, losing the only capture <span class="pill pill-codex">Codex</span><a href="#I2" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L43-L60">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
-      <pre data-start="43" data-line="48-56"><code class="language-yaml">        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L43-L61">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
+      <pre data-start="43" data-line="48-56"><code class="language-yaml">        Wait-Process -Id $typeperfPid -Timeout 5 -ErrorAction SilentlyContinue
+        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
         Write-Output &quot;stopped typeperf pid=$typeperfPid&quot;
       }
       $blgFile = &quot;$outputDir/typeperf.blg&quot;
@@ -224,15 +225,15 @@ finally {
         $size = (Get-Item $blgFile).Length / 1MB
         Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
         relog $blgFile -f TSV -o $tsvFile -y
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tsvFile)) {
+          Write-Warning &quot;relog failed; preserving $blgFile for inspection&quot;
+          exit 1
+        }
         $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
         Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
-        Remove-Item $blgFile -Force
         go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
           $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;
-        Write-Output &quot;summary written to $outputDir/typeperf-summary.txt&quot;
-      } else {
-        Write-Output &quot;typeperf.blg not found, skipping summary&quot;
-      }</code></pre>
+        if ($LASTEXITCODE -ne 0) {</code></pre>
     <p>PowerShell does not throw on a non-zero exit from a native command; a failed <code>relog</code> silently flows into the <code>Get-Content</code>/<code>Measure-Object</code> call on a missing TSV (non-terminating error, execution continues) and into the unconditional <code>Remove-Item $blgFile -Force</code> at line 54. Because the workflow step in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L171-L177"><code>.github/workflows/bats.yaml:171-177</code></a> sets <code>continue-on-error: true</code>, the job will not fail — it will just upload an empty <code>rdd-logs/_diag/</code> with no raw BLG to retry conversion against. For a diagnostic action whose whole job is preserving evidence, that is the worst failure mode.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L166-L182">.github/workflows/bats.yaml</a></div>
       <pre data-start="166" data-line="171-177"><code class="language-yaml">      shell: run-in-shell {0}
@@ -286,6 +287,7 @@ finally {
       if (Test-Path $pidFile) {
         $typeperfPid = Get-Content $pidFile
         Stop-Process -Id $typeperfPid -Force -ErrorAction SilentlyContinue
+        Wait-Process -Id $typeperfPid -Timeout 5 -ErrorAction SilentlyContinue
         Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
         Write-Output &quot;stopped typeperf pid=$typeperfPid&quot;
       }
@@ -295,11 +297,10 @@ finally {
         $size = (Get-Item $blgFile).Length / 1MB
         Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
         relog $blgFile -f TSV -o $tsvFile -y
-        $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
-        Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
-        Remove-Item $blgFile -Force
-        go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
-          $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;</code></pre>
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tsvFile)) {
+          Write-Warning &quot;relog failed; preserving $blgFile for inspection&quot;
+          exit 1
+        }</code></pre>
     <p><code>Stop-Process -Force</code> issues <code>TerminateProcess</code>, which is asynchronous: the kernel signals cancellation but the process object and its file handles are not fully released until every outstanding I/O completes. On a busy runner <code>typeperf</code> can still hold <code>typeperf.blg</code> for a few milliseconds when <code>relog</code> starts, producing a file-sharing violation. The race window is tiny and this is defensive rather than a demonstrated failure, but the cost of a lost summary partly defeats the instrumentation, so it is worth eliminating.</p>
     <p>Gemini rated this Important; I downgraded it to a Suggestion because <code>typeperf</code> flushes each BLG sample immediately and Windows file-handle teardown after <code>TerminateProcess</code> is usually complete within milliseconds, so the practical failure rate on CI runners is near zero. <code>Wait-Process</code> is still the right call.</p>
     <p>Fix:</p>
@@ -316,31 +317,31 @@ finally {
 // SPDX-FileCopyrightText: SUSE LLC
 // SPDX-FileCopyrightText: The Rancher Desktop Authors
 
-// summarize-perf-counters reads a TSV file produced by typeperf and prints
-// a compact summary of system counters and top processes per sample.
+// summarize-typeperf reads a TSV file produced by typeperf (via relog
+// from BLG) and prints a compact summary of system counters and top
+// processes per sample.
 //
 // Usage:
 //
-//	go run scripts/summarize-perf-counters.go &lt;perfdata.tsv&gt; [topN]
+//	go run .github/actions/windows-typeperf-sampler/summarize-typeperf.go &lt;perfdata.tsv&gt; [topN]
 package main
 
 import (
-	&quot;encoding/csv&quot;
-	&quot;fmt&quot;</code></pre>
+	&quot;encoding/csv&quot;</code></pre>
     <p>The file is <code>summarize-typeperf.go</code> under <code>.github/actions/windows-typeperf-sampler/</code>, and the workflow invokes that exact path from <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/get-token/action.yaml#L55-L56"><code>action.yaml:55-56</code></a>. The header refers to a <code>summarize-perf-counters</code> name and <code>scripts/summarize-perf-counters.go</code> path that <code>git log --all -- scripts/summarize*</code> confirms has never existed in this repo — it looks like leftover boilerplate from an external adaptation. Anyone trying to reproduce the summary locally will be sent to a file that is not there.</p>
     <p>The companion <code>fmt.Fprintf(os.Stderr, &quot;usage: summarize-perf-counters ...&quot;)</code> at line 46 has the same stale name.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L41-L51">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
-      <pre data-start="41" data-line="46"><code class="language-go">
+      <pre data-start="41" data-line="46"><code class="language-go">	handles int
+	threads int
+}
+
 var headerRe = regexp.MustCompile(`\\Process\(([^)]+)\)\\(.+)$`)
 
 func main() {
 	if len(os.Args) &lt; 2 {
-		fmt.Fprintf(os.Stderr, &quot;usage: summarize-perf-counters &lt;perfdata.tsv&gt; [topN]\n&quot;)
+		fmt.Fprintf(os.Stderr, &quot;usage: summarize-typeperf &lt;perfdata.tsv&gt; [topN]\n&quot;)
 		os.Exit(1)
-	}
-	topN := 10
-	if len(os.Args) &gt;= 3 {
-		if n, err := strconv.Atoi(os.Args[2]); err == nil {</code></pre>
+	}</code></pre>
     <p>Fix:</p>
       <pre><code class="language-diff">-// summarize-perf-counters reads a TSV file produced by typeperf and prints
 -// a compact summary of system counters and top processes per sample.
@@ -409,23 +410,29 @@ func main() {
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $fs = [System.IO.File]::Create($benchFile)
-        for ($i = 0; $i -lt $sizeMB; $i++) {
-            $fs.Write($buf, 0, $buf.Length)
+        try {
+            for ($i = 0; $i -lt $sizeMB; $i++) {
+                $fs.Write($buf, 0, $buf.Length)
+            }
+            $fs.Flush($true)  # flush to disk
+        } finally {
+            $fs.Dispose()
         }
-        $fs.Flush($true)  # flush to disk
-        $fs.Close()
         $sw.Stop()
         $writeMs = $sw.Elapsed.TotalMilliseconds
         $writeMBs = [math]::Round($sizeMB * 1000 / $writeMs, 1)
 
         $sw.Restart()
         $fs = [System.IO.File]::OpenRead($benchFile)
-        $total = 0
-        $readbuf = New-Object byte[] (1MB)
-        while (($n = $fs.Read($readbuf, 0, $readbuf.Length)) -gt 0) {
-            $total += $n
+        try {
+            $total = 0
+            $readbuf = New-Object byte[] (1MB)
+            while (($n = $fs.Read($readbuf, 0, $readbuf.Length)) -gt 0) {
+                $total += $n
+            }
+        } finally {
+            $fs.Dispose()
         }
-        $fs.Close()
         $sw.Stop()
         $readMs = $sw.Elapsed.TotalMilliseconds
         $readMBs = [math]::Round($sizeMB * 1000 / $readMs, 1)
@@ -441,13 +448,7 @@ func main() {
     } catch {
         Write-Output &quot;disk bench failed: $($_.Exception.Message)&quot;
     } finally {
-        if (Test-Path $benchFile) { Remove-Item $benchFile -Force -ErrorAction SilentlyContinue }
-    }
-
-    Write-Output &quot;=== Defender Status ===&quot;
-    Get-MpComputerStatus -ErrorAction SilentlyContinue |
-        Select-Object AntivirusEnabled, RealTimeProtectionEnabled,
-                      OnAccessProtectionEnabled, BehaviorMonitorEnabled,</code></pre>
+        if (Test-Path $benchFile) { Remove-Item $benchFile -Force -ErrorAction SilentlyContinue }</code></pre>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L75-L91">.github/workflows/bats.yaml</a></div>
       <pre data-start="75" data-line="80-86"><code class="language-yaml">      if: runner.os == &#39;macOS&#39;
       working-directory: ${{ runner.temp }}
@@ -486,31 +487,31 @@ func main() {
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         $fs = [System.IO.File]::Create($benchFile)
-        for ($i = 0; $i -lt $sizeMB; $i++) {
-            $fs.Write($buf, 0, $buf.Length)
+        try {
+            for ($i = 0; $i -lt $sizeMB; $i++) {
+                $fs.Write($buf, 0, $buf.Length)
+            }
+            $fs.Flush($true)  # flush to disk
+        } finally {
+            $fs.Dispose()
         }
-        $fs.Flush($true)  # flush to disk
-        $fs.Close()
         $sw.Stop()
         $writeMs = $sw.Elapsed.TotalMilliseconds
         $writeMBs = [math]::Round($sizeMB * 1000 / $writeMs, 1)
 
         $sw.Restart()
         $fs = [System.IO.File]::OpenRead($benchFile)
-        $total = 0
-        $readbuf = New-Object byte[] (1MB)
-        while (($n = $fs.Read($readbuf, 0, $readbuf.Length)) -gt 0) {
-            $total += $n
+        try {
+            $total = 0
+            $readbuf = New-Object byte[] (1MB)
+            while (($n = $fs.Read($readbuf, 0, $readbuf.Length)) -gt 0) {
+                $total += $n
+            }
+        } finally {
+            $fs.Dispose()
         }
-        $fs.Close()
         $sw.Stop()
-        $readMs = $sw.Elapsed.TotalMilliseconds
-        $readMBs = [math]::Round($sizeMB * 1000 / $readMs, 1)
-
-        [PSCustomObject]@{
-            File = $benchFile
-            SizeMB = $sizeMB
-            WriteMs = [math]::Round($writeMs, 1)</code></pre>
+        $readMs = $sw.Elapsed.TotalMilliseconds</code></pre>
     <p>If <code>$fs.Write</code> throws mid-loop (disk full, antivirus locking, I/O error) control jumps past <code>$fs.Close()</code> into the outer <code>catch</code> block. The handle is leaked to GC. The <code>finally</code> then tries <code>Remove-Item $benchFile -Force -ErrorAction SilentlyContinue</code> on a still-locked file; with <code>SilentlyContinue</code> the delete failure is swallowed and a 256 MB file lingers under <code>%TEMP%</code> until the runner is recycled. The identical pattern repeats in the read loop at lines 104-111.</p>
     <p>Fix: wrap each stream in its own try/finally so the handle is disposed deterministically.</p>
       <pre><code class="language-diff">-        $fs = [System.IO.File]::Create($benchFile)
@@ -534,7 +535,10 @@ func main() {
         <span class="finding-num">S5.</span> <code>handles</code> and <code>threads</code> counters are collected, parsed, and then never printed <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L19-L36">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
-      <pre data-start="19" data-line="24-31"><code class="language-go">	&quot;slices&quot;
+      <pre data-start="19" data-line="24-31"><code class="language-go">	&quot;math&quot;
+	&quot;os&quot;
+	&quot;regexp&quot;
+	&quot;slices&quot;
 	&quot;strconv&quot;
 	&quot;strings&quot;
 )
@@ -548,16 +552,20 @@ type procSnap struct {
 	threads int
 }
 
-// procIndex holds column indices for one process instance.
-type procIndex struct {
-	cpu     int
-	ws      int</code></pre>
+// procIndex holds column indices for one process instance.</code></pre>
     <p><code>printTopN</code> only prints <code>name</code>, <code>pid</code>, <code>cpu</code>, <code>wsMB</code>:</p>
       <pre><code class="language-go">fmt.Printf(&quot;    %-30s PID %6d  CPU %7.1f%%  WS %8.1f MB\n&quot;,
     s.name, s.pid, s.cpu, s.wsMB)</code></pre>
     <p>The <code>handles</code>/<code>threads</code> fields on <code>procSnap</code>, the matching fields on <code>procIndex</code>, the header detection for <code>Handle Count</code>/<code>Thread Count</code>, and the per-sample extraction at lines 160-168 all exist only to populate two fields that nothing reads. The corresponding <code>\Process(*)\Handle Count</code> and <code>\Process(*)\Thread Count</code> lines in <code>typeperf-counters.txt</code> each add one column per tracked process per sample to the BLG (and the intermediate TSV) for no benefit.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L155-L173">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
-      <pre data-start="155" data-line="160-168"><code class="language-go">			ws, wsOK := colFloat(record, pi.ws)
+      <pre data-start="155" data-line="160-168"><code class="language-go">		}
+
+		// Per-process snapshots via precomputed indices
+		snaps := make([]procSnap, 0, len(instances))
+		for _, inst := range instances {
+			pi := procs[inst]
+			cpu, cpuOK := colFloat(record, pi.cpu)
+			ws, wsOK := colFloat(record, pi.ws)
 			if !cpuOK &amp;&amp; !wsOK {
 				continue
 			}
@@ -568,14 +576,7 @@ type procIndex struct {
 				name:    inst,
 				pid:     pid,
 				cpu:     cpu,
-				wsMB:    ws / (1024 * 1024),
-				handles: handles,
-				threads: threads,
-			})
-		}
-
-		printTopN(snaps, topN, &quot;CPU&quot;, func(s procSnap) float64 { return s.cpu })
-		printTopN(snaps, topN, &quot;Working Set&quot;, func(s procSnap) float64 { return s.wsMB })</code></pre>
+				wsMB:    ws / (1024 * 1024),</code></pre>
     <p>Handle and thread counts are actually useful for leak diagnosis, so extending the output is probably preferable to deleting the counters:</p>
       <pre><code class="language-diff">-			fmt.Printf(&quot;    %-30s PID %6d  CPU %7.1f%%  WS %8.1f MB\n&quot;,
 -				s.name, s.pid, s.cpu, s.wsMB)
@@ -587,34 +588,34 @@ type procIndex struct {
         <span class="finding-num">S6.</span> CSV read loop breaks on any error, silently truncating the summary on malformed rows <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L113-L127">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
-      <pre data-start="113" data-line="118-122"><code class="language-go">	}
+      <pre data-start="113" data-line="118-122"><code class="language-go">		case &quot;Thread Count&quot;:
+			pi.threads = i
+		}
+	}
 
 	fmt.Printf(&quot;Processes tracked: %d\n&quot;, len(procs))
 
 	rowNum := 0
 	for {
 		record, err := reader.Read()
-		if err != nil {
+		if errors.Is(err, io.EOF) {
 			break
 		}
-		rowNum++
-
-		fmt.Printf(&quot;\n--- %s ---\n&quot;, record[0])
-
-		// System counters</code></pre>
+		if err != nil {
+			fmt.Fprintf(os.Stderr, &quot;read row %d: %v\n&quot;, rowNum+1, err)</code></pre>
     <p><code>encoding/csv.Reader</code> returns <code>io.EOF</code> at clean end, but also returns <code>csv.ErrFieldCount</code> or quoting errors mid-file. The current loop collapses all of them into a silent <code>break</code>, leaving the misleading <code>Samples: N</code> footer at line 176 with a low count and no explanation. Worth distinguishing <code>io.EOF</code> from real parse errors so a partial TSV still summarizes what it can while flagging the failure on stderr.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L171-L181">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
-      <pre data-start="171" data-line="176"><code class="language-go">
+      <pre data-start="171" data-line="176"><code class="language-go">				pid:     pid,
+				cpu:     cpu,
+				wsMB:    ws / (1024 * 1024),
+				handles: handles,
+				threads: threads,
+			})
+		}
+
 		printTopN(snaps, topN, &quot;CPU&quot;, func(s procSnap) float64 { return s.cpu })
 		printTopN(snaps, topN, &quot;Working Set&quot;, func(s procSnap) float64 { return s.wsMB })
-	}
-
-	fmt.Printf(&quot;\nSamples: %d\n&quot;, rowNum)
-}
-
-func printTopN(snaps []procSnap, n int, label string, key func(procSnap) float64) {
-	slices.SortFunc(snaps, func(a, b procSnap) int {
-		return cmpDesc(key(a), key(b))</code></pre>
+	}</code></pre>
       <pre><code class="language-diff"> for {
      record, err := reader.Read()
 +    if errors.Is(err, io.EOF) {
@@ -639,7 +640,7 @@ func printTopN(snaps []procSnap, n int, label string, key func(procSnap) float64
       $counterFile = &quot;${{ github.action_path }}/typeperf-counters.txt&quot;
       $blgFile = &quot;$outputDir/typeperf.blg&quot;
       $proc = Start-Process -PassThru -WindowStyle Hidden -FilePath typeperf `
-        -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;
+        -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;, &quot;-y&quot;
       $proc.Id | Set-Content -Path &quot;$outputDir/typeperf.pid&quot;
       Write-Output &quot;typeperf started, pid=$($proc.Id), output=$blgFile&quot;
 
@@ -647,17 +648,17 @@ func printTopN(snaps []procSnap, n int, label string, key func(procSnap) float64
     if: runner.os == &#39;Windows&#39; &amp;&amp; inputs.command == &#39;stop&#39;</code></pre>
     <p>If <code>$blgFile</code> already exists, <code>typeperf</code> prompts to overwrite and blocks on stdin. With <code>-WindowStyle Hidden</code> the prompt is invisible and the sampler hangs indefinitely. Fresh CI runners never hit this, but <code>relog</code> on line 51 already passes <code>-y</code> for exactly the same reason; the start step should be symmetric as cheap insurance against a reused runner.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L46-L56">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
-      <pre data-start="46" data-line="51"><code class="language-yaml">      $blgFile = &quot;$outputDir/typeperf.blg&quot;
+      <pre data-start="46" data-line="51"><code class="language-yaml">      }
+      $blgFile = &quot;$outputDir/typeperf.blg&quot;
       $tsvFile = &quot;$outputDir/typeperf.tsv&quot;
       if (Test-Path $blgFile) {
         $size = (Get-Item $blgFile).Length / 1MB
         Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
         relog $blgFile -f TSV -o $tsvFile -y
-        $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
-        Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
-        Remove-Item $blgFile -Force
-        go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
-          $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;</code></pre>
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tsvFile)) {
+          Write-Warning &quot;relog failed; preserving $blgFile for inspection&quot;
+          exit 1
+        }</code></pre>
       <pre><code class="language-diff">-  -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;
 +  -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;, &quot;-y&quot;</code></pre>
     </div>
