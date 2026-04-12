@@ -24,11 +24,20 @@ shift 2
 
 instance="${RDD_INSTANCE:-2}"
 
+# Locate the rdd binary relative to this script rather than via PATH.
+# CI runners do not add <repo>/bin to PATH, and bats targets invoke
+# us with `../scripts/bats-with-timeout.sh` from the bats/ directory.
+script_dir=$(cd "$(dirname "$0")" && pwd)
+rdd_bin="${script_dir}/../bin/rdd"
+if [ ! -x "$rdd_bin" ] && [ -x "${rdd_bin}.exe" ]; then
+    rdd_bin="${rdd_bin}.exe"
+fi
+
 # `rdd svc paths log_dir` is a pure local computation (see
 # cmd/rdd/service_paths.go): it resolves the path from the instance
 # suffix without touching the running service, so it is safe to call
 # even when the target under test is hung.
-log_dir=$(rdd svc paths log_dir)
+log_dir=$("$rdd_bin" svc paths log_dir)
 mkdir -p "${log_dir}"
 bundle_file="${log_dir}/support-bundle.log"
 
