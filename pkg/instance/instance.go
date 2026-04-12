@@ -119,3 +119,10 @@ var ShortDir = sync.OnceValue(func() string {
 var LimaHome = sync.OnceValue(func() string {
 	return filepath.Join(ShortDir(), "lima")
 })
+
+// DockerSocket returns the path to the Docker socket for this instance
+// (e.g., ~/.rd2/docker.sock). This is the host-side socket that Lima
+// port-forwards from the guest's /var/run/docker.sock.
+var DockerSocket = sync.OnceValue(func() string {
+	return filepath.Join(ShortDir(), "docker.sock")
+})
