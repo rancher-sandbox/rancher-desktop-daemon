@@ -24,8 +24,8 @@ import (
 	containersv1alpha1apply "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1/applyconfiguration/containers/v1alpha1"
 )
 
-// syncAllContainers lists all Docker containers and creates/updates K8s
-// resources, then removes stale ones.
+// syncAllContainers lists all Docker containers and creates/updates
+// `Container` mirror resources, then removes stale ones.
 //
 // Containers are Inspected sequentially rather than in parallel. The
 // initial sync runs one-shot at watcher startup, typical dev machines
@@ -42,7 +42,7 @@ func (w *dockerWatcher) syncAllContainers(ctx context.Context) error {
 		return fmt.Errorf("failed to list containers: %w", err)
 	}
 
-	// Track which container IDs exist in Docker.
+	// Track which Docker container IDs exist, so stale mirrors can be pruned.
 	dockerIDs := make(map[string]bool, len(listResult.Items))
 
 	var errs []error
@@ -53,15 +53,15 @@ func (w *dockerWatcher) syncAllContainers(ctx context.Context) error {
 		}
 	}
 
-	// Remove stale K8s containers.
-	var k8sContainers containersv1alpha1.ContainerList
-	if err := w.k8s.List(ctx, &k8sContainers, client.InNamespace(apiNamespace)); err != nil {
-		return fmt.Errorf("failed to list K8s containers: %w", err)
+	// Remove stale Container mirrors.
+	var containerMirrors containersv1alpha1.ContainerList
+	if err := w.k8s.List(ctx, &containerMirrors, client.InNamespace(apiNamespace)); err != nil {
+		return fmt.Errorf("failed to list Containers: %w", err)
 	}
-	for i := range k8sContainers.Items {
-		c := &k8sContainers.Items[i]
+	for i := range containerMirrors.Items {
+		c := &containerMirrors.Items[i]
 		if !dockerIDs[c.Name] {
-			log.V(1).Info("Removing stale container", "id", c.Name)
+			log.V(1).Info("Removing stale Container", "id", c.Name)
 			if err := w.removeMirrorResource(ctx, c, c.Name); err != nil {
 				errs = append(errs, err)
 			}
@@ -71,9 +71,10 @@ func (w *dockerWatcher) syncAllContainers(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// syncContainer inspects a single container and creates/updates the K8s resource.
-// NotFound is treated as success: the container raced a concurrent delete
-// between List and Inspect, and the stale K8s mirror will be pruned by
+// syncContainer inspects a single Docker container and creates or
+// updates the corresponding `Container` mirror. NotFound is treated as
+// success: the container raced a concurrent delete between List and
+// Inspect, and the stale Container mirror will be pruned by
 // syncAllContainers' remove-stale step later in the same sync.
 func (w *dockerWatcher) syncContainer(ctx context.Context, id string) error {
 	result, err := w.cli.ContainerInspect(ctx, id, dockerclient.ContainerInspectOptions{})
@@ -87,7 +88,7 @@ func (w *dockerWatcher) syncContainer(ctx context.Context, id string) error {
 	return w.applyContainer(ctx, result.Container)
 }
 
-// applyContainer creates or updates a Container resource from a Docker
+// applyContainer creates or updates a `Container` mirror from a Docker
 // InspectResponse. The spec is only set on creation; subsequent syncs
 // update only the status subresource so user-initiated spec.state
 // changes (start/stop) are not overwritten.
@@ -101,10 +102,11 @@ func (w *dockerWatcher) syncContainer(ctx context.Context, id string) error {
 func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontainer.InspectResponse) error {
 	namespace, name := parseContainerName(inspect.Name)
 
-	// Create the resource if it doesn't exist. spec.state is always set to
-	// "unknown" on creation — meaning the engine mirrors Docker state without
-	// expressing intent. The user can later set it to "running" or "created"
-	// to control the container; the reconciler ignores "unknown".
+	// Create the `Container` mirror if it doesn't exist. spec.state is
+	// always set to "unknown" on creation — meaning the engine mirrors
+	// Docker container state without expressing intent. The user can later
+	// set it to "running" or "created" to control the Docker container;
+	// the reconciler ignores "unknown".
 	//
 	// Deliberately omit ForceOwnership on the create apply: if a user
 	// patch to spec.state landed in the window between the Get above

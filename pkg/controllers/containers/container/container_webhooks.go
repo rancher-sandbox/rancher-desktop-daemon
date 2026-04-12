@@ -55,7 +55,7 @@ func (c *immutableValidator) ValidateUpdate(_ context.Context, oldContainer, new
 	}
 
 	if !equality.Semantic.DeepEqual(oldContainer.Spec, newContainer.Spec) {
-		return nil, fmt.Errorf("container spec must not be modified: old: %v, new: %v", oldContainer.Spec, newContainer.Spec)
+		return nil, fmt.Errorf("the Container spec must not be modified: old: %v, new: %v", oldContainer.Spec, newContainer.Spec)
 	}
 
 	return nil, nil

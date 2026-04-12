@@ -2,9 +2,11 @@
 // SPDX-FileCopyrightText: SUSE LLC
 // SPDX-FileCopyrightText: The Rancher Desktop Authors
 
-// Package engine registers the engine controller. The engine controller mirrors
-// Docker container engine state (containers, images, volumes) into Kubernetes
-// resources and forwards K8s deletions back to Docker.
+// Package engine registers the engine controller. The engine controller
+// mirrors Docker container engine state (containers, images, volumes)
+// into `Container`, `Image`, and `Volume` resources in the
+// containers.rancherdesktop.io API group, and forwards user-initiated
+// deletions back to the Docker engine.
 package engine
 
 import (

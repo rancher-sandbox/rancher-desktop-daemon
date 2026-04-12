@@ -5,8 +5,9 @@
 load '../../helpers/load'
 
 # Engine controller tests — verify that the engine controller mirrors Docker
-# containers, images, and volumes into K8s resources, and that K8s deletions
-# and spec.state changes are forwarded to Docker.
+# containers, images, and volumes into Container, Image, and Volume
+# resources, and that deletions and spec.state changes are forwarded
+# to Docker.
 
 NAMESPACE="rancher-desktop"
 # TODO: use .rd${RDD_INSTANCE} once the Lima template derives the socket path
@@ -41,7 +42,7 @@ local_setup_file() {
     # Docker's untag event carries the image ID hash, not the tag
     # name, so the engine cannot match the event payload against
     # status.repoTag directly. reconcileImageByID re-inspects the
-    # image and prunes K8s mirrors whose tags are no longer present
+    # image and prunes Image mirrors whose tags are no longer present
     # in Docker's current RepoTags.
     docker tag busybox:latest busybox:alias
     rdd ctl wait --for=create --namespace="${NAMESPACE}" image \
@@ -60,6 +61,44 @@ local_setup_file() {
     run -0 rdd ctl get image --namespace="${NAMESPACE}" \
         --field-selector "status.repoTag=busybox:latest" -o name
     assert_output
+}
+
+@test "tagging a dangling image removes the dangling mirror" {
+    # Create a dangling image by pinning it via a running container and
+    # then removing its only tag with --force. Docker keeps the image
+    # (the container still references it), so the UnTag path produces
+    # a dangling Image mirror rather than deleting the mirror outright.
+    # Tagging the dangling image then must prune the dangling mirror
+    # and leave only the new tagged one — the symmetric direction of
+    # the untag test above.
+    docker pull alpine:latest
+    run -0 docker inspect alpine:latest --format '{{.Id}}'
+    alpine_id=${output}
+
+    docker run -d --name dangling-pin alpine:latest sleep 3600
+
+    # Remove the only tag; the running container keeps the image alive.
+    docker rmi --force alpine:latest
+
+    # The dangling mirror's K8s name is sanitize(imageID): ":" → ".".
+    dangling_name=${alpine_id/:/.}
+    rdd ctl wait --for=create --namespace="${NAMESPACE}" \
+        image/"${dangling_name}" --timeout=30s
+
+    # Re-tag the image with a fresh alias. ActionTag routes through
+    # reconcileImageByID, which creates a new tagged mirror and prunes
+    # the now-stale dangling mirror.
+    docker tag "${alpine_id}" dangling-tag-test:v1
+    rdd ctl wait --for=create --namespace="${NAMESPACE}" image \
+        --field-selector "status.repoTag=dangling-tag-test:v1" --timeout=30s
+
+    # The dangling mirror must be gone.
+    rdd ctl wait --for=delete --namespace="${NAMESPACE}" \
+        image/"${dangling_name}" --timeout=30s
+
+    # Cleanup.
+    docker rm --force dangling-pin
+    docker rmi dangling-tag-test:v1
 }
 
 # --- Container lifecycle mirroring ---
@@ -104,8 +143,8 @@ local_setup_file() {
 
 # --- Volume mirroring ---
 
-# Volume K8s names are derived from the Docker name via SHA-256 hashing
-# (see volumeK8sName in sync_volumes.go), so tests look up volumes by
+# Volume mirror names are derived from the Docker name via SHA-256 hashing
+# (see volumeK8sName in sync_volumes.go), so tests look up Volumes by
 # status.name through the .status.name selectable field rather than by
 # metadata.name.
 
@@ -124,9 +163,9 @@ local_setup_file() {
 
 @test "volume name with uppercase and underscore is mirrored" {
     # Docker permits characters (uppercase, underscore) that are
-    # invalid in RFC 1123 subdomain K8s object names. volumeK8sName
-    # hashes the Docker name into a valid K8s name; the original is
-    # preserved in status.name and queryable via the field selector.
+    # invalid in RFC 1123 subdomain names. volumeK8sName hashes the
+    # Docker name into a valid subdomain; the original is preserved
+    # in status.name and queryable via the field selector.
     docker volume create My_Vol_Ume
     rdd ctl wait --for=create --namespace="${NAMESPACE}" volume \
         --field-selector "status.name=My_Vol_Ume" --timeout=30s
@@ -135,7 +174,7 @@ local_setup_file() {
         --field-selector "status.name=My_Vol_Ume" --timeout=30s
 }
 
-# --- K8s deletion removes Docker object ---
+# --- Deletion via the API removes the Docker object ---
 
 @test "deleting Container resource removes Docker container" {
     docker run -d --name test-delete busybox sleep 3600
@@ -160,7 +199,7 @@ local_setup_file() {
     rdd ctl wait --for=jsonpath='{.status.status}'=running \
         --namespace="${NAMESPACE}" container/"${cid}" --timeout=30s
 
-    # Resolve the Image K8s name from its repoTag.
+    # Resolve the Image mirror name from its repoTag.
     run -0 rdd ctl get image --namespace="${NAMESPACE}" \
         --field-selector "status.repoTag=busybox:latest" -o name
     assert_output
@@ -168,7 +207,7 @@ local_setup_file() {
 
     # Docker will refuse to remove an image referenced by a running
     # container. With I3 fixed, processImageFinalizers leaves the
-    # finalizer in place and the K8s resource stays (in Terminating
+    # finalizer in place and the Image mirror stays (in Terminating
     # state) until the image is actually removable.
     rdd ctl delete "${image_ref}" --namespace="${NAMESPACE}" --wait=false
 
@@ -180,8 +219,8 @@ local_setup_file() {
     assert_output "engine.rancherdesktop.io/docker-mirror"
 
     # Remove the container so Docker permits the image removal. The
-    # next reconcile's finalizer retry succeeds and the K8s Image is
-    # finally collected.
+    # next reconcile's finalizer retry succeeds and the Image mirror
+    # is finally collected.
     docker rm --force test-inuse
     rdd ctl wait --for=delete --namespace="${NAMESPACE}" \
         "${image_ref}" --timeout=30s

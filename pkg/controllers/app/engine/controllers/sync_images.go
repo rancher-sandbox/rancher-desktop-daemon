@@ -24,13 +24,14 @@ import (
 	containersv1alpha1apply "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1/applyconfiguration/containers/v1alpha1"
 )
 
-// sanitizeKubernetesObjectName replaces characters not allowed in K8s names.
+// sanitizeKubernetesObjectName replaces characters not allowed in
+// Kubernetes object names.
 func sanitizeKubernetesObjectName(input string) string {
 	return strings.NewReplacer("/", "-", ":", ".").Replace(input)
 }
 
-// syncAllImages lists all Docker images and creates/updates K8s resources,
-// then removes stale ones.
+// syncAllImages lists all Docker images and creates/updates `Image`
+// mirrors, then removes stale ones.
 //
 // Images are Inspected sequentially for the same reason as
 // syncAllContainers: one-shot at startup, typical dev machines have
@@ -45,7 +46,7 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 		return fmt.Errorf("failed to list images: %w", err)
 	}
 
-	// Track which K8s resource names we create so we can prune stale ones.
+	// Track which `Image` mirror names we create so we can prune stale ones.
 	activeNames := make(map[string]bool)
 
 	var errs []error
@@ -60,15 +61,15 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 		}
 	}
 
-	// Remove stale K8s images.
-	var k8sImages containersv1alpha1.ImageList
-	if err := w.k8s.List(ctx, &k8sImages, client.InNamespace(apiNamespace)); err != nil {
-		return fmt.Errorf("failed to list K8s images: %w", err)
+	// Remove stale Image mirrors.
+	var imageMirrors containersv1alpha1.ImageList
+	if err := w.k8s.List(ctx, &imageMirrors, client.InNamespace(apiNamespace)); err != nil {
+		return fmt.Errorf("failed to list Images: %w", err)
 	}
-	for i := range k8sImages.Items {
-		img := &k8sImages.Items[i]
+	for i := range imageMirrors.Items {
+		img := &imageMirrors.Items[i]
 		if !activeNames[img.Name] {
-			log.V(1).Info("Removing stale image", "name", img.Name)
+			log.V(1).Info("Removing stale Image", "name", img.Name)
 			if err := w.removeMirrorResource(ctx, img, img.Name); err != nil {
 				errs = append(errs, err)
 			}
@@ -78,9 +79,9 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// syncImageFromSummary creates K8s resources from a Docker image summary.
-// Returns the K8s resource names that were created. NotFound races
-// during fullSync are treated as success; the stale K8s mirror is
+// syncImageFromSummary creates `Image` mirrors from a Docker image
+// summary. Returns the mirror names that were created. NotFound races
+// during fullSync are treated as success; the stale Image mirror is
 // pruned later by syncAllImages' remove-stale step.
 func (w *dockerWatcher) syncImageFromSummary(ctx context.Context, summary mobyimage.Summary) ([]string, error) {
 	result, err := w.cli.ImageInspect(ctx, summary.ID)
@@ -93,9 +94,9 @@ func (w *dockerWatcher) syncImageFromSummary(ctx context.Context, summary mobyim
 	return w.applyImageFromInspect(ctx, result.InspectResponse)
 }
 
-// applyImageFromInspect creates or updates Image resources from a Docker
-// InspectResponse. One resource per tag, plus one for dangling images.
-// Returns the K8s resource names that were created.
+// applyImageFromInspect creates or updates `Image` mirrors from a Docker
+// InspectResponse. One Image per tag, plus one for dangling images.
+// Returns the mirror names that were created.
 func (w *dockerWatcher) applyImageFromInspect(ctx context.Context, inspect mobyimage.InspectResponse) ([]string, error) {
 	var names []string
 	var errs []error
@@ -119,13 +120,16 @@ func (w *dockerWatcher) applyImageFromInspect(ctx context.Context, inspect mobyi
 			}
 		}
 	} else {
-		// Dangling image (no tags).
+		// Dangling image (no tags). status.namespace is a required
+		// field on the CRD, so set it here too even though it carries
+		// no additional information beyond what the tagged branch sets.
 		name := sanitizeKubernetesObjectName(inspect.ID)
 		names = append(names, name)
 		if err := w.applyImage(ctx,
 			containersv1alpha1apply.Image(name, apiNamespace).
 				WithFinalizers(mirrorFinalizer),
-			imageStatusFromInspect(inspect),
+			imageStatusFromInspect(inspect).
+				WithNamespace(containerNamespace),
 		); err != nil {
 			errs = append(errs, err)
 		}
@@ -154,7 +158,7 @@ func imageStatusFromInspect(inspect mobyimage.InspectResponse) *containersv1alph
 	return statusApply
 }
 
-// applyImage creates or updates a single Image resource and its status.
+// applyImage creates or updates a single `Image` mirror and its status.
 func (w *dockerWatcher) applyImage(
 	ctx context.Context,
 	image *containersv1alpha1apply.ImageApplyConfiguration,
@@ -177,11 +181,11 @@ func (w *dockerWatcher) applyImage(
 	return nil
 }
 
-// reconcileImageByID re-inspects an image and reconciles every K8s Image
-// mirror whose status.id matches. Tags still present are re-applied; K8s
-// resources for tags that are no longer present are deleted. If the
-// image has been fully removed, all mirrors with that status.id are
-// deleted instead.
+// reconcileImageByID re-inspects a Docker image and reconciles every
+// `Image` mirror whose status.id matches. Tags still present are
+// re-applied; Image mirrors for tags that are no longer present are
+// deleted. If the image has been fully removed from Docker, all mirrors
+// with that status.id are deleted instead.
 //
 // This is the path for events that carry an image ID but not the tag
 // name — notably Docker's untag events, where the event payload only
@@ -221,7 +225,7 @@ func (w *dockerWatcher) reconcileImageByID(ctx context.Context, id string) error
 	return errors.Join(errs...)
 }
 
-// removeImagesByID finds and removes all Image resources for a given image ID.
+// removeImagesByID finds and removes all `Image` mirrors for a given Docker image ID.
 func (w *dockerWatcher) removeImagesByID(ctx context.Context, id string) error {
 	var images containersv1alpha1.ImageList
 	if err := w.k8s.List(ctx, &images, client.InNamespace(apiNamespace)); err != nil {

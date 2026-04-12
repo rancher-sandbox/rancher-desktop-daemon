@@ -42,8 +42,8 @@ const (
 	// controllerName is used as the field owner for server-side apply.
 	controllerName = "engine-controller"
 
-	// mirrorFinalizer is added to mirror resources so K8s deletions can be
-	// forwarded to Docker before the resource is removed.
+	// mirrorFinalizer is added to mirror resources so user deletions can
+	// be forwarded to Docker before the resource is removed.
 	mirrorFinalizer = "engine.rancherdesktop.io/docker-mirror"
 
 	// conditionContainerEngineReady is set on the App resource when the engine
@@ -69,8 +69,9 @@ type EngineReconciler struct {
 	watcher   *dockerWatcher
 }
 
-// Reconcile handles App condition changes, Docker watcher lifecycle, container
-// spec.state transitions, and finalizer processing for mirror resources.
+// Reconcile handles App condition changes, Docker watcher lifecycle,
+// Container spec.state transitions, and finalizer processing for mirror
+// resources.
 func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
 
@@ -223,16 +224,16 @@ func (r *EngineReconciler) cleanupMirrorResources(ctx context.Context) error {
 
 	var errs []error
 	if err := r.deleteAllOfType(ctx, &containersv1alpha1.ContainerList{}); err != nil {
-		errs = append(errs, fmt.Errorf("failed to delete containers: %w", err))
+		errs = append(errs, fmt.Errorf("failed to delete Containers: %w", err))
 	}
 	if err := r.deleteAllOfType(ctx, &containersv1alpha1.VolumeList{}); err != nil {
-		errs = append(errs, fmt.Errorf("failed to delete volumes: %w", err))
+		errs = append(errs, fmt.Errorf("failed to delete Volumes: %w", err))
 	}
 	if err := r.deleteAllOfType(ctx, &containersv1alpha1.ImageList{}); err != nil {
-		errs = append(errs, fmt.Errorf("failed to delete images: %w", err))
+		errs = append(errs, fmt.Errorf("failed to delete Images: %w", err))
 	}
 	if err := r.deleteAllOfType(ctx, &containersv1alpha1.ContainerNamespaceList{}); err != nil {
-		errs = append(errs, fmt.Errorf("failed to delete container namespaces: %w", err))
+		errs = append(errs, fmt.Errorf("failed to delete ContainerNamespaces: %w", err))
 	}
 	return errors.Join(errs...)
 }
@@ -284,12 +285,12 @@ func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.Obje
 	return errors.Join(errs...)
 }
 
-// reconcileContainerSpecs handles container spec.state changes by calling
-// Docker start/stop. Per-container errors are collected with errors.Join
-// and returned so controller-runtime requeues with backoff — matching
-// the pattern in processContainerFinalizers. Without the return, a
-// failed start/stop would get exactly one attempt (the watch event from
-// the original spec.state patch) and then sit forever.
+// reconcileContainerSpecs handles `Container` spec.state changes by
+// calling Docker start/stop. Per-Container errors are collected with
+// errors.Join and returned so controller-runtime requeues with backoff
+// — matching the pattern in processContainerFinalizers. Without the
+// return, a failed start/stop would get exactly one attempt (the watch
+// event from the original spec.state patch) and then sit forever.
 func (r *EngineReconciler) reconcileContainerSpecs(ctx context.Context) error {
 	r.watcherMu.Lock()
 	w := r.watcher
@@ -336,9 +337,9 @@ func (r *EngineReconciler) processFinalizers(ctx context.Context) error {
 }
 
 // processContainerFinalizers deletes the Docker-side container for every
-// K8s Container pending deletion and only strips the mirror finalizer
+// `Container` pending deletion and only strips the mirror finalizer
 // when the Docker delete succeeds. Per-item errors are collected so one
-// stuck container does not block the rest; the reconciler retries the
+// stuck Container does not block the rest; the reconciler retries the
 // remaining stuck items on the next reconcile.
 func (r *EngineReconciler) processContainerFinalizers(ctx context.Context, w *dockerWatcher) error {
 	var containers containersv1alpha1.ContainerList
@@ -360,7 +361,7 @@ func (r *EngineReconciler) processContainerFinalizers(ctx context.Context, w *do
 			// already have stripped the finalizer and deleted the
 			// mirror between our List and Update.
 			if err := client.IgnoreNotFound(r.Update(ctx, c)); err != nil {
-				errs = append(errs, fmt.Errorf("failed to remove finalizer from container %s: %w", c.Name, err))
+				errs = append(errs, fmt.Errorf("failed to remove finalizer from Container %s: %w", c.Name, err))
 			}
 		}
 	}
@@ -384,7 +385,7 @@ func (r *EngineReconciler) processImageFinalizers(ctx context.Context, w *docker
 		}
 		if removeFinalizer(img, mirrorFinalizer) {
 			if err := client.IgnoreNotFound(r.Update(ctx, img)); err != nil {
-				errs = append(errs, fmt.Errorf("failed to remove finalizer from image %s: %w", img.Name, err))
+				errs = append(errs, fmt.Errorf("failed to remove finalizer from Image %s: %w", img.Name, err))
 			}
 		}
 	}
@@ -408,7 +409,7 @@ func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *docke
 		}
 		if removeFinalizer(v, mirrorFinalizer) {
 			if err := client.IgnoreNotFound(r.Update(ctx, v)); err != nil {
-				errs = append(errs, fmt.Errorf("failed to remove finalizer from volume %s: %w", v.Name, err))
+				errs = append(errs, fmt.Errorf("failed to remove finalizer from Volume %s: %w", v.Name, err))
 			}
 		}
 	}
@@ -419,7 +420,7 @@ func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *docke
 func (r *EngineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.reconcileChan = make(chan event.GenericEvent, 1)
 
-	// Map any container/image/volume event to a reconcile of the App singleton.
+	// Map any Container/Image/Volume event to a reconcile of the App singleton.
 	enqueueApp := handler.EnqueueRequestsFromMapFunc(
 		func(_ context.Context, _ client.Object) []reconcile.Request {
 			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: appName}}}

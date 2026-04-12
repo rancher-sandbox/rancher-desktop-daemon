@@ -208,7 +208,7 @@ func (w *dockerWatcher) handleImageEvent(ctx context.Context, msg events.Message
 		events.ActionTag:
 		// Tag events may transition a dangling mirror into a tagged one
 		// (or vice versa on untag). reconcileImageByID applies the
-		// current tag set and prunes K8s mirrors whose names are no
+		// current tag set and prunes Image mirrors whose names are no
 		// longer in that set, so stale dangling or stale-tag mirrors do
 		// not accumulate between watcher restarts.
 		log.V(1).Info("Image event", "action", msg.Action, "id", msg.Actor.ID)
@@ -218,7 +218,7 @@ func (w *dockerWatcher) handleImageEvent(ctx context.Context, msg events.Message
 		// Docker's untag event does not propagate the removed tag name —
 		// Actor.ID and Attributes["name"] both carry the image ID hash
 		// (see moby daemon/images/image_delete.go). Re-inspect the image
-		// and let reconcileImageByID prune any K8s mirrors whose
+		// and let reconcileImageByID prune any Image mirrors whose
 		// RepoTag is no longer present.
 		log.V(1).Info("Image untagged", "id", msg.Actor.ID)
 		return w.reconcileImageByID(ctx, msg.Actor.ID)
@@ -244,7 +244,7 @@ func (w *dockerWatcher) handleVolumeEvent(ctx context.Context, msg events.Messag
 	case events.ActionDestroy:
 		log.V(1).Info("Volume destroyed", "name", msg.Actor.ID)
 		return w.removeMirrorResource(ctx, &containersv1alpha1.Volume{},
-			volumeK8sName(msg.Actor.ID))
+			volumeMirrorName(msg.Actor.ID))
 
 	default:
 		return nil
@@ -292,7 +292,7 @@ func (w *dockerWatcher) removeMirrorResource(ctx context.Context, obj client.Obj
 
 // reconcileContainerState checks if the user set spec.state to "running" or
 // "created" and calls Docker start/stop accordingly. The engine creates
-// containers with spec.state="unknown", which the reconciler ignores.
+// Containers with spec.state="unknown", which the reconciler ignores.
 func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containersv1alpha1.Container) error {
 	desired := c.Spec.State
 	if desired == containersv1alpha1.ContainerStatusUnknown {
@@ -375,8 +375,8 @@ func (w *dockerWatcher) deleteVolume(ctx context.Context, name string) error {
 	return err
 }
 
-// fullSync lists all containers, images, and volumes from Docker and creates
-// corresponding K8s resources. It also removes stale K8s resources.
+// fullSync lists all containers, images, and volumes from Docker and
+// creates corresponding mirror resources. It also removes stale mirrors.
 func (w *dockerWatcher) fullSync(ctx context.Context) error {
 	log := logf.FromContext(ctx).WithName("docker-watcher")
 	log.Info("Starting full sync")

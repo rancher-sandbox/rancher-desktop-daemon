@@ -25,17 +25,18 @@ import (
 	containersv1alpha1apply "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1/applyconfiguration/containers/v1alpha1"
 )
 
-// volumeK8sName computes a deterministic RFC 1123 subdomain name for a
-// Docker volume. Docker permits characters that are invalid in K8s
+// volumeMirrorName computes a deterministic RFC 1123 subdomain name
+// for a Docker volume. Docker permits characters that are invalid in
 // object names (uppercase letters, underscores), so the Docker name is
 // hashed and prefixed with "vol-" for readability. The original Docker
 // name is preserved in status.name.
-func volumeK8sName(dockerName string) string {
+func volumeMirrorName(dockerName string) string {
 	sum := sha256.Sum256([]byte(dockerName))
 	return fmt.Sprintf("vol-%x", sum)
 }
 
-// ensureNamespace creates the K8s namespace for mirror resources if it doesn't exist.
+// ensureNamespace creates the Kubernetes namespace that holds the
+// mirror resources if it doesn't exist.
 func (w *dockerWatcher) ensureNamespace(ctx context.Context) error {
 	var ns corev1.Namespace
 	if err := w.k8s.Get(ctx, client.ObjectKey{Name: apiNamespace}, &ns); err != nil {
@@ -52,12 +53,12 @@ func (w *dockerWatcher) ensureNamespace(ctx context.Context) error {
 	return nil
 }
 
-// syncContainerNamespace creates the "moby" ContainerNamespace resource.
-// Unlike Container / Image / Volume mirrors, this resource has no mirror
-// finalizer: Docker has no corresponding engine object to delete on the
-// reverse path, and cleanupMirrorResources sweeps it unconditionally on
-// VM stop, so a finalizer with no handler would only trap user-initiated
-// deletes in Terminating until the next bounce.
+// syncContainerNamespace creates the "moby" `ContainerNamespace` mirror.
+// Unlike `Container` / `Image` / `Volume` mirrors, this resource has no
+// mirror finalizer: Docker has no corresponding engine object to delete
+// on the reverse path, and cleanupMirrorResources sweeps it
+// unconditionally on VM stop, so a finalizer with no handler would only
+// trap user-initiated deletes in Terminating until the next bounce.
 func (w *dockerWatcher) syncContainerNamespace(ctx context.Context) error {
 	applyConfig := containersv1alpha1apply.ContainerNamespace(containerNamespace, apiNamespace)
 
@@ -65,8 +66,8 @@ func (w *dockerWatcher) syncContainerNamespace(ctx context.Context) error {
 		client.ForceOwnership, client.FieldOwner(controllerName))
 }
 
-// syncAllVolumes lists all Docker volumes and creates/updates K8s resources,
-// then removes stale ones.
+// syncAllVolumes lists all Docker volumes and creates/updates `Volume`
+// mirrors, then removes stale ones.
 func (w *dockerWatcher) syncAllVolumes(ctx context.Context) error {
 	log := logf.FromContext(ctx).WithName("docker-watcher")
 
@@ -75,27 +76,27 @@ func (w *dockerWatcher) syncAllVolumes(ctx context.Context) error {
 		return fmt.Errorf("failed to list volumes: %w", err)
 	}
 
-	// Track which K8s resource names we create.
+	// Track which `Volume` mirror names we create.
 	activeNames := make(map[string]bool, len(volumeList.Items))
 
 	var errs []error
 	for _, v := range volumeList.Items {
-		k8sName := volumeK8sName(v.Name)
-		activeNames[k8sName] = true
+		mirrorName := volumeMirrorName(v.Name)
+		activeNames[mirrorName] = true
 		if err := w.applyVolume(ctx, v); err != nil {
 			errs = append(errs, err)
 		}
 	}
 
-	// Remove stale K8s volumes.
-	var k8sVolumes containersv1alpha1.VolumeList
-	if err := w.k8s.List(ctx, &k8sVolumes, client.InNamespace(apiNamespace)); err != nil {
-		return fmt.Errorf("failed to list K8s volumes: %w", err)
+	// Remove stale Volume mirrors.
+	var volumeMirrors containersv1alpha1.VolumeList
+	if err := w.k8s.List(ctx, &volumeMirrors, client.InNamespace(apiNamespace)); err != nil {
+		return fmt.Errorf("failed to list Volumes: %w", err)
 	}
-	for i := range k8sVolumes.Items {
-		vol := &k8sVolumes.Items[i]
+	for i := range volumeMirrors.Items {
+		vol := &volumeMirrors.Items[i]
 		if !activeNames[vol.Name] {
-			log.V(1).Info("Removing stale volume", "name", vol.Name)
+			log.V(1).Info("Removing stale Volume", "name", vol.Name)
 			if err := w.removeMirrorResource(ctx, vol, vol.Name); err != nil {
 				errs = append(errs, err)
 			}
@@ -105,10 +106,11 @@ func (w *dockerWatcher) syncAllVolumes(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-// syncVolume looks up a single volume by name and creates/updates the K8s resource.
-// NotFound is treated as success: the volume raced a concurrent delete
-// between List and Inspect, and syncAllVolumes' remove-stale step
-// prunes the K8s mirror later in the same sync.
+// syncVolume looks up a single Docker volume by name and creates or
+// updates the corresponding `Volume` mirror. NotFound is treated as
+// success: the volume raced a concurrent delete between List and
+// Inspect, and syncAllVolumes' remove-stale step prunes the Volume
+// mirror later in the same sync.
 func (w *dockerWatcher) syncVolume(ctx context.Context, name string) error {
 	result, err := w.cli.VolumeInspect(ctx, name, dockerclient.VolumeInspectOptions{})
 	if cerrdefs.IsNotFound(err) {
@@ -120,17 +122,17 @@ func (w *dockerWatcher) syncVolume(ctx context.Context, name string) error {
 	return w.applyVolume(ctx, result.Volume)
 }
 
-// applyVolume creates or updates a Volume resource from a Docker volume.
+// applyVolume creates or updates a `Volume` mirror from a Docker volume.
 func (w *dockerWatcher) applyVolume(ctx context.Context, vol mobyvolume.Volume) error {
-	k8sName := volumeK8sName(vol.Name)
+	mirrorName := volumeMirrorName(vol.Name)
 
-	applyConfig := containersv1alpha1apply.Volume(k8sName, apiNamespace).
+	applyConfig := containersv1alpha1apply.Volume(mirrorName, apiNamespace).
 		WithFinalizers(mirrorFinalizer)
 
 	err := w.k8s.Apply(ctx, applyConfig,
 		client.ForceOwnership, client.FieldOwner(controllerName))
 	if err != nil {
-		return fmt.Errorf("failed to apply volume %s: %w", k8sName, err)
+		return fmt.Errorf("failed to apply volume %s: %w", mirrorName, err)
 	}
 
 	statusApply := containersv1alpha1apply.VolumeStatus().
@@ -147,11 +149,11 @@ func (w *dockerWatcher) applyVolume(ctx context.Context, vol mobyvolume.Volume) 
 	}
 
 	err = w.k8s.SubResource("status").Apply(ctx,
-		containersv1alpha1apply.Volume(k8sName, apiNamespace).
+		containersv1alpha1apply.Volume(mirrorName, apiNamespace).
 			WithStatus(statusApply),
 		client.ForceOwnership, client.FieldOwner(controllerName))
 	if err != nil {
-		return fmt.Errorf("failed to apply volume status %s: %w", k8sName, err)
+		return fmt.Errorf("failed to apply volume status %s: %w", mirrorName, err)
 	}
 
 	return nil

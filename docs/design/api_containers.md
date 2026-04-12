@@ -13,6 +13,25 @@ All objects are in the `containers.rancherdesktop.io` API group.
 
 All times are in RFC3339 format, per usual Kubernetes conventions.
 
+## Terminology
+
+`Container`, `Image`, `Volume`, and `ContainerNamespace` (capitalized) refer to
+the resource types in this API group.  `container`, `image`, and `volume`
+(lowercase) refer to the underlying Docker engine objects.  Because the rdd
+LimaVM also runs k3s — another Kubernetes — the prefix "k8s container" would be
+ambiguous; this doc, code comments, and commit messages follow the
+capitalization convention instead.
+
+For clarity in prose where the capitalization alone is not obvious
+(especially at the start of a sentence or when a sentence refers to
+both the engine object and the resource), the resources are called
+"Container mirrors", "Image mirrors", and "Volume mirrors" — because
+the engine controller's role is to mirror Docker engine state into
+these resources.  The code uses the same terminology: the finalizer
+kind is `engine.rancherdesktop.io/docker-mirror`, the cleanup helper
+is `cleanupMirrorResources`, and the per-volume name helper is
+`volumeMirrorName`.
+
 When running `containerd`, the containerd namespace is listed as the `namespace`
 label rather than re-using the Kubernetes namespace.  When running `dockerd`,
 namespaces are not supported and we always use `moby` as the value for that label.
@@ -34,10 +53,10 @@ for the `Running` condition.  When the VM is running with the `moby` backend,
 the controller:
 
 1. Connects to the Docker engine via the host socket.
-2. Creates the `rancher-desktop` K8s namespace and the `moby`
+2. Creates the `rancher-desktop` Kubernetes namespace and the `moby`
    `ContainerNamespace` resource.
-3. Lists all containers, images, and volumes and creates corresponding K8s
-   resources.
+3. Lists all Docker containers, images, and volumes and creates the
+   corresponding `Container`, `Image`, and `Volume` mirrors.
 4. Watches the Docker event stream for create, update, and delete events.
 
 Containerd mirroring is not implemented yet; with `containerEngine.name=containerd`
@@ -58,13 +77,13 @@ controller removes all mirror resources and sets `ContainerEngineReady` to
 ### Finalizer lifecycle
 
 Each mirror resource carries the `engine.rancherdesktop.io/docker-mirror`
-finalizer.  When a user deletes a resource through the K8s API, the finalizer
-handler deletes the corresponding object in the container engine, then removes
-the finalizer to allow K8s garbage collection.
+finalizer.  When a user deletes a mirror through the Kubernetes API, the
+finalizer handler deletes the corresponding object in the container engine,
+then removes the finalizer to allow garbage collection.
 
 When the container engine deletes an object (the user ran `docker rm` or
-`nerdctl rm`, for example), the engine controller strips the finalizer and
-deletes the K8s resource directly, so no reverse engine call occurs.
+`nerdctl rm`, for example), the engine controller strips the finalizer
+and deletes the mirror directly, so no reverse engine call occurs.
 
 ## Namespaces
 
@@ -133,18 +152,19 @@ status:
 
 ### Container state transitions
 
-The engine controller creates all containers with `spec.state: unknown`.  This
-means the engine mirrors container state without expressing intent; the
-controller takes no start/stop action.
+The engine controller creates every `Container` resource with
+`spec.state: unknown`.  This means the engine mirrors Docker container state
+without expressing intent; the controller takes no start/stop action.
 
-To control a container through the K8s API, set `spec.state` to `running` or
-`created`.  The engine controller starts or stops the container accordingly.
-The `status.status` field always reflects the actual container engine state.
+To control a container through the K8s API, set `spec.state` on the `Container`
+resource to `running` or `created`.  The engine controller starts or stops the
+underlying Docker container accordingly.  The `status.status` field always
+reflects the actual Docker container state.
 
 Valid values for `spec.state`:
 - `unknown` — engine-managed; no start/stop action taken (default)
-- `running` — the container should be running
-- `created` — the container should be stopped
+- `running` — the Docker container should be running
+- `created` — the Docker container should be stopped
 
 ### Container actions
 
