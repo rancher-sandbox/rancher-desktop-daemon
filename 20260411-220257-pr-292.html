@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260411-220257-pr-292</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260411-220257-pr-292</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-11 22:02</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/292" class="gh-ref" data-title="Windows typeperf sampler" data-state="open" data-type="pr">#292</a> — Windows typeperf sampler</td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/9bed00e"><code>9bed00e</code></a> ci: add Windows machine-info and perf-sampler instrumentation<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5290abd"><code>5290abd</code></a> ci: add typeperf-based perf sampler for comparison testing<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e2511a8"><code>e2511a8</code></a> ci: use BLG format to capture processes started mid-run<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e44cc1b"><code>e44cc1b</code></a> ci: remove PowerShell perf sampler in favor of typeperf</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; the diagnostic is otherwise clean, but the environment-variable filter silently drops every CI/RDD/runner variable it was written to capture, and a <code>relog</code> failure on stop deletes the only raw BLG artifact. Both are worth fixing before merge; everything else is polish.</td></tr>
+      <tr><td>Wall-clock time</td><td>16 min 41 s</td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/292" class="gh-ref" data-title="Windows typeperf sampler" data-state="open" data-type="pr">#292</a> adds two Windows-only CI composite actions that upload diagnostics alongside the BATS log bundle: <code>windows-machine-info</code> (one-shot hardware/OS/Defender/WSL snapshot via PowerShell) and <code>windows-typeperf-sampler</code> (background <code>typeperf</code> BLG collection, <code>relog</code> → TSV conversion on stop, and a Go summarizer that prints top-N processes by CPU and working set per sample). The sampler was iterated inside the PR from direct-TSV to BLG specifically to capture processes that start after collection begins, and the PowerShell sampler that commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5290abd"><code>5290abd</code></a> introduced alongside it was removed again in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e44cc1b"><code>e44cc1b</code></a> in favor of <code>typeperf</code> only.</p>
+    <p>The code is well-scoped and the design choices are sound: BLG + <code>relog</code> is the correct way to deal with typeperf&#39;s locked-at-first-sample column set, splitting one-shot and continuous sampling into two actions matches their lifecycles, and the Go summarizer indexes columns once from the header and streams rows. Two issues are worth fixing before merge. First, the env-var filter in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L170"><code>machine-info.ps1:170</code></a> anchors its regex with <code>^(...)$</code>, so prefix alternatives like <code>GITHUB_</code>, <code>RUNNER_</code>, <code>RDD_</code>, and <code>MSYS</code> only match exact variable names that do not exist — <code>GITHUB_WORKSPACE</code>, <code>RUNNER_OS</code>, <code>RDD_TRACE</code>, <code>MSYSTEM</code> are all silently dropped, defeating most of the diagnostic. Second, the stop path in <code>windows-typeperf-sampler/action.yaml</code> invokes <code>relog</code> without checking <code>$LASTEXITCODE</code> and unconditionally <code>Remove-Item $blgFile -Force</code>s the BLG, so any conversion failure permanently loses the raw capture — and because the workflow step sets <code>continue-on-error: true</code>, the job will not even fail. Both bugs are straightforward to fix.</p>
+    <p>Remaining findings are suggestions: add <code>Wait-Process</code> after <code>Stop-Process</code> so typeperf&#39;s file handle is guaranteed closed before <code>relog</code> runs; move or gate the 256 MB disk benchmark so it stops warming the file cache just before the BATS run it is meant to diagnose; wrap the machine-info FileStream benchmark in try/finally so a mid-write exception does not leak the handle; reconcile the stale <code>summarize-perf-counters</code>/<code>scripts/...</code> header comment in <code>summarize-typeperf.go</code>; print or remove the unused <code>handles</code>/<code>threads</code> counters; distinguish <code>io.EOF</code> from real CSV parse errors; and pass <code>-y</code> to <code>typeperf</code> for symmetry with the <code>relog</code> call.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Env-var filter&#39;s regex matches only exact names, dropping every prefix alternative <span class="pill pill-claude">Claude</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L165-L175">.github/actions/windows-machine-info/machine-info.ps1</a></div>
+      <pre data-start="165" data-line="170"><code class="language-powershell">                      @{N=&#39;CPU_sec&#39;;E={if ($_.CPU) { [math]::Round($_.CPU,1) } else { &#39;&#39; }}},
+                      Id, Handles, ProcessName |
+        Format-Table -AutoSize
+
+    Write-Output &quot;=== Environment ===&quot;
+    Get-ChildItem env: | Where-Object { $_.Name -match &#39;^(LOCALAPPDATA|TEMP|TMP|USERPROFILE|HOMEDRIVE|GITHUB_|RUNNER_|RDD_|MSYS|PATH)$&#39; } |
+        Sort-Object Name | Format-Table -AutoSize Name, Value
+}
+finally {
+    Stop-Transcript | Out-Null
+}</code></pre>
+    <p><code>^(...)$</code> anchors force each alternative to match the whole variable name. <code>LOCALAPPDATA</code>, <code>TEMP</code>, <code>TMP</code>, <code>USERPROFILE</code>, <code>HOMEDRIVE</code>, and <code>PATH</code> are exact names and match fine. But <code>GITHUB_</code>, <code>RUNNER_</code>, <code>RDD_</code>, and <code>MSYS</code> were intended as prefixes — no environment variable is literally named <code>GITHUB_</code> or <code>RUNNER_</code>. Every <code>GITHUB_WORKSPACE</code>, <code>GITHUB_ACTIONS</code>, <code>GITHUB_SHA</code>, <code>RUNNER_OS</code>, <code>RUNNER_TEMP</code>, <code>RDD_TRACE</code>, <code>RDD_LOG_LEVEL</code>, <code>MSYSTEM</code>, <code>MSYS2_PATH_TYPE</code> fails the <code>$</code> anchor and is dropped. I verified the behavior with <code>python3 -c &quot;import re; re.match(r&#39;^(GITHUB_|...)$&#39;, &#39;GITHUB_WORKSPACE&#39;)&quot;</code> — no match.</p>
+    <p>The whole point of this section is correlating runner state with flaky timeouts. Losing the Actions metadata and the RDD tuning knobs defeats most of the value; right now the block only exposes <code>LOCALAPPDATA</code>, <code>TEMP</code>, <code>TMP</code>, <code>USERPROFILE</code>, <code>HOMEDRIVE</code>, and <code>PATH</code>.</p>
+    <p>Fix: turn the prefix entries into proper patterns. (Intentionally keep <code>GITHUB_TOKEN</code> out by not adding a <code>GITHUB_.*TOKEN.*</code> catch-all, though <code>GITHUB_TOKEN</code> is not set on composite-action steps unless explicitly mapped.)</p>
+      <pre><code class="language-diff">-    Get-ChildItem env: | Where-Object { $_.Name -match &#39;^(LOCALAPPDATA|TEMP|TMP|USERPROFILE|HOMEDRIVE|GITHUB_|RUNNER_|RDD_|MSYS|PATH)$&#39; } |
++    Get-ChildItem env: | Where-Object { $_.Name -match &#39;^(LOCALAPPDATA|TEMP|TMP|USERPROFILE|HOMEDRIVE|PATH|GITHUB_.*|RUNNER_.*|RDD_.*|MSYS.*)$&#39; } |
+         Sort-Object Name | Format-Table -AutoSize Name, Value</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> Stop step deletes the raw BLG even when <code>relog</code> failed, losing the only capture <span class="pill pill-codex">Codex</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L43-L60">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
+      <pre data-start="43" data-line="48-56"><code class="language-yaml">        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+        Write-Output &quot;stopped typeperf pid=$typeperfPid&quot;
+      }
+      $blgFile = &quot;$outputDir/typeperf.blg&quot;
+      $tsvFile = &quot;$outputDir/typeperf.tsv&quot;
+      if (Test-Path $blgFile) {
+        $size = (Get-Item $blgFile).Length / 1MB
+        Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
+        relog $blgFile -f TSV -o $tsvFile -y
+        $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
+        Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
+        Remove-Item $blgFile -Force
+        go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
+          $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;
+        Write-Output &quot;summary written to $outputDir/typeperf-summary.txt&quot;
+      } else {
+        Write-Output &quot;typeperf.blg not found, skipping summary&quot;
+      }</code></pre>
+    <p>PowerShell does not throw on a non-zero exit from a native command; a failed <code>relog</code> silently flows into the <code>Get-Content</code>/<code>Measure-Object</code> call on a missing TSV (non-terminating error, execution continues) and into the unconditional <code>Remove-Item $blgFile -Force</code> at line 54. Because the workflow step in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L171-L177"><code>.github/workflows/bats.yaml:171-177</code></a> sets <code>continue-on-error: true</code>, the job will not fail — it will just upload an empty <code>rdd-logs/_diag/</code> with no raw BLG to retry conversion against. For a diagnostic action whose whole job is preserving evidence, that is the worst failure mode.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L166-L182">.github/workflows/bats.yaml</a></div>
+      <pre data-start="166" data-line="171-177"><code class="language-yaml">      shell: run-in-shell {0}
+      env:
+        RDD_TRACE: true
+        RDD_LOG_LEVEL: trace
+
+    - name: &quot;Windows: stop typeperf sampler&quot;
+      if: always() &amp;&amp; runner.os == &#39;Windows&#39;
+      uses: ./.github/actions/windows-typeperf-sampler
+      with:
+        command: stop
+        output-dir: rdd-logs/_diag
+      continue-on-error: true
+
+    - name: Collect RDD logs
+      if: always()
+      shell: run-in-shell {0}
+      run: scripts/collect-bats-logs.sh rdd-logs</code></pre>
+    <p>Fix: gate subsequent steps on <code>$LASTEXITCODE</code> and only delete the BLG after both conversion and summarization succeed; keep the BLG on failure so it can be re-processed locally.</p>
+      <pre><code class="language-diff">       if (Test-Path $blgFile) {
+         $size = (Get-Item $blgFile).Length / 1MB
+         Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
+         relog $blgFile -f TSV -o $tsvFile -y
++        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $tsvFile)) {
++          Write-Warning &quot;relog failed; preserving $blgFile for inspection&quot;
++          exit 1
++        }
+         $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
+         Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
+-        Remove-Item $blgFile -Force
+         go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
+           $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;
++        if ($LASTEXITCODE -eq 0) {
++          Remove-Item $blgFile -Force
++        }
+         Write-Output &quot;summary written to $outputDir/typeperf-summary.txt&quot;
+       }</code></pre>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> <code>Stop-Process</code> followed immediately by <code>relog</code> leaves a small file-lock race <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L37-L56">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
+      <pre data-start="37" data-line="42-51"><code class="language-powershell">    run: |
+      $outputDir = &quot;${{ inputs.output-dir }}&quot;
+      $pidFile = &quot;$outputDir/typeperf.pid&quot;
+      if (Test-Path $pidFile) {
+        $typeperfPid = Get-Content $pidFile
+        Stop-Process -Id $typeperfPid -Force -ErrorAction SilentlyContinue
+        Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+        Write-Output &quot;stopped typeperf pid=$typeperfPid&quot;
+      }
+      $blgFile = &quot;$outputDir/typeperf.blg&quot;
+      $tsvFile = &quot;$outputDir/typeperf.tsv&quot;
+      if (Test-Path $blgFile) {
+        $size = (Get-Item $blgFile).Length / 1MB
+        Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
+        relog $blgFile -f TSV -o $tsvFile -y
+        $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
+        Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
+        Remove-Item $blgFile -Force
+        go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
+          $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;</code></pre>
+    <p><code>Stop-Process -Force</code> issues <code>TerminateProcess</code>, which is asynchronous: the kernel signals cancellation but the process object and its file handles are not fully released until every outstanding I/O completes. On a busy runner <code>typeperf</code> can still hold <code>typeperf.blg</code> for a few milliseconds when <code>relog</code> starts, producing a file-sharing violation. The race window is tiny and this is defensive rather than a demonstrated failure, but the cost of a lost summary partly defeats the instrumentation, so it is worth eliminating.</p>
+    <p>Gemini rated this Important; I downgraded it to a Suggestion because <code>typeperf</code> flushes each BLG sample immediately and Windows file-handle teardown after <code>TerminateProcess</code> is usually complete within milliseconds, so the practical failure rate on CI runners is near zero. <code>Wait-Process</code> is still the right call.</p>
+    <p>Fix:</p>
+      <pre><code class="language-diff"> Stop-Process -Id $typeperfPid -Force -ErrorAction SilentlyContinue
++Wait-Process -Id $typeperfPid -Timeout 5 -ErrorAction SilentlyContinue
+ Remove-Item $pidFile -Force -ErrorAction SilentlyContinue</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> Stale header comment points maintainers at a file that never existed <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L1-L15">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
+      <pre data-start="1" data-line="5-10"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: SUSE LLC
+// SPDX-FileCopyrightText: The Rancher Desktop Authors
+
+// summarize-perf-counters reads a TSV file produced by typeperf and prints
+// a compact summary of system counters and top processes per sample.
+//
+// Usage:
+//
+//	go run scripts/summarize-perf-counters.go &lt;perfdata.tsv&gt; [topN]
+package main
+
+import (
+	&quot;encoding/csv&quot;
+	&quot;fmt&quot;</code></pre>
+    <p>The file is <code>summarize-typeperf.go</code> under <code>.github/actions/windows-typeperf-sampler/</code>, and the workflow invokes that exact path from <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/get-token/action.yaml#L55-L56"><code>action.yaml:55-56</code></a>. The header refers to a <code>summarize-perf-counters</code> name and <code>scripts/summarize-perf-counters.go</code> path that <code>git log --all -- scripts/summarize*</code> confirms has never existed in this repo — it looks like leftover boilerplate from an external adaptation. Anyone trying to reproduce the summary locally will be sent to a file that is not there.</p>
+    <p>The companion <code>fmt.Fprintf(os.Stderr, &quot;usage: summarize-perf-counters ...&quot;)</code> at line 46 has the same stale name.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L41-L51">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
+      <pre data-start="41" data-line="46"><code class="language-go">
+var headerRe = regexp.MustCompile(`\\Process\(([^)]+)\)\\(.+)$`)
+
+func main() {
+	if len(os.Args) &lt; 2 {
+		fmt.Fprintf(os.Stderr, &quot;usage: summarize-perf-counters &lt;perfdata.tsv&gt; [topN]\n&quot;)
+		os.Exit(1)
+	}
+	topN := 10
+	if len(os.Args) &gt;= 3 {
+		if n, err := strconv.Atoi(os.Args[2]); err == nil {</code></pre>
+    <p>Fix:</p>
+      <pre><code class="language-diff">-// summarize-perf-counters reads a TSV file produced by typeperf and prints
+-// a compact summary of system counters and top processes per sample.
++// summarize-typeperf reads a TSV file produced by typeperf (via relog from
++// BLG) and prints a compact summary of system counters and top processes
++// per sample.
+ //
+ // Usage:
+ //
+-//	go run scripts/summarize-perf-counters.go &lt;perfdata.tsv&gt; [topN]
++//	go run .github/actions/windows-typeperf-sampler/summarize-typeperf.go &lt;perfdata.tsv&gt; [topN]
+ package main</code></pre>
+    <p>And update the usage line at line 46 to match.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> Machine-info&#39;s 256 MB disk benchmark warms the file cache right before the workload it is supposed to diagnose <span class="pill pill-codex">Codex</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L145-L170">.github/workflows/bats.yaml</a></div>
+      <pre data-start="145" data-line="150-165"><code class="language-yaml">      run: |
+        wsl --list --verbose
+        wsl --status
+      continue-on-error: true
+
+    - name: &quot;Windows: capture machine info&quot;
+      if: runner.os == &#39;Windows&#39;
+      uses: ./.github/actions/windows-machine-info
+      with:
+        output-path: rdd-logs/_diag/machine-info.txt
+      continue-on-error: true
+
+    - name: &quot;Windows: start typeperf sampler&quot;
+      if: runner.os == &#39;Windows&#39;
+      uses: ./.github/actions/windows-typeperf-sampler
+      with:
+        command: start
+        output-dir: rdd-logs/_diag
+      continue-on-error: true
+
+    - run: make -C bats --keep-going --jobs=$(nproc) --output-sync=target
+      shell: run-in-shell {0}
+      env:
+        RDD_TRACE: true
+        RDD_LOG_LEVEL: trace
+</code></pre>
+    <p><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L79-L128"><code>machine-info.ps1:79-128</code></a> deliberately writes and reads back a 256 MB sequential file on the same volume as the BATS workload, and the code comment at lines 80-86 explicitly notes that this measures the cache-warm sequential rate (not raw disk) because &quot;FileStream with no buffering still goes through the OS file cache&quot;. That is fine as a runner-characterization data point, but placing the step right before the BATS step means every Windows job now starts with a 256 MB warm-up burst that both drains ~5 seconds of wall clock and changes the disk/cache state before the test the diagnostic is meant to correlate with begins.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L74-L133">.github/actions/windows-machine-info/machine-info.ps1</a></div>
+      <pre data-start="74" data-line="79-128"><code class="language-plaintext">        &#39;\PhysicalDisk(_Total)\Disk Write Bytes/sec&#39;,
+        &#39;\PhysicalDisk(_Total)\Disk Read Bytes/sec&#39;,
+        &#39;\PhysicalDisk(_Total)\Current Disk Queue Length&#39;
+    ) -ErrorAction SilentlyContinue | Format-List
+
+    Write-Output &quot;=== Disk Throughput Benchmark ===&quot;
+    # Sequential write/read of a 256 MB file in TEMP. This measures the disk
+    # path the bats run actually uses (Lima&#39;s instance dirs and the lima
+    # download cache live under %USERPROFILE% / %LOCALAPPDATA%, on the same
+    # volume as %TEMP% on a default GitHub runner). FileStream with no
+    # buffering still goes through the OS file cache, so this is the
+    # cache-warm sequential rate, not raw disk speed -- but that is what
+    # gzip writes hit too.
+    $benchFile = Join-Path $env:TEMP &quot;diag-disk-bench-$([System.Guid]::NewGuid().ToString(&#39;N&#39;)).bin&quot;
+    try {
+        $sizeMB = 256
+        $buf = New-Object byte[] (1MB)
+        (New-Object Random).NextBytes($buf)
+
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $fs = [System.IO.File]::Create($benchFile)
+        for ($i = 0; $i -lt $sizeMB; $i++) {
+            $fs.Write($buf, 0, $buf.Length)
+        }
+        $fs.Flush($true)  # flush to disk
+        $fs.Close()
+        $sw.Stop()
+        $writeMs = $sw.Elapsed.TotalMilliseconds
+        $writeMBs = [math]::Round($sizeMB * 1000 / $writeMs, 1)
+
+        $sw.Restart()
+        $fs = [System.IO.File]::OpenRead($benchFile)
+        $total = 0
+        $readbuf = New-Object byte[] (1MB)
+        while (($n = $fs.Read($readbuf, 0, $readbuf.Length)) -gt 0) {
+            $total += $n
+        }
+        $fs.Close()
+        $sw.Stop()
+        $readMs = $sw.Elapsed.TotalMilliseconds
+        $readMBs = [math]::Round($sizeMB * 1000 / $readMs, 1)
+
+        [PSCustomObject]@{
+            File = $benchFile
+            SizeMB = $sizeMB
+            WriteMs = [math]::Round($writeMs, 1)
+            WriteMBPerSec = $writeMBs
+            ReadMs  = [math]::Round($readMs, 1)
+            ReadMBPerSec  = $readMBs
+        } | Format-List
+    } catch {
+        Write-Output &quot;disk bench failed: $($_.Exception.Message)&quot;
+    } finally {
+        if (Test-Path $benchFile) { Remove-Item $benchFile -Force -ErrorAction SilentlyContinue }
+    }
+
+    Write-Output &quot;=== Defender Status ===&quot;
+    Get-MpComputerStatus -ErrorAction SilentlyContinue |
+        Select-Object AntivirusEnabled, RealTimeProtectionEnabled,
+                      OnAccessProtectionEnabled, BehaviorMonitorEnabled,</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/workflows/bats.yaml#L75-L91">.github/workflows/bats.yaml</a></div>
+      <pre data-start="75" data-line="80-86"><code class="language-yaml">      if: runner.os == &#39;macOS&#39;
+      working-directory: ${{ runner.temp }}
+      run: |
+        brew install bash coreutils make
+
+        # Set up run-in-shell helper script (as a symlink to bash)
+        mkdir -p bin
+        ln -s $(brew --prefix bash)/bin/bash bin/run-in-shell
+        readlink -f bin &gt;&gt; &quot;$GITHUB_PATH&quot;
+
+        # Use GNU make
+        echo &quot;$(brew --prefix)/opt/make/libexec/gnubin&quot; &gt;&gt; &quot;$GITHUB_PATH&quot;
+
+    - name: &quot;Windows: install prerequisites&quot;
+      if: runner.os == &#39;Windows&#39;
+      shell: pwsh
+      working-directory: ${{ runner.temp }}</code></pre>
+    <p>Fix: either move the machine-info step to run after the BATS step (runner characteristics do not change during the job), or gate the disk benchmark behind an action input and default it off.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> <code>FileStream</code> benchmark does not dispose the handle on error, so a mid-write exception leaks the file <span class="pill pill-gemini">Gemini</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L82-L119">.github/actions/windows-machine-info/machine-info.ps1</a></div>
+      <pre data-start="82" data-line="87-114"><code class="language-powershell">    # download cache live under %USERPROFILE% / %LOCALAPPDATA%, on the same
+    # volume as %TEMP% on a default GitHub runner). FileStream with no
+    # buffering still goes through the OS file cache, so this is the
+    # cache-warm sequential rate, not raw disk speed -- but that is what
+    # gzip writes hit too.
+    $benchFile = Join-Path $env:TEMP &quot;diag-disk-bench-$([System.Guid]::NewGuid().ToString(&#39;N&#39;)).bin&quot;
+    try {
+        $sizeMB = 256
+        $buf = New-Object byte[] (1MB)
+        (New-Object Random).NextBytes($buf)
+
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $fs = [System.IO.File]::Create($benchFile)
+        for ($i = 0; $i -lt $sizeMB; $i++) {
+            $fs.Write($buf, 0, $buf.Length)
+        }
+        $fs.Flush($true)  # flush to disk
+        $fs.Close()
+        $sw.Stop()
+        $writeMs = $sw.Elapsed.TotalMilliseconds
+        $writeMBs = [math]::Round($sizeMB * 1000 / $writeMs, 1)
+
+        $sw.Restart()
+        $fs = [System.IO.File]::OpenRead($benchFile)
+        $total = 0
+        $readbuf = New-Object byte[] (1MB)
+        while (($n = $fs.Read($readbuf, 0, $readbuf.Length)) -gt 0) {
+            $total += $n
+        }
+        $fs.Close()
+        $sw.Stop()
+        $readMs = $sw.Elapsed.TotalMilliseconds
+        $readMBs = [math]::Round($sizeMB * 1000 / $readMs, 1)
+
+        [PSCustomObject]@{
+            File = $benchFile
+            SizeMB = $sizeMB
+            WriteMs = [math]::Round($writeMs, 1)</code></pre>
+    <p>If <code>$fs.Write</code> throws mid-loop (disk full, antivirus locking, I/O error) control jumps past <code>$fs.Close()</code> into the outer <code>catch</code> block. The handle is leaked to GC. The <code>finally</code> then tries <code>Remove-Item $benchFile -Force -ErrorAction SilentlyContinue</code> on a still-locked file; with <code>SilentlyContinue</code> the delete failure is swallowed and a 256 MB file lingers under <code>%TEMP%</code> until the runner is recycled. The identical pattern repeats in the read loop at lines 104-111.</p>
+    <p>Fix: wrap each stream in its own try/finally so the handle is disposed deterministically.</p>
+      <pre><code class="language-diff">-        $fs = [System.IO.File]::Create($benchFile)
+-        for ($i = 0; $i -lt $sizeMB; $i++) {
+-            $fs.Write($buf, 0, $buf.Length)
+-        }
+-        $fs.Flush($true)  # flush to disk
+-        $fs.Close()
++        $fs = [System.IO.File]::Create($benchFile)
++        try {
++            for ($i = 0; $i -lt $sizeMB; $i++) {
++                $fs.Write($buf, 0, $buf.Length)
++            }
++            $fs.Flush($true)  # flush to disk
++        } finally {
++            $fs.Dispose()
++        }</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>handles</code> and <code>threads</code> counters are collected, parsed, and then never printed <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L19-L36">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
+      <pre data-start="19" data-line="24-31"><code class="language-go">	&quot;slices&quot;
+	&quot;strconv&quot;
+	&quot;strings&quot;
+)
+
+type procSnap struct {
+	name    string
+	pid     int
+	cpu     float64
+	wsMB    float64
+	handles int
+	threads int
+}
+
+// procIndex holds column indices for one process instance.
+type procIndex struct {
+	cpu     int
+	ws      int</code></pre>
+    <p><code>printTopN</code> only prints <code>name</code>, <code>pid</code>, <code>cpu</code>, <code>wsMB</code>:</p>
+      <pre><code class="language-go">fmt.Printf(&quot;    %-30s PID %6d  CPU %7.1f%%  WS %8.1f MB\n&quot;,
+    s.name, s.pid, s.cpu, s.wsMB)</code></pre>
+    <p>The <code>handles</code>/<code>threads</code> fields on <code>procSnap</code>, the matching fields on <code>procIndex</code>, the header detection for <code>Handle Count</code>/<code>Thread Count</code>, and the per-sample extraction at lines 160-168 all exist only to populate two fields that nothing reads. The corresponding <code>\Process(*)\Handle Count</code> and <code>\Process(*)\Thread Count</code> lines in <code>typeperf-counters.txt</code> each add one column per tracked process per sample to the BLG (and the intermediate TSV) for no benefit.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L155-L173">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
+      <pre data-start="155" data-line="160-168"><code class="language-go">			ws, wsOK := colFloat(record, pi.ws)
+			if !cpuOK &amp;&amp; !wsOK {
+				continue
+			}
+			pid, _ := colInt(record, pi.pid)
+			handles, _ := colInt(record, pi.handles)
+			threads, _ := colInt(record, pi.threads)
+			snaps = append(snaps, procSnap{
+				name:    inst,
+				pid:     pid,
+				cpu:     cpu,
+				wsMB:    ws / (1024 * 1024),
+				handles: handles,
+				threads: threads,
+			})
+		}
+
+		printTopN(snaps, topN, &quot;CPU&quot;, func(s procSnap) float64 { return s.cpu })
+		printTopN(snaps, topN, &quot;Working Set&quot;, func(s procSnap) float64 { return s.wsMB })</code></pre>
+    <p>Handle and thread counts are actually useful for leak diagnosis, so extending the output is probably preferable to deleting the counters:</p>
+      <pre><code class="language-diff">-			fmt.Printf(&quot;    %-30s PID %6d  CPU %7.1f%%  WS %8.1f MB\n&quot;,
+-				s.name, s.pid, s.cpu, s.wsMB)
++			fmt.Printf(&quot;    %-30s PID %6d  CPU %7.1f%%  WS %8.1f MB  H %6d  T %4d\n&quot;,
++				s.name, s.pid, s.cpu, s.wsMB, s.handles, s.threads)</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> CSV read loop breaks on any error, silently truncating the summary on malformed rows <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L113-L127">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
+      <pre data-start="113" data-line="118-122"><code class="language-go">	}
+
+	fmt.Printf(&quot;Processes tracked: %d\n&quot;, len(procs))
+
+	rowNum := 0
+	for {
+		record, err := reader.Read()
+		if err != nil {
+			break
+		}
+		rowNum++
+
+		fmt.Printf(&quot;\n--- %s ---\n&quot;, record[0])
+
+		// System counters</code></pre>
+    <p><code>encoding/csv.Reader</code> returns <code>io.EOF</code> at clean end, but also returns <code>csv.ErrFieldCount</code> or quoting errors mid-file. The current loop collapses all of them into a silent <code>break</code>, leaving the misleading <code>Samples: N</code> footer at line 176 with a low count and no explanation. Worth distinguishing <code>io.EOF</code> from real parse errors so a partial TSV still summarizes what it can while flagging the failure on stderr.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L171-L181">.github/actions/windows-typeperf-sampler/summarize-typeperf.go</a></div>
+      <pre data-start="171" data-line="176"><code class="language-go">
+		printTopN(snaps, topN, &quot;CPU&quot;, func(s procSnap) float64 { return s.cpu })
+		printTopN(snaps, topN, &quot;Working Set&quot;, func(s procSnap) float64 { return s.wsMB })
+	}
+
+	fmt.Printf(&quot;\nSamples: %d\n&quot;, rowNum)
+}
+
+func printTopN(snaps []procSnap, n int, label string, key func(procSnap) float64) {
+	slices.SortFunc(snaps, func(a, b procSnap) int {
+		return cmpDesc(key(a), key(b))</code></pre>
+      <pre><code class="language-diff"> for {
+     record, err := reader.Read()
++    if errors.Is(err, io.EOF) {
++        break
++    }
+     if err != nil {
+-        break
++        fmt.Fprintf(os.Stderr, &quot;read row %d: %v\n&quot;, rowNum+1, err)
++        break
+     }
+     rowNum++</code></pre>
+    <p>(Adds <code>errors</code> and <code>io</code> imports.)</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S7">
+        <span class="finding-num">S7.</span> <code>typeperf</code> start lacks <code>-y</code>, so an existing BLG would hang the hidden process <span class="pill pill-claude">Claude</span><a href="#S7" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L24-L35">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
+      <pre data-start="24" data-line="29-30"><code class="language-powershell">      if (-not (Test-Path $outputDir)) {
+        New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+      }
+      $counterFile = &quot;${{ github.action_path }}/typeperf-counters.txt&quot;
+      $blgFile = &quot;$outputDir/typeperf.blg&quot;
+      $proc = Start-Process -PassThru -WindowStyle Hidden -FilePath typeperf `
+        -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;
+      $proc.Id | Set-Content -Path &quot;$outputDir/typeperf.pid&quot;
+      Write-Output &quot;typeperf started, pid=$($proc.Id), output=$blgFile&quot;
+
+  - name: Stop typeperf and summarize
+    if: runner.os == &#39;Windows&#39; &amp;&amp; inputs.command == &#39;stop&#39;</code></pre>
+    <p>If <code>$blgFile</code> already exists, <code>typeperf</code> prompts to overwrite and blocks on stdin. With <code>-WindowStyle Hidden</code> the prompt is invisible and the sampler hangs indefinitely. Fresh CI runners never hit this, but <code>relog</code> on line 51 already passes <code>-y</code> for exactly the same reason; the start step should be symmetric as cheap insurance against a reused runner.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/action.yaml#L46-L56">.github/actions/windows-typeperf-sampler/action.yaml</a></div>
+      <pre data-start="46" data-line="51"><code class="language-yaml">      $blgFile = &quot;$outputDir/typeperf.blg&quot;
+      $tsvFile = &quot;$outputDir/typeperf.tsv&quot;
+      if (Test-Path $blgFile) {
+        $size = (Get-Item $blgFile).Length / 1MB
+        Write-Output (&quot;typeperf.blg: {0:N1} MB&quot; -f $size)
+        relog $blgFile -f TSV -o $tsvFile -y
+        $lines = (Get-Content $tsvFile | Measure-Object -Line).Lines
+        Write-Output (&quot;typeperf.tsv: {0:N1} MB, {1} lines&quot; -f ((Get-Item $tsvFile).Length / 1MB), $lines)
+        Remove-Item $blgFile -Force
+        go run &quot;${{ github.action_path }}/summarize-typeperf.go&quot; `
+          $tsvFile 10 &gt; &quot;$outputDir/typeperf-summary.txt&quot;</code></pre>
+      <pre><code class="language-diff">-  -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;
++  -ArgumentList &quot;-cf&quot;, $counterFile, &quot;-f&quot;, &quot;BIN&quot;, &quot;-o&quot;, $blgFile, &quot;-si&quot;, &quot;1&quot;, &quot;-y&quot;</code></pre>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>BLG-then-relog is the correct architecture for this problem</strong> <code>(in-scope)</code> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span>. Commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e2511a8"><code>e2511a8</code></a> correctly identifies that typeperf&#39;s direct-TSV mode locks the column set at the first sample and misses processes that start later; switching to BLG and converting via <code>relog</code> at stop decouples low-overhead collection from post-processing and eliminates the blind spot entirely. The commit message&#39;s explanation is worth keeping even though squashing it into <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5290abd"><code>5290abd</code></a> would have been defensible.</li>
+      <li><strong>Separation of one-shot machine-info and continuous typeperf sampler matches their lifecycles</strong> <code>(in-scope)</code> <span class="pill pill-claude">Claude</span>. Runner hardware and OS state do not change during a job, so capturing them once at start is the right shape; perf counters do change and need continuous sampling. Splitting them into two composite actions keeps each one independently usable.</li>
+      <li><strong>Go summarizer indexes columns once and streams rows</strong> <code>(in-scope)</code> <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span>. <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/summarize-typeperf.go#L76-L113"><code>summarize-typeperf.go:76-113</code></a> builds the process-column index from the header in a single pass, then the per-row loop does simple lookups — no repeated header scans. The column-index struct initializes to <code>-1</code> so missing counters are safely handled by <code>colFloat</code>/<code>colInt</code> boundary checks, preventing panics on abbreviated rows.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>No automated test coverage is expected for CI-only diagnostic scripts, and the agents did not flag its absence. The more pragmatic gap is that the regex bug in I1 would have been visible to anyone who looked at the first <code>machine-info.txt</code> artifact produced on CI — worth eyeballing the artifact on the first post-merge run to confirm the fix actually surfaces <code>GITHUB_*</code>, <code>RUNNER_*</code>, <code>RDD_*</code>, and <code>MSYS*</code> variables. The end-to-end start→BATS→stop cycle producing both <code>typeperf.tsv</code> and <code>typeperf-summary.txt</code> also has no validation other than watching the first Windows CI run.</p>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The header comment in <code>summarize-typeperf.go</code> is stale (see S2). Beyond that, the PR description in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/292" class="gh-ref" data-title="Windows typeperf sampler" data-state="open" data-type="pr">#292</a> still describes the sampler as running &quot;alongside the existing PowerShell sampler so we can compare overhead and data quality&quot; and lists both <code>perf-sampler.jsonl</code> (PowerShell) and <code>typeperf.tsv</code> (new) in its artifacts table — but commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e44cc1b"><code>e44cc1b</code></a> removed the PowerShell sampler before the final state, so the description is out of sync with what merges. Worth updating before merge so the commit history matches the PR narrative.</p>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Four commits form a coherent narrative: (1) <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/9bed00e"><code>9bed00e</code></a> introduces machine-info and the original PowerShell sampler, (2) <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5290abd"><code>5290abd</code></a> adds the typeperf variant alongside it, (3) <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e2511a8"><code>e2511a8</code></a> fixes the direct-TSV blind spot by switching to BLG, (4) <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e44cc1b"><code>e44cc1b</code></a> deletes the PowerShell sampler once typeperf proved superior. The <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e2511a8"><code>e2511a8</code></a> fix could arguably have been squashed into <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5290abd"><code>5290abd</code></a>, but leaving it separate preserves useful context about why BLG is required over direct-TSV — the reason is non-obvious enough that the audit trail is worth the extra commit.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><strong>Disk benchmark is cache-warm, not raw disk</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-machine-info/machine-info.ps1#L80-L86"><code>machine-info.ps1:80-86</code></a> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. The code comment explicitly notes that <code>FileStream</code> without buffering still traverses the OS file cache, so the reported MB/s reflects the cache-warm sequential rate rather than raw disk throughput. The author calls this out correctly; with S3 it becomes more important because the benchmark is what warms the cache just before BATS runs.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude-claude-opus-4-6">[Claude] — Claude Opus 4.6 <a href="#claude-claude-opus-4-6" class="pilcrow">&#182;</a></h3>
+    <p>Claude produced the most findings (6) and the only diagnosis of the regex bug in <code>machine-info.ps1</code> (I1), which is the single most consequential issue in the review because it silently zeroes out the whole &quot;Environment&quot; section of the diagnostic artifact. Its approach was methodical: it read each file, built a mental model of what the diagnostic was supposed to expose, and then noticed that what it <em>would</em> actually expose did not match. Claude also caught three smaller, easy-to-miss quality issues in <code>summarize-typeperf.go</code>: the stale header comment (S2, also found by Codex), the dead <code>handles</code>/<code>threads</code> code path (S5), and the <code>io.EOF</code>-vs-parse-error loop (S6). The <code>typeperf -y</code> defensive hardening (S7) is unique to Claude as well.</p>
+    <p>Claude independently identified the <code>Stop-Process</code>/<code>relog</code> race Gemini flagged but calibrated it lower (Suggestion, not Important), which matches the realistic CI behavior better. Its only gap is that it missed Codex&#39;s relog/BLG loss (I2) — a small block of code that does not <em>look</em> risky until you think about <code>$LASTEXITCODE</code> semantics on native commands in PowerShell. It also marked <code>bats.yaml</code> as &quot;Reviewed, no issues&quot; while Codex correctly flagged a step-ordering concern in that file (S3 in this report).</p>
+    <p>Tool usage: 21 calls (Bash 10, Read 9, Grep 1). The Bash calls include <code>git log --all</code>, <code>git blame</code>, and verification of the PowerShell regex behavior — exactly the depth the prompt asks for.</p>
+    <h3 id="codex-codex-gpt-5-4">[Codex] — Codex GPT 5.4 <a href="#codex-codex-gpt-5-4" class="pilcrow">&#182;</a></h3>
+    <p>Codex produced the fewest findings (3) but every single one is substantive: the <code>relog</code> failure mode (I2) that wipes the raw BLG is the most original finding in the review because it requires knowing that PowerShell does not throw on native command non-zero exit codes, and it directly interacts with the workflow&#39;s <code>continue-on-error: true</code>, which Codex also cited by file:line. The disk-bench-perturbs-CI-cache concern (S3) is a systems-level observation that neither other agent made, and the stale header comment (S2) was found in parallel with Claude.</p>
+    <p>Codex had zero false positives, zero duplicates, and a 100 % signal rate on its three findings. It missed several smaller polish items (dead handles/threads counters in <code>summarize-typeperf.go</code>, the FileStream disposal leak, the env var regex, the <code>io.EOF</code> loop, the <code>typeperf -y</code> symmetry), some of which are in files it reviewed. Its one &quot;Reviewed, no issues&quot; coverage miss is <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/e44cc1bd48162f372cf2e7a7c6f0806ab8453b28/.github/actions/windows-typeperf-sampler/typeperf-counters.txt#L14-L15"><code>typeperf-counters.txt:14-15</code></a> — the two lines that configure the counters feeding Claude&#39;s S5 dead-code finding.</p>
+    <p>Tool usage: 22 calls (21 shell, 1 write_stdin). Good depth; the shell breakdown likely includes multiple <code>git log</code>/<code>git blame</code> invocations and file reads via <code>sed</code>/<code>cat</code>.</p>
+    <h3 id="gemini-gemini-3-1-pro">[Gemini] — Gemini 3.1 Pro <a href="#gemini-gemini-3-1-pro" class="pilcrow">&#182;</a></h3>
+    <p>Gemini produced 2 findings. Its unique contribution is the <code>FileStream</code> disposal-on-error leak in <code>machine-info.ps1</code> (S4 in this report) — a genuine PowerShell resource-management observation that neither other agent caught, and one Gemini is well-calibrated for because it pattern-matches on <code>try</code>/<code>finally</code> idioms without needing deep semantic tracing. Its other finding, the <code>Stop-Process</code>/<code>relog</code> race, is duplicated by Claude (S3 → S1 in consolidation). Gemini rated that race <code>Important</code>; I downgraded it to <code>Suggestion</code> because the race window after <code>TerminateProcess</code> is typically sub-millisecond on Windows and typeperf flushes BLG writes immediately, so the practical failure rate on GitHub runners is near zero.</p>
+    <p>Gemini marked <code>summarize-typeperf.go</code>, <code>bats.yaml</code>, and <code>typeperf-counters.txt</code> as &quot;Reviewed, no issues&quot;/Trivial while the other agents found three distinct issues in those files. The Go summarizer gap is particularly notable — it is a 236-line Go file, exactly the kind of code Gemini is supposed to be strong at, but it produced zero findings there. The session file shows no recorded tool calls, consistent with Gemini&#39;s well-known habit of skipping <code>git blame</code> to conserve its daily Pro-model quota.</p>
+    <p>Tool usage: session did not record individual tool calls. From the prompt-to-response elapsed time (~3m 52s) and the depth of its two findings, Gemini clearly read at least <code>machine-info.ps1</code> and <code>windows-typeperf-sampler/action.yaml</code> but apparently did not explore the Go file or the workflow in enough detail to form opinions there.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.6</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>7m 27s</td><td>3m 41s</td><td>3m 52s</td></tr>
+        <tr><td>Findings</td><td>1I 5S</td><td>1I 2S</td><td>0I 2S</td></tr>
+        <tr><td>Tool calls</td><td>21 (Bash 10, Read 9, Grep 1)</td><td>22 (shell 21, stdin 1)</td><td>not recorded</td></tr>
+        <tr><td>Design observations</td><td>3</td><td>1</td><td>2</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>4</td><td>2</td><td>1</td></tr>
+        <tr><td>Files reviewed</td><td>6</td><td>6</td><td>6</td></tr>
+        <tr><td>Coverage misses</td><td>1</td><td>1</td><td>3</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>1I 5S</strong></td><td><strong>1I 2S</strong></td><td><strong>0I 2S</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>1 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Reconciliation.</strong> One severity change during consolidation: Gemini P1 &quot;Race condition when stopping typeperf&quot; was rated <code>important</code> and consolidated as <code>suggestion</code> (S1 in this report). Rationale: after <code>TerminateProcess</code>, file-handle cleanup on Windows completes in sub-millisecond time; typeperf flushes BLG writes at sample time rather than at exit, so there is no pending I/O holding the file; and neither this PR&#39;s stop path nor the widely deployed <code>Stop-Process</code>-then-use pattern in other CI scripts shows the failure empirically. <code>Wait-Process</code> is still the right defensive change, so the finding is kept — just at the correct severity. No false positives from any agent. No dropped findings.</p>
+    <p><strong>Overall.</strong> All three agents added distinct value: Claude is the clear leader on breadth and caught the highest-impact bug (I1); Codex is the clear leader on signal-to-noise ratio, delivering the other Important finding (I2) plus two substantive suggestions with zero noise; Gemini contributed one genuinely unique suggestion (S4) that the other two missed. The multi-agent ensemble was justified for this PR — removing any single agent would have dropped a real finding from the report.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="skill-improvements">Skill improvements <a href="#skill-improvements" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Add a PowerShell &quot;native command exit code&quot; heuristic to the review dimensions.</strong> Codex&#39;s I2 was the single most original finding in this review, and it required knowing that in PowerShell, a non-zero exit from an external command like <code>relog</code> does <em>not</em> throw and does <em>not</em> stop execution — subsequent statements run against whatever state the failed command left behind. This is a general review principle that will come up again any time we review PowerShell in CI: &quot;When reviewing PowerShell that invokes native commands, verify that <code>$LASTEXITCODE</code> (or <code>if (-not $?)</code>) is checked after each external invocation; PowerShell does not automatically throw on non-zero exits, so errors silently propagate into subsequent statements that assume success.&quot; This is a real prompt-gap signal because only one of three agents found the issue, and the inference is a domain rule that generalizes beyond this PR.</li>
+    </ul>
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <p>No repo context gaps surfaced in this review. The PR touches only CI infrastructure and has no interaction with the controllers, kube-apiserver, Lima lifecycle, or any of the architectural areas that <code>deep-review-context.md</code> covers. No entries in that file are contradicted by the reviewed code, so no pruning is needed.</p>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
