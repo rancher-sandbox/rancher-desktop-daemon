@@ -4,9 +4,10 @@
 > The Rancher Desktop Containers API is still in the concept stage and the details
 will need to be ironed out.
 
-The Rancher Desktop Containers API is a mostly read-only reflection of the
-running container engine objects; unless otherwise noted, any modification will
-be rejected by the controllers.
+The Rancher Desktop Containers API mirrors the container engine state into
+Kubernetes resources.  The engine controller connects to the container engine,
+performs a full sync of containers, images, and volumes, then watches the engine
+event stream for live updates.
 
 All objects are in the `containers.rancherdesktop.io` API group.
 
@@ -25,6 +26,41 @@ unspecified.
 
 This API is mainly for use by the Rancher Desktop front end; all other users are
 strongly urged to use the relevant CLI or other API instead.
+
+## Engine Mirroring
+
+The engine controller (`pkg/controllers/app/engine/`) watches the `App` resource
+for the `Running` condition.  When the VM is running, the controller:
+
+1. Connects to the container engine via the host socket.
+2. Creates the `rancher-desktop` K8s namespace and the appropriate
+   `ContainerNamespace` resource (`moby` for dockerd, engine-specific
+   namespaces for containerd).
+3. Lists all containers, images, and volumes and creates corresponding K8s
+   resources.
+4. Watches the engine event stream for create, update, and delete events.
+
+The controller sets the `ContainerEngineReady` condition on the `App` resource
+to `True` after the initial sync completes.  Scripts can wait for readiness:
+
+```sh
+rdd ctl wait --for=condition=ContainerEngineReady=True app/app
+```
+
+When the VM shuts down or the container engine becomes unreachable, the
+controller removes all mirror resources and sets `ContainerEngineReady` to
+`False`.
+
+### Finalizer lifecycle
+
+Each mirror resource carries the `engine.rancherdesktop.io/docker-mirror`
+finalizer.  When a user deletes a resource through the K8s API, the finalizer
+handler deletes the corresponding object in the container engine, then removes
+the finalizer to allow K8s garbage collection.
+
+When the container engine deletes an object (the user ran `docker rm` or
+`nerdctl rm`, for example), the engine controller strips the finalizer and
+deletes the K8s resource directly, so no reverse engine call occurs.
 
 ## Namespaces
 
@@ -52,9 +88,9 @@ apiVersion: containers.rancherdesktop.io/v1alpha1
 kind: Container
 metadata:
   name: 8eb6f2cf72b6616aa743cf9187f350af84c9749dab65474db2530f26745d2ef3 # container ID
-  namespace: default
+  namespace: rancher-desktop
 spec:
-  state: running # Desired state
+  state: unknown # Desired state (see below)
 status:
   name: magical_gates
   namespace: k8s.io # Refers to a `ContainerNamespace` object
@@ -91,12 +127,22 @@ status:
     status: False
 ```
 
-Deleting a `Container` object causes the finalizer to delete the matching
-container in the container engine.
+### Container state transitions
+
+The engine controller creates all containers with `spec.state: unknown`.  This
+means the engine mirrors container state without expressing intent; the
+controller takes no start/stop action.
+
+To control a container through the K8s API, set `spec.state` to `running` or
+`created`.  The engine controller starts or stops the container accordingly.
+The `status.status` field always reflects the actual container engine state.
+
+Valid values for `spec.state`:
+- `unknown` — engine-managed; no start/stop action taken (default)
+- `running` — the container should be running
+- `created` — the container should be stopped
 
 ### Container actions
-
-We will need to support a variety of actions on containers:
 
 #### Create container
 
@@ -142,7 +188,8 @@ An admission controller will ensure that we cannot have multiple
 `name`/`namespace` pair.
 
 #### Change container state
-Set `.spec.state` to match how Kubernetes resources normally work.
+Set `.spec.state` to `running` or `created`; the engine controller starts or
+stops the container.
 
 #### Fetch container logs
 An endpoint at `/passthrough/containers/logs` will speak WebSocket; messages are
