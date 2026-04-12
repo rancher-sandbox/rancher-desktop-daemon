@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"time"
 
+	cerrdefs "github.com/containerd/errdefs"
 	"github.com/moby/moby/api/types/events"
 	dockerclient "github.com/moby/moby/client"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,9 +27,8 @@ import (
 // dockerWatcher manages a Docker client connection and event stream. It
 // performs a full sync on connect and then watches for incremental changes.
 type dockerWatcher struct {
-	cli    *dockerclient.Client
-	k8s    client.Client
-	scheme *runtime.Scheme
+	cli *dockerclient.Client
+	k8s client.Client
 
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -38,11 +39,10 @@ type dockerWatcher struct {
 
 // newDockerWatcher creates a Docker client, performs a full sync, and starts
 // the event stream watcher goroutine.
-func newDockerWatcher(ctx context.Context, k8s client.Client, scheme *runtime.Scheme, reconcileChan chan<- event.GenericEvent) (*dockerWatcher, error) {
+func newDockerWatcher(ctx context.Context, k8s client.Client, reconcileChan chan<- event.GenericEvent) (*dockerWatcher, error) {
 	socketPath := instance.DockerSocket()
-	cli, err := dockerclient.NewClientWithOpts(
-		dockerclient.WithHost("unix://"+socketPath),
-		dockerclient.WithAPIVersionNegotiation(),
+	cli, err := dockerclient.New(
+		dockerclient.WithHost("unix://" + socketPath),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Docker client: %w", err)
@@ -61,7 +61,6 @@ func newDockerWatcher(ctx context.Context, k8s client.Client, scheme *runtime.Sc
 	w := &dockerWatcher{
 		cli:           cli,
 		k8s:           k8s,
-		scheme:        scheme,
 		cancel:        watchCancel,
 		done:          make(chan struct{}),
 		reconcileChan: reconcileChan,
@@ -214,7 +213,7 @@ func (w *dockerWatcher) handleVolumeEvent(ctx context.Context, msg events.Messag
 	case events.ActionDestroy:
 		log.V(1).Info("Volume destroyed", "name", msg.Actor.ID)
 		return w.removeMirrorResource(ctx, &containersv1alpha1.Volume{},
-			sanitizeKubernetesObjectName(msg.Actor.ID))
+			volumeK8sName(msg.Actor.ID))
 
 	default:
 		return nil
@@ -223,15 +222,29 @@ func (w *dockerWatcher) handleVolumeEvent(ctx context.Context, msg events.Messag
 
 // removeMirrorResource removes the finalizer from a mirror resource and deletes
 // it. This is used when Docker has already deleted the object.
+//
+// The finalizer-strip Update is wrapped in retry.RetryOnConflict to
+// survive a stale cache during concurrent reconciles; NotFound means
+// the mirror is already gone and is treated as success. Any other
+// Update error propagates so the event handler retries on the next
+// reconcile instead of stripping the mirror while leaving a stale
+// object behind.
 func (w *dockerWatcher) removeMirrorResource(ctx context.Context, obj client.Object, name string) error {
 	key := client.ObjectKey{Name: name, Namespace: apiNamespace}
-	if err := w.k8s.Get(ctx, key, obj); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	if removeFinalizer(obj, mirrorFinalizer) {
-		if err := w.k8s.Update(ctx, obj); err != nil {
-			return client.IgnoreNotFound(err)
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := w.k8s.Get(ctx, key, obj); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return err
 		}
+		if !removeFinalizer(obj, mirrorFinalizer) {
+			return nil
+		}
+		return w.k8s.Update(ctx, obj)
+	})
+	if retryErr != nil {
+		return fmt.Errorf("failed to remove finalizer from %s: %w", name, retryErr)
 	}
 	return client.IgnoreNotFound(w.k8s.Delete(ctx, obj))
 }
@@ -252,57 +265,58 @@ func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containe
 
 	log := logf.FromContext(ctx).WithName("docker-watcher")
 
+	// desired != actual is guaranteed by the early return above, so each
+	// branch just dispatches to Docker. ContainerStop handles paused /
+	// restarting containers natively — filtering by actual == running
+	// would silently drop the user's intent in those states.
 	switch desired {
 	case containersv1alpha1.ContainerStatusRunning:
-		if actual != containersv1alpha1.ContainerStatusRunning {
-			log.Info("Starting container", "id", c.Name)
-			_, err := w.cli.ContainerStart(ctx, c.Name, dockerclient.ContainerStartOptions{})
-			return err
-		}
+		log.Info("Starting container", "id", c.Name)
+		_, err := w.cli.ContainerStart(ctx, c.Name, dockerclient.ContainerStartOptions{})
+		return err
 	case containersv1alpha1.ContainerStatusCreated:
-		if actual == containersv1alpha1.ContainerStatusRunning {
-			log.Info("Stopping container", "id", c.Name)
-			_, err := w.cli.ContainerStop(ctx, c.Name, dockerclient.ContainerStopOptions{})
-			return err
-		}
+		log.Info("Stopping container", "id", c.Name)
+		_, err := w.cli.ContainerStop(ctx, c.Name, dockerclient.ContainerStopOptions{})
+		return err
 	}
 	return nil
 }
 
-// deleteContainer removes a container from Docker. Errors are logged but not
-// returned, since the container may already be gone.
-func (w *dockerWatcher) deleteContainer(ctx context.Context, id string) {
-	log := logf.FromContext(ctx).WithName("docker-watcher")
+// deleteContainer removes a container from Docker. NotFound errors are
+// treated as success (the container is already gone); all other errors
+// are returned so the caller keeps the mirror finalizer in place and
+// retries on the next reconcile.
+func (w *dockerWatcher) deleteContainer(ctx context.Context, id string) error {
 	_, err := w.cli.ContainerRemove(ctx, id, dockerclient.ContainerRemoveOptions{Force: true})
-	if err != nil {
-		log.V(1).Info("Failed to remove container from Docker (may already be gone)",
-			"id", id, "error", err)
+	if cerrdefs.IsNotFound(err) {
+		return nil
 	}
+	return err
 }
 
-// deleteImage removes an image from Docker.
-func (w *dockerWatcher) deleteImage(ctx context.Context, img *containersv1alpha1.Image) {
-	log := logf.FromContext(ctx).WithName("docker-watcher")
+// deleteImage removes an image from Docker. See deleteContainer for the
+// error-handling contract.
+func (w *dockerWatcher) deleteImage(ctx context.Context, img *containersv1alpha1.Image) error {
 	// Use the tag if available, otherwise the raw image ID.
 	ref := img.Status.ID
 	if img.Status.RepoTag != "" {
 		ref = img.Status.RepoTag
 	}
 	_, err := w.cli.ImageRemove(ctx, ref, dockerclient.ImageRemoveOptions{})
-	if err != nil {
-		log.V(1).Info("Failed to remove image from Docker (may already be gone)",
-			"ref", ref, "error", err)
+	if cerrdefs.IsNotFound(err) {
+		return nil
 	}
+	return err
 }
 
-// deleteVolume removes a volume from Docker.
-func (w *dockerWatcher) deleteVolume(ctx context.Context, name string) {
-	log := logf.FromContext(ctx).WithName("docker-watcher")
+// deleteVolume removes a volume from Docker. See deleteContainer for the
+// error-handling contract.
+func (w *dockerWatcher) deleteVolume(ctx context.Context, name string) error {
 	_, err := w.cli.VolumeRemove(ctx, name, dockerclient.VolumeRemoveOptions{Force: true})
-	if err != nil {
-		log.V(1).Info("Failed to remove volume from Docker (may already be gone)",
-			"name", name, "error", err)
+	if cerrdefs.IsNotFound(err) {
+		return nil
 	}
+	return err
 }
 
 // fullSync lists all containers, images, and volumes from Docker and creates

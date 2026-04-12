@@ -75,7 +75,7 @@ jobs:
       if: runner.os == 'macOS'
       working-directory: ${{ runner.temp }}
       run: |
-        brew install bash coreutils make
+        brew install bash coreutils make docker
 
         # Set up run-in-shell helper script (as a symlink to bash)
         mkdir -p bin

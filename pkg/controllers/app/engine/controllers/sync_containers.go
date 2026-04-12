@@ -25,6 +25,14 @@ import (
 
 // syncAllContainers lists all Docker containers and creates/updates K8s
 // resources, then removes stale ones.
+//
+// Containers are Inspected sequentially rather than in parallel. The
+// initial sync runs one-shot at watcher startup, typical dev machines
+// have tens of containers (not hundreds), and the status fields we
+// surface (port bindings, labels, exit code) require Inspect — the
+// List response does not expose them. If startup latency becomes a
+// concern on loaded machines, parallelise with errgroup + a small
+// worker pool here rather than redesigning the sync.
 func (w *dockerWatcher) syncAllContainers(ctx context.Context) error {
 	log := logf.FromContext(ctx).WithName("docker-watcher")
 
@@ -76,6 +84,13 @@ func (w *dockerWatcher) syncContainer(ctx context.Context, id string) error {
 // InspectResponse. The spec is only set on creation; subsequent syncs
 // update only the status subresource so user-initiated spec.state
 // changes (start/stop) are not overwritten.
+//
+// Pure server-side Apply is not enough here: if we always applied
+// WithSpec(unknown), the engine-controller field owner would keep
+// reasserting spec.state=unknown, clobbering any user patch to
+// running/created. Gating the WithSpec call behind a Get — so spec is
+// written exactly once, on creation — keeps the invariant "subsequent
+// syncs never touch spec" without needing a second field owner.
 func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontainer.InspectResponse) error {
 	namespace, name := parseContainerName(inspect.Name)
 
@@ -162,4 +177,3 @@ func parseContainerName(fullName string) (namespace, name string) {
 	}
 	return namespace, name
 }
-

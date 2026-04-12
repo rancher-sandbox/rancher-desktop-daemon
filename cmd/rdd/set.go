@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -25,8 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/component-base/term"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -44,7 +48,10 @@ var appGVR = schema.GroupVersionResource{
 }
 
 func newSetCommand() *cobra.Command {
-	var dryRun bool
+	var (
+		dryRun  bool
+		timeout time.Duration
+	)
 	command := &cobra.Command{
 		Use:   "set PROPERTY=VALUE [PROPERTY=VALUE ...]",
 		Short: "Set App configuration properties",
@@ -58,19 +65,27 @@ func newSetCommand() *cobra.Command {
 			runtime. If the App resource does not exist, it is created with
 			default settings before applying the specified values.
 
+			By default, rdd set waits for the desired state: when running=true
+			is set, it waits for the container engine to be ready; when
+			running=false, it waits for the VM to stop. Use --timeout=0 to
+			skip waiting.
+
 			Examples:
 			  rdd set running=true
 			  rdd set running=true containerEngine.name=containerd
 			  rdd set kubernetes.enabled=true kubernetes.version=1.32.2
 			  rdd set --dry-run running=true
+			  rdd set --timeout=0 running=true
 		`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return setAction(cmd.Context(), args, dryRun)
+			return setAction(cmd.Context(), args, dryRun, timeout)
 		},
 	}
 	command.Flags().BoolVar(&dryRun, "dry-run", false,
 		"Validate changes against the API server without persisting them")
+	command.Flags().DurationVar(&timeout, "timeout", 300*time.Second,
+		"Timeout for waiting (0 to skip)")
 
 	// Override help to append live property descriptions from the CRD schema.
 	defaultHelp := command.HelpFunc()
@@ -232,7 +247,7 @@ func collectEntries(schema *apiextensionsv1.JSONSchemaProps, prefix string, out 
 	}
 }
 
-func setAction(ctx context.Context, args []string, dryRun bool) error {
+func setAction(ctx context.Context, args []string, dryRun bool, timeout time.Duration) error {
 	// Parse PROPERTY=VALUE arguments.
 	properties := make(map[string]string, len(args))
 	for _, arg := range args {
@@ -278,12 +293,21 @@ func setAction(ctx context.Context, args []string, dryRun bool) error {
 	err = c.Get(ctx, client.ObjectKey{Name: "app"}, &app)
 	switch {
 	case apierrors.IsNotFound(err):
-		return createAndPatchApp(ctx, c, restConfig, specMap, specSchema, dryRun)
+		if err := createAndPatchApp(ctx, c, restConfig, specMap, specSchema, dryRun); err != nil {
+			return err
+		}
 	case err != nil:
 		return fmt.Errorf("failed to get App: %w", err)
 	default:
-		return patchApp(ctx, c, &app, specMap, dryRun)
+		if err := patchApp(ctx, c, &app, specMap, dryRun); err != nil {
+			return err
+		}
 	}
+
+	if dryRun || timeout == 0 {
+		return nil
+	}
+	return waitForDesiredState(ctx, restConfig, properties, timeout)
 }
 
 // createAndPatchApp creates the App using the dynamic client so that only the
@@ -404,6 +428,109 @@ func patchApp(ctx context.Context, c client.Client, app *appv1alpha1.App, specMa
 		logrus.Info("App updated")
 	}
 	return nil
+}
+
+// waitForDesiredState waits for the App to reach the state implied by the
+// properties that were set. If running=true was set, it waits for the
+// container engine to be ready. If running=false was set, it waits for the
+// App's Running condition to go to False — i.e. the VM has actually
+// stopped, which is stricter than "container engine disconnected".
+// Other property changes do not wait.
+//
+// TODO: changes that trigger a VM restart without changing "running" (e.g.
+// containerEngine.name) are not waited on. This requires a "Reconciled"
+// condition with observedGeneration on the App resource so the CLI can
+// detect when the full reconcile chain has settled.
+func waitForDesiredState(ctx context.Context, config *rest.Config, properties map[string]string, timeout time.Duration) error {
+	runningVal, ok := properties["running"]
+	if !ok {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	if runningVal == "true" {
+		logrus.Info("Waiting for container engine to be ready")
+		return watchCondition(ctx, config, func(obj *unstructured.Unstructured) bool {
+			return conditionStatus(obj, "ContainerEngineReady") == metav1.ConditionTrue
+		})
+	}
+	logrus.Info("Waiting for the VM to stop")
+	return watchCondition(ctx, config, func(obj *unstructured.Unstructured) bool {
+		// Running=False means the VM has stopped. Running absent means
+		// the VM was never started (nothing to wait for).
+		return conditionStatus(obj, "Running") != metav1.ConditionTrue
+	})
+}
+
+// watchCondition watches the App singleton until the supplied predicate
+// returns true or the context expires. It uses watchtools.UntilWithSync
+// so benign watch-channel closures (API server timeouts, proxy
+// disconnects, resource-version compaction) re-list transparently
+// instead of aborting the wait.
+func watchCondition(ctx context.Context, config *rest.Config, satisfied func(*unstructured.Unstructured) bool) error {
+	dynClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = "metadata.name=app"
+			return dynClient.Resource(appGVR).List(ctx, options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = "metadata.name=app"
+			return dynClient.Resource(appGVR).Watch(ctx, options)
+		},
+	}
+
+	precondition := func(store cache.Store) (bool, error) {
+		for _, item := range store.List() {
+			if obj, ok := item.(*unstructured.Unstructured); ok && satisfied(obj) {
+				return true, nil
+			}
+		}
+		return false, nil
+	}
+
+	condition := func(event watch.Event) (bool, error) {
+		obj, ok := event.Object.(*unstructured.Unstructured)
+		if !ok {
+			return false, nil
+		}
+		return satisfied(obj), nil
+	}
+
+	if _, err := watchtools.UntilWithSync(ctx, lw, &unstructured.Unstructured{}, precondition, condition); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled) {
+			return errors.New("timed out waiting for App state")
+		}
+		return fmt.Errorf("failed to watch App: %w", err)
+	}
+	return nil
+}
+
+// conditionStatus returns the status of the named condition on an App, or
+// empty string if the condition is not present.
+func conditionStatus(obj *unstructured.Unstructured, condType string) metav1.ConditionStatus {
+	conditions, found, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
+	if err != nil || !found {
+		return ""
+	}
+	for _, c := range conditions {
+		cond, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		if cond["type"] == condType {
+			if s, ok := cond["status"].(string); ok {
+				return metav1.ConditionStatus(s)
+			}
+		}
+	}
+	return ""
 }
 
 // getAppKubeClient returns a controller-runtime client with the App scheme

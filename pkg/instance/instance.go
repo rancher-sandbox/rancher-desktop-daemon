@@ -123,6 +123,15 @@ var LimaHome = sync.OnceValue(func() string {
 // DockerSocket returns the path to the Docker socket for this instance
 // (e.g., ~/.rd2/docker.sock). This is the host-side socket that Lima
 // port-forwards from the guest's /var/run/docker.sock.
+//
+// TODO: use ShortDir() once the Lima template derives the socket path from
+// the instance suffix instead of hardcoding ".rd2".
 var DockerSocket = sync.OnceValue(func() string {
-	return filepath.Join(ShortDir(), "docker.sock")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(fmt.Errorf("could not get home directory: %w", err))
+	}
+	dir := filepath.Join(home, ".rd2")
+	_ = os.MkdirAll(dir, 0o700)
+	return filepath.Join(dir, "docker.sock")
 })
