@@ -7,8 +7,13 @@ BATS_CORE := ./lib/bats-core/bin/bats
 
 # Per-target timeout (seconds) to prevent hanging CI jobs.
 # Override with BATS_TIMEOUT=0 to disable.
+#
+# bats-with-timeout.sh captures a support bundle (process tree, Go
+# goroutine dumps via SIGQUIT, open fds) before killing the target so
+# we can diagnose CI hangs post-mortem. Use `=` so $@ resolves to the
+# current target at recipe time.
 BATS_TIMEOUT ?= 1800
-BATS := $(if $(filter-out 0,$(BATS_TIMEOUT)),timeout $(BATS_TIMEOUT)) $(BATS_CORE)
+BATS = $(if $(filter-out 0,$(BATS_TIMEOUT)),../scripts/bats-with-timeout.sh $(BATS_TIMEOUT) $@) $(BATS_CORE)
 
 default: bats-all
 
