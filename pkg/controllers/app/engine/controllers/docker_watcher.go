@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -73,7 +74,20 @@ func newDockerWatcher(ctx context.Context, k8s client.Client, reconcileChan chan
 	// state is replayed once the stream opens. Without this, the window
 	// between the List-based snapshot and the event subscription is a
 	// blind spot during VM startup.
-	since := strconv.FormatInt(time.Now().Unix(), 10)
+	//
+	// Use the Docker daemon's own clock (Info.SystemTime) rather than
+	// time.Now() on the host. The daemon runs inside the Lima VM and
+	// evaluates Since against its own clock; any host/guest skew would
+	// silently drop events inside the skew window. Fall back to a
+	// host-clock-biased timestamp if Info is unavailable — fullSync is
+	// idempotent, so replaying a few extra minutes of events is safe.
+	since, err := dockerEventsSince(ctx, cli)
+	if err != nil {
+		log := logf.FromContext(ctx).WithName("docker-watcher")
+		log.V(1).Info("Failed to query Docker daemon time, falling back to biased host clock",
+			"error", err)
+		since = strconv.FormatInt(time.Now().Add(-2*time.Minute).Unix(), 10)
+	}
 
 	if err := w.fullSync(watchCtx); err != nil {
 		watchCancel()
@@ -84,6 +98,27 @@ func newDockerWatcher(ctx context.Context, k8s client.Client, reconcileChan chan
 	go w.run(watchCtx, since)
 
 	return w, nil
+}
+
+// dockerEventsSince returns a Docker events "Since" timestamp anchored
+// on the daemon's own clock. The daemon reports its time as an RFC3339
+// string in Info; we convert it to the Unix-seconds form the events
+// endpoint accepts.
+func dockerEventsSince(ctx context.Context, cli *dockerclient.Client) (string, error) {
+	infoCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	result, err := cli.Info(infoCtx, dockerclient.InfoOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to query Docker info: %w", err)
+	}
+	if result.Info.SystemTime == "" {
+		return "", errors.New("missing SystemTime in Docker daemon info")
+	}
+	t, err := time.Parse(time.RFC3339Nano, result.Info.SystemTime)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse Docker SystemTime %q: %w", result.Info.SystemTime, err)
+	}
+	return strconv.FormatInt(t.Unix(), 10), nil
 }
 
 // stop cancels the watcher goroutine and waits for it to finish.
@@ -111,12 +146,15 @@ func (w *dockerWatcher) run(ctx context.Context, since string) {
 	log := logf.FromContext(ctx).WithName("docker-watcher")
 	defer close(w.done)
 	// Recover from panics in event handling so an unexpected Docker
-	// event shape cannot crash the whole app-controller process. The
-	// engine reconciler notices the dead watcher via alive() on the
-	// next reconcile and starts a fresh one.
+	// event shape cannot crash the whole app-controller process.
+	// enqueueReconcile wakes the engine reconciler so it observes the
+	// dead watcher via alive() and starts a fresh one; without it, the
+	// next reconcile has to be triggered by an unrelated event.
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error(nil, "panic in Docker watcher goroutine", "recovered", r)
+			log.Error(nil, "panic in Docker watcher goroutine",
+				"recovered", r, "stack", string(debug.Stack()))
+			w.enqueueReconcile()
 		}
 	}()
 

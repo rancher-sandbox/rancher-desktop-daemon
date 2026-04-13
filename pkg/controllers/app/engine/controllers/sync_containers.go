@@ -45,11 +45,17 @@ func (w *dockerWatcher) syncAllContainers(ctx context.Context) error {
 	// Track which Docker container IDs exist, so stale mirrors can be pruned.
 	dockerIDs := make(map[string]bool, len(listResult.Items))
 
+	// Per-item inspect failures are logged and skipped rather than
+	// failing the whole startup: a single permanently-broken Inspect
+	// (engine-side corruption, transient race) must not prevent every
+	// other healthy container from being mirrored, nor pin the
+	// ContainerEngineReady condition at ConnectFailed. Structural
+	// errors (k8s list, stale-mirror cleanup) are still fatal.
 	var errs []error
 	for _, dc := range listResult.Items {
 		dockerIDs[dc.ID] = true
 		if err := w.syncContainer(ctx, dc.ID); err != nil {
-			errs = append(errs, err)
+			log.Error(err, "Skipping container during full sync", "id", dc.ID)
 		}
 	}
 
@@ -125,6 +131,19 @@ func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontaine
 		}
 	} else if err != nil {
 		return fmt.Errorf("failed to get container %s: %w", inspect.ID, err)
+	} else {
+		// Re-assert the mirror finalizer on every sync of an existing
+		// Container so a user that `kubectl edit`s it away cannot
+		// bypass the engine-side Docker cleanup on a subsequent delete.
+		// Applying only metadata.finalizers with ForceOwnership cannot
+		// clobber user-owned fields: our field manager touches only the
+		// finalizer slot it already owned on create.
+		finalizerOnly := containersv1alpha1apply.Container(inspect.ID, apiNamespace).
+			WithFinalizers(mirrorFinalizer)
+		if err := w.k8s.Apply(ctx, finalizerOnly,
+			client.ForceOwnership, client.FieldOwner(controllerName)); err != nil {
+			return fmt.Errorf("failed to reassert container finalizer %s: %w", inspect.ID, err)
+		}
 	}
 
 	// Build status.

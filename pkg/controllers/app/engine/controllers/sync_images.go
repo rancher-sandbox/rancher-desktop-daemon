@@ -49,11 +49,16 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 	// Track which `Image` mirror names we create so we can prune stale ones.
 	activeNames := make(map[string]bool)
 
+	// Per-item inspect failures are logged and skipped rather than
+	// failing the whole startup (see the matching note in
+	// syncAllContainers): a single broken image must not block the
+	// watcher from coming up. Structural errors below (k8s list,
+	// stale-mirror cleanup) are still fatal.
 	var errs []error
 	for _, summary := range listResult.Items {
 		names, err := w.syncImageFromSummary(ctx, summary)
 		if err != nil {
-			errs = append(errs, err)
+			log.Error(err, "Skipping image during full sync", "id", summary.ID)
 			continue
 		}
 		for _, n := range names {

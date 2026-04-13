@@ -124,6 +124,14 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 		terminalStatus := metav1.ConditionFalse
 		terminalMessage := "Container engine stopped"
 		if running && !engineIsDocker {
+			// NotApplicable is reported as Status=True so that
+			// `rdd set running=true containerEngine.name=containerd`
+			// stops waiting on ContainerEngineReady — even though the
+			// engine controller is not mirroring anything in this
+			// backend. UI consumers that expect Container/Image/Volume
+			// resources should gate on the Reason as well, not on
+			// Status alone. The condition will be renamed when
+			// containerd mirroring lands.
 			terminalReason = "NotApplicable"
 			terminalStatus = metav1.ConditionTrue
 			terminalMessage = "Engine mirroring is only supported with the moby backend"
@@ -143,13 +151,20 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 		log.Info("App is running, starting Docker watcher")
 		if err := r.startWatcher(ctx); err != nil {
 			log.Error(err, "Failed to start Docker watcher")
-			_ = r.setEngineCondition(ctx, &app, metav1.ConditionFalse, "ConnectFailed", err.Error())
+			if condErr := r.setEngineCondition(ctx, &app, metav1.ConditionFalse, "ConnectFailed", err.Error()); condErr != nil {
+				log.Error(condErr, "Failed to update ContainerEngineReady to ConnectFailed")
+			}
 			return ctrl.Result{}, err
 		}
 		if err := r.setEngineCondition(ctx, &app, metav1.ConditionTrue, "Connected", "Container engine synced"); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		// Fall through so pending spec.state patches and finalizers
+		// made during the watcher-down window are processed on this
+		// same reconcile, instead of waiting for a later event. The
+		// restart-after-crash path would otherwise stall if the
+		// ContainerEngineReady condition hadn't changed (setEngineCondition
+		// is a no-op) and no mirror watch event follows.
 	}
 
 	// reconcileContainerSpecs + processFinalizers each issue one or more
@@ -198,19 +213,31 @@ func (r *EngineReconciler) stopWatcher() {
 	}
 }
 
-// setEngineCondition updates the ContainerEngineReady condition on the App resource.
+// setEngineCondition updates the ContainerEngineReady condition on the
+// App resource. The App controller also writes App.Status.Conditions
+// (to mirror LimaVM conditions) and controller-runtime does not
+// serialize reconciles across controllers, so a naive Update can race
+// and 409. retry.RetryOnConflict plus a re-Get inside the loop is the
+// same pattern used elsewhere in this file (see removeMirrorResource,
+// deleteAllOfType).
 func (r *EngineReconciler) setEngineCondition(ctx context.Context, app *appv1alpha1.App, status metav1.ConditionStatus, reason, message string) error {
-	changed := meta.SetStatusCondition(&app.Status.Conditions, metav1.Condition{
-		Type:               conditionContainerEngineReady,
-		Status:             status,
-		Reason:             reason,
-		Message:            message,
-		ObservedGeneration: app.Generation,
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest := &appv1alpha1.App{}
+		if err := r.Get(ctx, client.ObjectKey{Name: app.Name}, latest); err != nil {
+			return err
+		}
+		changed := meta.SetStatusCondition(&latest.Status.Conditions, metav1.Condition{
+			Type:               conditionContainerEngineReady,
+			Status:             status,
+			Reason:             reason,
+			Message:            message,
+			ObservedGeneration: latest.Generation,
+		})
+		if !changed {
+			return nil
+		}
+		return r.Status().Update(ctx, latest)
 	})
-	if !changed {
-		return nil
-	}
-	return r.Status().Update(ctx, app)
 }
 
 // cleanupMirrorResources removes every mirror resource the engine
@@ -257,8 +284,10 @@ func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.Obje
 	for _, item := range items {
 		obj := item.(client.Object)
 		key := client.ObjectKeyFromObject(obj)
-		kind := obj.GetObjectKind().GroupVersionKind().Kind
-
+		// meta.ExtractList strips the TypeMeta from each item (the API
+		// server only populates GVK on the top-level list), so
+		// obj.GetObjectKind() is empty here. Format the concrete Go
+		// type name with %T instead.
 		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			latest := obj.DeepCopyObject().(client.Object)
 			if err := r.Get(ctx, key, latest); err != nil {
@@ -273,13 +302,13 @@ func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.Obje
 			return r.Update(ctx, latest)
 		})
 		if retryErr != nil {
-			errs = append(errs, fmt.Errorf("failed to remove finalizer from %s/%s: %w",
-				kind, obj.GetName(), retryErr))
+			errs = append(errs, fmt.Errorf("failed to remove finalizer from %T %s: %w",
+				obj, obj.GetName(), retryErr))
 			continue
 		}
 		if err := client.IgnoreNotFound(r.Delete(ctx, obj)); err != nil {
-			errs = append(errs, fmt.Errorf("failed to delete %s/%s: %w",
-				kind, obj.GetName(), err))
+			errs = append(errs, fmt.Errorf("failed to delete %T %s: %w",
+				obj, obj.GetName(), err))
 		}
 	}
 	return errors.Join(errs...)
@@ -327,13 +356,15 @@ func (r *EngineReconciler) processFinalizers(ctx context.Context) error {
 		return nil
 	}
 
-	if err := r.processContainerFinalizers(ctx, w); err != nil {
-		return err
-	}
-	if err := r.processImageFinalizers(ctx, w); err != nil {
-		return err
-	}
-	return r.processVolumeFinalizers(ctx, w)
+	// Collect errors across all three types so a stuck Container or
+	// Image finalizer does not starve pending Volume finalizers on the
+	// same reconcile, matching the per-item pattern used in
+	// cleanupMirrorResources.
+	return errors.Join(
+		r.processContainerFinalizers(ctx, w),
+		r.processImageFinalizers(ctx, w),
+		r.processVolumeFinalizers(ctx, w),
+	)
 }
 
 // processContainerFinalizers deletes the Docker-side container for every
@@ -403,9 +434,16 @@ func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *docke
 		if v.DeletionTimestamp == nil || !hasFinalizer(v, mirrorFinalizer) {
 			continue
 		}
-		if err := w.deleteVolume(ctx, v.Status.Name); err != nil {
-			errs = append(errs, fmt.Errorf("failed to delete volume %s from Docker: %w", v.Name, err))
-			continue
+		// A Volume mirror with an empty Status.Name has no
+		// engine-populated status yet — either a user created it as a
+		// bare skeleton or it landed in the startup race window before
+		// applyVolume ran. There is no Docker-side name to forward a
+		// delete to, so strip the finalizer and let the Delete proceed.
+		if v.Status.Name != "" {
+			if err := w.deleteVolume(ctx, v.Status.Name); err != nil {
+				errs = append(errs, fmt.Errorf("failed to delete volume %s from Docker: %w", v.Name, err))
+				continue
+			}
 		}
 		if removeFinalizer(v, mirrorFinalizer) {
 			if err := client.IgnoreNotFound(r.Update(ctx, v)); err != nil {

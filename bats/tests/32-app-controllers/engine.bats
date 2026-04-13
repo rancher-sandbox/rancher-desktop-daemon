@@ -144,7 +144,7 @@ local_setup_file() {
 # --- Volume mirroring ---
 
 # Volume mirror names are derived from the Docker name via SHA-256 hashing
-# (see volumeK8sName in sync_volumes.go), so tests look up Volumes by
+# (see volumeMirrorName in sync_volumes.go), so tests look up Volumes by
 # status.name through the .status.name selectable field rather than by
 # metadata.name.
 

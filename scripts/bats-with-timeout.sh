@@ -67,10 +67,16 @@ cmdline_of() {
 # Check whether a cmdline belongs to the current RDD_INSTANCE. The
 # instance name appears in any path derived from it (~/.rd<instance>/,
 # rancher-desktop-<instance>/, ...) and in sh wrapper argv as
-# `RDD_INSTANCE=<instance>`.
+# `RDD_INSTANCE=<instance>`. Anchor on those exact markers rather than
+# matching any substring, so a short instance like "bats" does not
+# match every "bats-*" sibling target's processes and trigger cross-
+# target SIGKILL cleanup.
 matches_our_instance() {
     case "$1" in
-        *"${instance}"*) return 0 ;;
+        *"RDD_INSTANCE=${instance}"*) return 0 ;;
+        *"/.rd${instance}/"*) return 0 ;;
+        *"rancher-desktop-${instance}/"*) return 0 ;;
+        *"rancher-desktop-${instance} "*) return 0 ;;
     esac
     return 1
 }

@@ -12,6 +12,12 @@ BATS_CORE := ./lib/bats-core/bin/bats
 # goroutine dumps via SIGQUIT, open fds) before killing the target so
 # we can diagnose CI hangs post-mortem. Use `=` so $@ resolves to the
 # current target at recipe time.
+#
+# NOTE: setting BATS_TIMEOUT=0 disables the wrapper entirely, which
+# also disables the support-bundle capture and leaked-process cleanup.
+# If you are debugging a hang locally and need both the long runtime
+# and the diagnostic capture, set BATS_TIMEOUT to a large value
+# (e.g. 86400) instead of 0.
 BATS_TIMEOUT ?= 1800
 BATS = $(if $(filter-out 0,$(BATS_TIMEOUT)),../scripts/bats-with-timeout.sh $(BATS_TIMEOUT) $@) $(BATS_CORE)
 
