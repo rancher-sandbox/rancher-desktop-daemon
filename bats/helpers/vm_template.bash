@@ -37,9 +37,9 @@ YAML
         cat <<'YAML'
 vmType: wsl2
 images:
-- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.1.2/distro.v0.1.2.amd64.tar.xz
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.2/distro.v0.2.2.amd64.tar.xz
   arch: x86_64
-  digest: sha256:dab70ce152f163ad5c7ce45accb314b91a68f43efd9a153415eaab3e22b8cdf8
+  digest: sha256:80aa8acb4f2784b44c0e4dd90e2dacb587623e93f2e72abe355d034a46e4542e
 mountType: wsl2
 containerd:
   system: false
@@ -56,12 +56,12 @@ YAML
 _unix_template() {
     cat <<YAML
 images:
-- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.1.1/distro.v0.1.1.amd64.qcow2
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.2/distro.v0.2.2.amd64.raw.xz
   arch: x86_64
-  digest: sha256:6a0a2729781f7a412f2d4fd7cb3270104eb16d9965811d0a39cb9766afdf3fd3
-- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.1.1/distro.v0.1.1.arm64.qcow2
+  digest: sha256:a1aaeb12beca92d4d0ca62c19322dc217035db766c694ca287d243d6878f255c
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.2/distro.v0.2.2.arm64.raw.xz
   arch: aarch64
-  digest: sha256:8e8f9dfa8292dd4e3821f44542305b01c78ec8cb007065d1bba233899ce438e8
+  digest: sha256:dbd58f962e42d0b946929c9ab7f5126363d6b0d918e79cd6f2c24620d087e64a
 ${RDD_VM_TYPE:+vmType: ${RDD_VM_TYPE}}
 containerd:
   system: false

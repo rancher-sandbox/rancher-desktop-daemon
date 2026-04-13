@@ -1,6 +1,6 @@
 vmType: wsl2
 images:
-- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.1.2/distro.v0.1.2.amd64.tar.xz
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.2/distro.v0.2.2.amd64.tar.xz
   arch: x86_64
-  digest: sha256:dab70ce152f163ad5c7ce45accb314b91a68f43efd9a153415eaab3e22b8cdf8
+  digest: sha256:80aa8acb4f2784b44c0e4dd90e2dacb587623e93f2e72abe355d034a46e4542e
 mountType: wsl2
