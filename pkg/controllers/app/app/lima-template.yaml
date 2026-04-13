@@ -120,6 +120,8 @@ hostResolver:
     host.docker.internal: host.lima.internal
     host.rancher-desktop.internal: host.lima.internal
     lima-rancher-desktop: lima-0
-rosetta:
-  enabled: false
-  binfmt: false
+vmOpts:
+  vz:
+    rosetta:
+      enabled: false
+      binfmt: false
