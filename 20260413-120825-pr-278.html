@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260413-120825-pr-278</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260413-120825-pr-278</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-13 12:08</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/Nino-K">@Nino-K</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/278" class="gh-ref" data-title="Bundle k3s versions to app controller" data-state="open" data-type="pr">#278</a> — Bundle k3s versions to app controller</td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/070efc9"><code>070efc9</code></a> Write KUBERNETES<em>ENABLED and KUBERNETES</em>PORT to sysconfig<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e57a182"><code>e57a182</code></a> Resolve HOST_HOME param to actual host home directory<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/16ef12c"><code>16ef12c</code></a> Add BATs test for supported k8s version in k3s-version.json<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/9df4002"><code>9df4002</code></a> Bundle k3s-versions.json and validate Kubernetes version</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; validator contract is broken for ~11% of bundled versions and empty-version bypass lets bad specs reach the installer; both need fixes before merge.</td></tr>
+      <tr><td>Wall-clock time</td><td><code>19 min 49 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>This PR embeds a filtered <code>k3s-versions.json</code> into the App controller and rejects unsupported <code>spec.kubernetes.version</code> values with <code>Ready=False/UnsupportedKubernetesVersion</code> before creating the LimaVM. It also fixes two unrelated VM-provisioning issues: <code>HOST_HOME</code> is now resolved from <code>os.UserHomeDir()</code> instead of the literal Lima <code>{{.Home}}</code> placeholder, and the sysconfig file now carries <code>KUBERNETES_ENABLED</code> and <code>KUBERNETES_PORT</code> for k3s service conditions.</p>
+    <p>The core intent is sound, but the validation has several gaps that let bad specs through or get stuck in a bad state. All three agents independently flagged the suffix-mismatch issue — the bundled list contains <code>+k3s3</code> releases but the install template hard-codes <code>+k3s1</code>, so four versions pass validation and then fail at install time. All three also flagged the empty-version bypass and the dropped <code>HOST_HOME</code> quoting. Two agents caught that <code>Ready=False</code> persists indefinitely once set, even after the user fixes the spec. Claude uniquely caught a test assertion that accidentally accepts <code>NotReady</code>, and Gemini uniquely caught that the unconditional <code>os.UserHomeDir()</code> call at the top of Reconcile would block finalizer cleanup if <code>HOME</code> were unset.</p>
+    <p>No critical-severity findings survived consolidation, but the important-issue list is dense (6 findings) and most block the feature&#39;s stated contract.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Bundled list contains versions the install template cannot install <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/k3s-versions.json#L18-L28">pkg/controllers/app/app/k3s-versions.json</a></div>
+      <pre data-start="18" data-line="23"><code class="language-json">    &quot;v1.32.6+k3s1&quot;,
+    &quot;v1.32.7+k3s1&quot;,
+    &quot;v1.32.8+k3s1&quot;,
+    &quot;v1.32.9+k3s1&quot;,
+    &quot;v1.32.10+k3s1&quot;,
+    &quot;v1.32.11+k3s3&quot;,
+    &quot;v1.32.12+k3s1&quot;,
+    &quot;v1.32.13+k3s1&quot;,
+    &quot;v1.33.0+k3s1&quot;,
+    &quot;v1.33.1+k3s1&quot;,
+    &quot;v1.33.2+k3s1&quot;,</code></pre>
+    <p><code>parseK3sVersions</code> strips both the leading <code>v</code> and the <code>+k3s*</code> suffix, so the lookup set becomes <code>{&quot;1.32.11&quot;, &quot;1.33.7&quot;, ...}</code>. A user setting <code>kubernetes.version=1.32.11</code> passes validation at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L127"><code>app_controller.go:127</code></a>. The controller then creates the LimaVM, and the provisioning script builds <code>INSTALL_K3S_VERSION</code> from the bare version plus a hardcoded <code>+k3s1</code> suffix — a tag that does not exist on the k3s release page. <code>curl -sfL https://get.k3s.io | sh -</code> aborts under <code>set -o errexit</code> and the VM never reaches Running.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L122-L132">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="122" data-line="127"><code class="language-go">	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Spec.Kubernetes.Version != &quot;&quot; {
+		supportedVersions, err := parseK3sVersions(r.K3sVersionsData)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to load k3s versions: %w&quot;, err)
+		}
+		if _, ok := supportedVersions[app.Spec.Kubernetes.Version]; !ok {
+			unsupported := apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{
+				Type:               &quot;Ready&quot;,
+				Status:             metav1.ConditionFalse,
+				Reason:             &quot;UnsupportedKubernetesVersion&quot;,
+				Message:            fmt.Sprintf(&quot;Kubernetes version %q is not supported; see the bundled k3s-versions.json for valid versions&quot;, app.Spec.Kubernetes.Version),</code></pre>
+      <pre><code class="language-bash"># pkg/controllers/app/app/lima-template.yaml:57
+export INSTALL_K3S_VERSION=&quot;v${PARAM_KUBERNETES_VERSION}+k3s1&quot;</code></pre>
+    <p>4 of 35 bundled versions (~11%) hit this. The validator&#39;s contract (&quot;if it&#39;s in the list, it works&quot;) is established and immediately violated.</p>
+    <p>Fix: have <code>parseK3sVersions</code> return a map from bare semver to the full release identifier (e.g., <code>{&quot;1.32.11&quot;: &quot;v1.32.11+k3s3&quot;}</code>). Thread the full tag through <code>applySpecToTemplate</code> as a new <code>PARAM_K3S_RELEASE</code>, and rewrite the template line to <code>export INSTALL_K3S_VERSION=&quot;${PARAM_K3S_RELEASE}&quot;</code>. Drop the hardcoded <code>+k3s1</code>.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> <code>os.UserHomeDir()</code> call blocks finalizer cleanup on failure <span class="pill pill-gemini">Gemini</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L65-L78">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="65" data-line="70-73"><code class="language-go">			log.Error(err, &quot;Unable to fetch App singleton&quot;)
+		}
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	hostHome, err := os.UserHomeDir()
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf(&quot;failed to get host home directory: %w&quot;, err)
+	}
+
+	// Handle deletion, delete the LimaVM and wait for it to finish cleaning up.
+	if base.IsBeingDeleted(&amp;app) {
+		log.Info(&quot;App resource is being deleted, performing cleanup&quot;)
+</code></pre>
+    <p>The <code>os.UserHomeDir()</code> lookup runs unconditionally at the top of every reconcile, before <code>base.IsBeingDeleted(&amp;app)</code> is evaluated. If <code>HOME</code> ever becomes unset or inaccessible (e.g., the daemon is restarted under a launchd context that clears the environment), the finalizer cleanup path deadlocks: the App can never be deleted even though the cleanup logic does not need the host home directory. The correct placement is after the deletion branch and the cleanup-finalizer setup, co-located with the first caller of <code>applySpecToTemplate</code>.</p>
+    <p>Fix: move the <code>os.UserHomeDir()</code> call below the <code>base.IsBeingDeleted</code> block. Better: cache the result once at controller setup time (see S1).</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I3">
+        <span class="finding-num">I3.</span> Empty <code>kubernetes.version</code> with <code>enabled=true</code> bypasses validation <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#I3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L117-L127">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="117" data-line="122"><code class="language-go">	}
+
+	namespace := app.GetResourceNamespace()
+
+	// Validate the requested Kubernetes version against the bundled version list.
+	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Spec.Kubernetes.Version != &quot;&quot; {
+		supportedVersions, err := parseK3sVersions(r.K3sVersionsData)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to load k3s versions: %w&quot;, err)
+		}
+		if _, ok := supportedVersions[app.Spec.Kubernetes.Version]; !ok {</code></pre>
+    <p><code>KubernetesSpec.Version</code> is <code>+optional</code> with no <code>+kubebuilder:default</code>, so a user creating an App with <code>{kubernetes: {enabled: true}}</code> and no version sets <code>Version=&quot;&quot;</code>. The check short-circuits, the reconciler proceeds, the template exports <code>INSTALL_K3S_VERSION=&quot;v+k3s1&quot;</code>, and k3s install fails with a non-existent version tag. The CLI <code>rdd set</code> explicitly supports clearing the version field (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/bats/tests/32-app-controllers/set.bats#L124-L131"><code>set.bats:124-131</code></a>), so this is a reachable state.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/bats/tests/32-app-controllers/set.bats#L119-L136">bats/tests/32-app-controllers/set.bats</a></div>
+      <pre data-start="119" data-line="124-131"><code class="language-plaintext">    assert_output &quot;1.32.2&quot;
+}
+
+# --- Clear: reuses App from previous test ---
+
+@test &quot;rdd set clears string field with empty value&quot; {
+    run -0 get_app_field &#39;.spec.kubernetes.version&#39;
+    assert_output &quot;1.32.2&quot;
+
+    rdd set kubernetes.version=
+
+    run -0 get_app_field &#39;.spec.kubernetes.version&#39;
+    assert_output &quot;&quot;
+}
+
+# --- Dry-run: reuses App from previous tests ---
+
+@test &quot;rdd set --dry-run validates without persisting&quot; {</code></pre>
+    <p>This is exactly the class of bad input the PR set out to prevent, but the empty-string case falls through into the VM. The user only sees a <code>CreateFailed</code> or k3s install error with no pointer to the spec mistake.</p>
+    <p>Fix: drop the <code>Version != &quot;&quot;</code> clause and let the empty-string lookup naturally fail with <code>UnsupportedKubernetesVersion</code>. Optionally tailor the message to &quot;version is required when enabled&quot; when empty. A <code>+kubebuilder:default</code> matching a bundled version would close this at the API layer.</p>
+      <pre><code class="language-diff">-if app.Spec.Kubernetes.Enabled &amp;&amp; app.Spec.Kubernetes.Version != &quot;&quot; {
++if app.Spec.Kubernetes.Enabled {</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I4">
+        <span class="finding-num">I4.</span> Stale <code>Ready=False</code> condition is never cleared after the spec is fixed <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#I4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L116-L149">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="116" data-line="121-144"><code class="language-go">		return ctrl.Result{}, nil
+	}
+
+	namespace := app.GetResourceNamespace()
+
+	// Validate the requested Kubernetes version against the bundled version list.
+	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Spec.Kubernetes.Version != &quot;&quot; {
+		supportedVersions, err := parseK3sVersions(r.K3sVersionsData)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to load k3s versions: %w&quot;, err)
+		}
+		if _, ok := supportedVersions[app.Spec.Kubernetes.Version]; !ok {
+			unsupported := apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{
+				Type:               &quot;Ready&quot;,
+				Status:             metav1.ConditionFalse,
+				Reason:             &quot;UnsupportedKubernetesVersion&quot;,
+				Message:            fmt.Sprintf(&quot;Kubernetes version %q is not supported; see the bundled k3s-versions.json for valid versions&quot;, app.Spec.Kubernetes.Version),
+				ObservedGeneration: app.Generation,
+				LastTransitionTime: metav1.Now(),
+			})
+			if unsupported {
+				if err := r.Status().Update(ctx, &amp;app); err != nil {
+					log.Error(err, &quot;Unable to update App status for unsupported version&quot;)
+					return ctrl.Result{}, err
+				}
+			}
+			return ctrl.Result{}, nil
+		}
+	}
+
+	// Check whether the LimaVM already exists. If not, create the input ConfigMap and LimaVM.
+	limaVM := &amp;limav1alpha1.LimaVM{}
+	limaVMErr := r.Get(ctx, client.ObjectKey{Name: limaVMName, Namespace: namespace}, limaVM)
+	if limaVMErr != nil &amp;&amp; !apierrors.IsNotFound(limaVMErr) {</code></pre>
+    <p>The mirror loop at lines 268-284 only writes condition types the LimaVM exposes (<code>Created</code>, <code>Running</code>). LimaVM never sets <code>Ready</code>. So once the validation block has stamped <code>Ready=False</code> on the App and the user does <code>rdd set kubernetes.version=1.32.0</code> (or <code>kubernetes.enabled=false</code>), the condition persists indefinitely. <code>kubectl get app -o yaml</code> will show <code>Ready=False</code> even though the VM is happily running k3s. The new BATS tests don&#39;t catch this because every test calls <code>delete_app</code> first, which destroys the conditions.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L263-L289">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="263" data-line="268-284"><code class="language-go">	// The priority chain above returns after every other action, so the App&#39;s
+	// resourceVersion from the initial Get is still current — no re-read needed.
+	// Truncate messages defensively: the LimaVM controller already truncates at
+	// source, but guarding here ensures a future bypass can&#39;t cause the App
+	// status update to fail CRD validation.
+	statusChanged := false
+	for _, cond := range limaVM.Status.Conditions {
+		statusChanged = apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{
+			Type:               cond.Type,
+			Status:             cond.Status,
+			Reason:             cond.Reason,
+			Message:            base.TruncateConditionMessage(cond.Message),
+			ObservedGeneration: app.Generation,
+			LastTransitionTime: cond.LastTransitionTime,
+		}) || statusChanged
+	}
+	if statusChanged {
+		if err := r.Status().Update(ctx, &amp;app); err != nil {
+			log.Error(err, &quot;Unable to update App status&quot;)
+			return ctrl.Result{}, err
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// SetupWithManager sets up the controller with the Manager.</code></pre>
+    <p>Fix: when validation passes (or Kubernetes is disabled entirely), drop the prior <code>Ready</code> condition and requeue. Using <code>apimeta.RemoveStatusCondition</code> followed by <code>r.Status().Update</code> is the minimal change:</p>
+      <pre><code class="language-diff">+if apimeta.RemoveStatusCondition(&amp;app.Status.Conditions, &quot;Ready&quot;) {
++    if err := r.Status().Update(ctx, &amp;app); err != nil {
++        return ctrl.Result{}, err
++    }
++    return ctrl.Result{}, nil
++}</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I5">
+        <span class="finding-num">I5.</span> Dropped <code>HOST_HOME</code> quoting is fragile against paths with YAML-special characters <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#I5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L43-L56">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="43" data-line="48-51"><code class="language-go">	LimaTemplateData string
+	K3sVersionsData  string
+}
+
+func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec, hostHome string) string {
+	return baseTemplate + fmt.Sprintf(
+		&quot;\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: %s\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n&quot;,
+		spec.ContainerEngine.Name,
+		hostHome,
+		spec.Kubernetes.Enabled,
+		spec.Kubernetes.Version,
+	)
+}
+</code></pre>
+    <p>The previous line read <code>HOST_HOME: \&quot;{{.Home}}\&quot;</code> — the literal string was double-quoted in the YAML output. Commit e57a182 replaces <code>{{.Home}}</code> with <code>os.UserHomeDir()</code> (correct fix for the literal-template bug) but drops the quotes. On Windows, <code>os.UserHomeDir()</code> returns <code>%USERPROFILE%</code>, which commonly includes spaces (<code>C:\Users\Jan Dubois</code>) and can legally contain <code>#</code> in usernames, which turns into a YAML comment. Even on Unix, a user with a <code>#</code> or <code>:</code> in their home path would trip the YAML parser.</p>
+    <p>Fix: use <code>%q</code> so the value is always emitted as a quoted YAML scalar. Lima&#39;s param parser accepts double-quoted scalars — the existing template uses them elsewhere (e.g., <code>hostSocket: &quot;{{.Home}}/.rd/docker.sock&quot;</code>).</p>
+      <pre><code class="language-diff">-&quot;\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: %s\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n&quot;,
++&quot;\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: %q\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n&quot;,</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I6">
+        <span class="finding-num">I6.</span> <code>assert_output --partial &quot;Ready&quot;</code> accepts <code>NotReady</code> <span class="pill pill-claude">Claude</span><a href="#I6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/bats/tests/32-app-controllers/app.bats#L325-L338">bats/tests/32-app-controllers/app.bats</a></div>
+      <pre data-start="325" data-line="330-333"><code class="language-bash">@test &quot;wait for k3s to be ready&quot; {
+    # k3s is downloaded and installed on first use; allow extra time.
+    try --max 36 --delay 10 -- rdd limavm shell &quot;${VM_NAME}&quot; sudo systemctl is-active k3s
+}
+
+@test &quot;kubernetes nodes are Ready&quot; {
+    run -0 rdd limavm shell &quot;${VM_NAME}&quot; sudo k3s kubectl get nodes
+    assert_output --partial &quot;Ready&quot;
+}
+
+@test &quot;stop VM after Kubernetes test&quot; {
+    rdd set running=false
+    rdd ctl wait --for=condition=Running=False \
+        limavm/&quot;${VM_NAME}&quot; --namespace &quot;${RDD_NAMESPACE}&quot; --timeout=60s</code></pre>
+    <p><code>kubectl get nodes</code> prints either <code>Ready</code> or <code>NotReady</code> in the STATUS column. A substring search for <code>Ready</code> matches both, so the test gives a false positive when the node is still <code>NotReady</code> (cordoned, network init, transient failures). Single-node k3s usually flips Ready quickly, so this rarely fires in practice — but the test claims to verify readiness and doesn&#39;t.</p>
+    <p>Fix: use <code>kubectl wait</code> and let it block on the actual condition. No <code>assert_output</code> needed.</p>
+      <pre><code class="language-diff"> @test &quot;kubernetes nodes are Ready&quot; {
+-    run -0 rdd limavm shell &quot;${VM_NAME}&quot; sudo k3s kubectl get nodes
+-    assert_output --partial &quot;Ready&quot;
++    run -0 rdd limavm shell &quot;${VM_NAME}&quot; sudo k3s kubectl wait \
++        --for=condition=Ready nodes --all --timeout=60s
+ }</code></pre>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> <code>parseK3sVersions</code> runs on every reconcile <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L118-L128">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="118" data-line="123"><code class="language-go">
+	namespace := app.GetResourceNamespace()
+
+	// Validate the requested Kubernetes version against the bundled version list.
+	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Spec.Kubernetes.Version != &quot;&quot; {
+		supportedVersions, err := parseK3sVersions(r.K3sVersionsData)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to load k3s versions: %w&quot;, err)
+		}
+		if _, ok := supportedVersions[app.Spec.Kubernetes.Version]; !ok {
+			unsupported := apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{</code></pre>
+    <p>The data is a compile-time <code>//go:embed</code> string; the parsed set never changes. Parsing on every reconcile is wasted work and the error path is unreachable in practice — if the embed were corrupt at build time, the controller would silently retry forever instead of failing visibly at startup.</p>
+    <p>Fix: parse once in <code>controller.go</code>&#39;s <code>RegisterWithManager</code> and pass the resulting map into <code>AppReconciler</code>. Surface the parse error at that point so a malformed embed fails the manager to start. A side benefit: the call site can also cache <code>hostHome</code> (see I2) and drop both <code>K3sVersionsData</code> and the per-reconcile <code>os.UserHomeDir()</code> call in one refactor.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> Non-SSA <code>Status().Update</code> on App — replicates existing anti-pattern <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+    <p>The new validation block adds a second <code>Status().Update(ctx, &amp;app)</code> on the App without <code>retry.RetryOnConflict</code> or Server-Side Apply. The repo context flags this because <code>App.Status.Conditions</code> has multiple writers today (<code>AppReconciler</code> mirrors LimaVM conditions) and the design doc anticipates an <code>EngineReconciler</code> that will write <code>ContainerEngineReady</code>. The new site is no worse than the existing mirror update at line 280 — the PR replicates an existing gap rather than introducing a novel one — but both sites should eventually migrate.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L275-L285">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="275" data-line="280"><code class="language-go">			ObservedGeneration: app.Generation,
+			LastTransitionTime: cond.LastTransitionTime,
+		}) || statusChanged
+	}
+	if statusChanged {
+		if err := r.Status().Update(ctx, &amp;app); err != nil {
+			log.Error(err, &quot;Unable to update App status&quot;)
+			return ctrl.Result{}, err
+		}
+	}
+</code></pre>
+    <p>Fix (when tackling both sites): wrap in <code>retry.RetryOnConflict</code> or convert to Server-Side Apply. Deferring is acceptable if done in a dedicated follow-up PR.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> <code>Ready</code> condition only ever set to <code>False</code> <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+    <p>K8s convention is <code>Ready=True</code> means the resource is fully reconciled and operational. Here <code>Ready</code> is only written on the failure path and never set to <code>True</code> in the happy path. A reader running <code>kubectl wait --for=condition=Ready app/app</code> in the success case would block forever because the condition never appears — which is surprising and contradicts convention.</p>
+    <p>Consider either (a) using a more specific condition type like <code>KubernetesVersionValid</code> to avoid reader confusion, or (b) maintaining <code>Ready</code> consistently (set to True after LimaVM <code>Running=True</code> and validation passes). Option (a) is smaller.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> <code>delete_app</code> now resurrects a missing App via <code>rdd set</code> <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/bats/tests/32-app-controllers/app.bats#L9-L28">bats/tests/32-app-controllers/app.bats</a></div>
+      <pre data-start="9" data-line="14-23"><code class="language-bash">
+APP_NAME=&quot;app&quot;
+VM_NAME=&quot;rd&quot;
+INPUT_CM_NAME=&quot;rd&quot;
+
+delete_app() {
+    # Stop the VM first so the LimaVM finalizer clears quickly.
+    rdd set running=false 2&gt;/dev/null || true
+    rdd ctl delete app &quot;${APP_NAME}&quot; --ignore-not-found
+    # Wait for full deletion so that create_app always starts with no
+    # pre-existing App resource. Without this, rdd ctl apply in create_app
+    # can update a still-terminating App, which the controller treats as a
+    # deletion request — no LimaVM is ever created.
+    rdd ctl wait --for=delete app/&quot;${APP_NAME}&quot; --timeout=120s 2&gt;/dev/null || true
+}
+
+create_app() {
+    local running=${1:-false}
+    delete_app
+</code></pre>
+    <p><code>rdd set</code> creates the App if it does not already exist. When <code>delete_app</code> is called against a fresh control plane (e.g., the new <code>unsupported Kubernetes version</code> test immediately follows <code>verify App can be recreated after deletion</code> which just deleted everything), this call recreates a brand-new App, the controller starts adding finalizers and creating the input ConfigMap, and the subsequent <code>rdd ctl delete app</code> tears it back down. Wasteful and adds seconds to a sequence the comment claims should be faster.</p>
+    <p>Fix: use <code>rdd ctl patch</code>, which fails silently (via the redirect) when the resource doesn&#39;t exist:</p>
+      <pre><code class="language-diff">-rdd set running=false 2&gt;/dev/null || true
++rdd ctl patch app &quot;${APP_NAME}&quot; --type=merge -p &#39;{&quot;spec&quot;:{&quot;running&quot;:false}}&#39; 2&gt;/dev/null || true</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> Design doc <code>api_app.md</code> is stale after this PR <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+    <p>The doc says <code>spec.kubernetes.version</code> defaults to <code>1.30.2</code>, but no such default exists in the Go types and <code>1.30.2</code> is now below the supported floor (<code>1.32.0</code>). The condition table (lines 94-104) only lists <code>Created</code> and <code>Running</code>, and an introductory sentence says conditions are &quot;mirrored from the owned <code>LimaVM</code> resource.&quot; The new <code>Ready/False/UnsupportedKubernetesVersion</code> condition is controller-owned, not mirrored — a reader following the doc would not expect it to ever appear.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/docs/design/api_app.md#L89-L109">docs/design/api_app.md</a></div>
+      <pre data-start="89" data-line="94-104"><code class="language-plaintext">
+- **spec.kubernetes.version**: The Kubernetes version to use (e.g. `&quot;1.30.2&quot;`). Defaults to `&quot;1.30.2&quot;`. Propagated to the `KUBERNETES_VERSION` Lima template param.
+
+- **status.conditions**: Conditions are **mirrored from the owned `LimaVM`** resource. The App controller copies `type`, `status`, `reason`, `message`, and `lastTransitionTime` from the LimaVM&#39;s conditions.
+
+  | Type      | Status      | Reason         | Description                                                       |
+  |-----------|-------------|----------------|-------------------------------------------------------------------|
+  | `Created` | `Unknown`   | `Pending`      | LimaVM controller has started reconciliation                      |
+  | `Created` | `True`      | `Created`      | Lima instance created on disk and ready                           |
+  | `Created` | `False`     | `CreateFailed` | Lima instance creation failed (see `message` for details)         |
+  | `Running` | `Unknown`   | `Reconciling`  | Verifying instance state (e.g. after controller restart)          |
+  | `Running` | `True`      | `Started`      | Lima instance is running                                          |
+  | `Running` | `False`     | `Stopped`      | Lima instance is stopped                                          |
+  | `Running` | `False`     | `Starting`     | Lima instance is starting up                                      |
+  | `Running` | `False`     | `StartFailed`  | Lima instance failed to start                                     |
+  | `Running` | `False`     | `StopFailed`   | Lima instance failed to stop cleanly                              |
+
+  Because conditions are mirrored, `lastTransitionTime` reflects when the **LimaVM** transitioned, not when the App controller copied the value. This makes the timestamp meaningful for staleness checks.
+
+Deleting the `App` resource triggers the finalizer to stop and delete the owned LimaVM (and wait for the LimaVM controller to complete its own cleanup before removing the App finalizer).
+</code></pre>
+    <p>Fix: update the default claim (either restore a real default or document that the field is required when <code>enabled=true</code>), add a row for the <code>Ready</code> condition, and clarify that a small set of App conditions are owned by the reconciler directly rather than mirrored.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> Error message references a file the user cannot see <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L127-L137">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="127" data-line="132"><code class="language-go">		if _, ok := supportedVersions[app.Spec.Kubernetes.Version]; !ok {
+			unsupported := apimeta.SetStatusCondition(&amp;app.Status.Conditions, metav1.Condition{
+				Type:               &quot;Ready&quot;,
+				Status:             metav1.ConditionFalse,
+				Reason:             &quot;UnsupportedKubernetesVersion&quot;,
+				Message:            fmt.Sprintf(&quot;Kubernetes version %q is not supported; see the bundled k3s-versions.json for valid versions&quot;, app.Spec.Kubernetes.Version),
+				ObservedGeneration: app.Generation,
+				LastTransitionTime: metav1.Now(),
+			})
+			if unsupported {
+				if err := r.Status().Update(ctx, &amp;app); err != nil {</code></pre>
+    <p>The user has no path to the bundled file — it&#39;s embedded into the binary. A more useful message would name a CLI affordance or list the channels (<code>stable</code>, <code>latest</code>) from the same JSON.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S7">
+        <span class="finding-num">S7.</span> 300s timeout on first VM start with k3s install is tight <span class="pill pill-claude">Claude</span><a href="#S7" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/bats/tests/32-app-controllers/app.bats#L314-L328">bats/tests/32-app-controllers/app.bats</a></div>
+      <pre data-start="314" data-line="319-323"><code class="language-bash">    rdd set running=false kubernetes.enabled=true kubernetes.version=1.32.0
+    rdd ctl wait --for=create limavm/&quot;${VM_NAME}&quot; \
+        --namespace &quot;${RDD_NAMESPACE}&quot; --timeout=60s
+}
+
+@test &quot;start VM with Kubernetes enabled&quot; {
+    rdd set running=true
+    rdd ctl wait --for=condition=Running \
+        limavm/&quot;${VM_NAME}&quot; --namespace &quot;${RDD_NAMESPACE}&quot; --timeout=300s
+}
+
+@test &quot;wait for k3s to be ready&quot; {
+    # k3s is downloaded and installed on first use; allow extra time.
+    try --max 36 --delay 10 -- rdd limavm shell &quot;${VM_NAME}&quot; sudo systemctl is-active k3s
+}</code></pre>
+    <p>The <code>Running</code> condition only fires after the provision script completes, and the provision script downloads and installs k3s (~75 MB binary plus install steps) on first boot. 300s is workable on a fast network but borderline on slow CI runners. Consider bumping to 360s or 480s to reduce flake risk.</p>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <p><strong>Concerns</strong></p>
+    <ul>
+      <li><strong>Validation belongs at admission, not in the reconciler</strong> <em>(future)</em> <span class="pill pill-claude">Claude</span> — Validating in <code>Reconcile</code> means <code>rdd set kubernetes.version=invalid</code> succeeds at the CLI layer, the user gets no immediate feedback, and they have to read <code>app.status.conditions</code> to discover the spec was rejected. A validating admission webhook (RDD already runs one for LimaVM) would reject the bad spec at API-call time and return the error directly. Alternatively, a generated <code>+kubebuilder:validation:Enum=...</code> derived from <code>k3s-versions.json</code> at build time would push validation into the API server with no extra runtime infrastructure.</li>
+      <li><em></em>Missing default for <code>kubernetes.version</code><em></em> <em>(in-scope)</em> <span class="pill pill-claude">Claude</span> — The Go spec has no default, the CRD has no default, and the design doc claims a <code>1.30.2</code> default that is now below the supported floor. The combination of &quot;no default&quot; and &quot;the validator only fires when <code>version != &quot;&quot;</code>&quot; is what produces I3. Either commit to a real default or always require version when <code>enabled=true</code>.</li>
+      <li><strong>Supported-version shape conflates validation and installation</strong> <em>(in-scope)</em> <span class="pill pill-codex">Codex</span> — The controller now treats &quot;supported version&quot; as a bare semver while the installer consumes a full k3s tag. A single parsed structure that preserves both forms would eliminate the suffix drift in I1 and make future channel updates safer.</li>
+      <li><strong>Per-reconcile JSON parsing lacks startup-time failure surface</strong> <em>(in-scope)</em> <span class="pill pill-gemini">Gemini</span> — The embedded JSON is only validated when the first App with <code>kubernetes.enabled=true</code> is reconciled. A malformed embed introduced in a future bump would not surface until runtime. See S1.</li>
+    </ul>
+    <p><strong>Strengths</strong></p>
+    <ul>
+      <li><em>(in-scope)</em> <span class="pill pill-claude">Claude</span> The controller correctly returns early on validation failure without updating the template ConfigMap, so a running VM keeps its old working configuration if the user fans out a bad version. Good fail-safe behavior.</li>
+      <li><em>(in-scope)</em> <span class="pill pill-claude">Claude</span> Splitting <code>applySpecToTemplate</code> to take an explicit <code>hostHome</code> parameter (rather than reading the env inside the helper) keeps the helper pure and testable.</li>
+      <li><em>(in-scope)</em> <span class="pill pill-codex">Codex</span> Bundling a filtered static <code>k3s-versions.json</code> into the controller is the right direction: it removes an external dependency from reconcile-time validation and blocks obviously bad specs before the LimaVM is created.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The added tests cover the happy path (valid version → LimaVM created → k3s active) and the rejection path (invalid version → <code>Ready=False</code>). Gaps, ranked by risk:</p>
+    <ol>
+      <li><strong>Recovery from invalid → valid version</strong> — would catch I4 (stale <code>Ready=False</code>). Test: set bad version, observe <code>Ready=False</code>, set good version, assert <code>Ready</code> condition is gone (or <code>True</code>).</li>
+      <li><em></em>Empty version with <code>kubernetes.enabled=true</code><em></em> — would catch I3. Test: <code>rdd set kubernetes.enabled=true</code> with no version, expect <code>Ready=False</code>.</li>
+      <li><em></em>A <code>+k3s3</code> version<em></em> — would catch I1. Test: pick <code>1.34.3</code> from the bundled list and run the same start-VM flow.</li>
+      <li><em></em><code>assert_output --partial &quot;Ready&quot;</code> false positives<em></em> — I6 itself. Switching to <code>kubectl wait</code> eliminates the class of problem.</li>
+      <li><strong>Disabling Kubernetes after a validation failure</strong> — set bad version, then <code>rdd set kubernetes.enabled=false</code>, expect <code>Ready=False</code> to clear.</li>
+    </ol>
+    <p>Codex ran <code>go test ./pkg/controllers/app/app/... ./pkg/controllers/lima/limavm/...</code> in its sandbox — passed. No agent ran the BATS suite.</p>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><code>docs/design/api_app.md</code> needs the updates in S5 (drop/refresh the <code>1.30.2</code> default claim, add the <code>Ready/UnsupportedKubernetesVersion</code> row, clarify mirrored vs. owned conditions).</li>
+      <li><code>parseK3sVersions</code> and <code>k3sVersionsJSON</code> have brief godocs; the <code>K3sVersionsData</code> field on <code>AppReconciler</code> does not. Once S1 lands (cache the parsed map), the field can be renamed and documented in one move.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The four commits are logically separated (bundle+validate / hostHome fix / sysconfig fix / bats tests) and individually reviewable. One concern: <code>16ef12c &quot;Add BATs test for supported k8s version in k3s-version.json&quot;</code> lands the validation tests but implicitly depends on <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/070efc9"><code>070efc9</code></a> (sysconfig fix) and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e57a182"><code>e57a182</code></a> (hostHome fix) to actually pass — bisecting on the bats commit would leave the test suite broken. Consider squashing the BATS commit into the implementation commit, or moving it to the end of the series.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>None. The two prior PR comments (Jan: &quot;needs a rebase due to template using finch image&quot;; Nino: &quot;rebased&quot;) relate to CI infrastructure and are already addressed by the current branch.</p>
+    </div>
+    <hr>
+    <h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Nothing outstanding from the two prior comments.</p>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Claude produced the most comprehensive review — caught all three of the convergent findings (version suffix, empty version, stale Ready condition) and added two unique ones (the <code>assert_output &quot;Ready&quot;</code> test accepting <code>NotReady</code>, and the <code>delete_app</code> helper accidentally resurrecting the App via <code>rdd set</code>). Claude also did the strongest cross-referencing: it traced <code>docs/design/api_app.md</code> to flag the stale <code>1.30.2</code> default claim and the condition-table gap, and noted that the sysconfig template now writes <code>KUBERNETES_PORT=6443</code> but nothing on the PR touches a k3s port config. Calibration was reasonable — no findings needed downgrading. The one miss: Claude flagged <code>os.UserHomeDir()</code> as a caching-level suggestion (S7) without tracing the deletion-path deadlock Gemini caught.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Codex delivered a tight, focused review — three important findings, all of which survived consolidation at the same severity. Its unique contribution was the strongest framing of the version suffix bug: it pinpointed the exact <code>+k3s3</code> entries in the bundled JSON and mapped them to the template&#39;s <code>+k3s1</code> suffix with file:line references. It also flagged the <code>api_app.md</code> staleness independently. Codex missed the <code>HOST_HOME</code> quoting regression and the <code>assert_output</code> bug, and skipped the per-reconcile JSON parsing concern. The surface area was smaller than Claude&#39;s but the signal-to-noise ratio was very high — zero false positives or duplicates.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Gemini was the only agent to catch the <code>os.UserHomeDir()</code> finalizer deadlock, which is a genuinely important regression that the other two missed or softened. It also independently flagged the <code>HOST_HOME</code> quoting, the non-SSA <code>Status().Update</code>, and the per-reconcile JSON parsing. Calibration was high — Gemini marked the <code>os.UserHomeDir()</code> issue and the empty-version bypass as Critical; both got downgraded to Important in consolidation (the first because the trigger is rare on a normal desktop daemon, the second because the failure is visible, not silent). The review had zero Suggestions — anything that might have been minor got folded into Important or omitted. As expected, Gemini did not run <code>git blame</code> (daily quota) and relied on the explicit commit list in the prompt instead.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.6</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>14m 29s</td><td>4m 08s</td><td>3m 33s</td></tr>
+        <tr><td>Findings</td><td>5I 8S</td><td>3I</td><td>4I</td></tr>
+        <tr><td>Tool calls</td><td>47 (Bash 29, Read 14, Grep 4)</td><td>47 (shell 45, plan 1, stdin 1)</td><td>19 (grep<em>search 10, run</em>shell<em>command 7, read</em>file 2)</td></tr>
+        <tr><td>Design observations</td><td>4</td><td>2</td><td>1</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>2</td><td>0</td><td>1</td></tr>
+        <tr><td>Files reviewed</td><td>6</td><td>6</td><td>6</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>5I 8S</strong></td><td><strong>3I</strong></td><td><strong>4I</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>4 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>All three agents converged on the core findings (suffix mismatch, empty version, HOST_HOME quoting) which raises confidence that the validation gaps are real and not artifacts of model bias. Claude provided the most breadth; Codex the tightest signal; Gemini the one genuinely unique critical catch (finalizer deadlock). Taken together, the three reviews cover the important-issue space completely — no agent&#39;s gaps leave a hole that the other two don&#39;t fill.</p>
+    <h3 id="reconciliation">Reconciliation <a href="#reconciliation" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li>Gemini C1 (<code>os.UserHomeDir()</code> blocks finalizer cleanup): critical → important I2. The failure mode is real but the trigger (HOME unset in the daemon environment) is uncommon on a single-user developer desktop; severity aligned with other regressions of comparable likelihood.</li>
+      <li>Gemini C2 (Empty <code>kubernetes.version</code> bypasses validation): critical → important I3. The failure is visible to the user (VM fails to start with a k3s install error) rather than silent, and Codex/Claude both rated it Important independently.</li>
+      <li>Gemini I2 (Non-SSA <code>Status().Update</code>): important → suggestion S2. The new call site replicates an existing pattern at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/9df4002cdbed1d5418d73104a07aa18afa3a16c1/pkg/controllers/app/app/controllers/app_controller.go#L280"><code>app_controller.go:280</code></a>; the PR does not introduce a novel anti-pattern, and the existing single-writer setup means conflicts are rare in practice.</li>
+      <li>Gemini I3 (Per-reconcile JSON parse): important → suggestion S1. Pure performance / startup-surface concern with no correctness impact; Claude rated the same issue as suggestion.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p><strong>Repo context updates</strong></p>
+    <ul>
+      <li>None this round. The existing <code>deep-review-context.md</code> entries on multi-writer <code>App.Status.Conditions</code>, non-SSA <code>Status().Update</code>, and <code>ctrl.Result{}, nil</code> return verification were all relevant and matched agent findings — no staleness detected.</li>
+    </ul>
+    <p><strong>Skill improvements</strong></p>
+    <ul>
+      <li>None. The three-agent setup caught all findings; no agent-specific miss suggests a missing review dimension.</li>
+    </ul>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
