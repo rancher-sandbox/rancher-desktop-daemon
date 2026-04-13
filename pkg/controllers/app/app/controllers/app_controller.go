@@ -27,6 +27,7 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
 	limav1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
 const (
@@ -50,13 +51,16 @@ func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, er
 	if err != nil {
 		return "", fmt.Errorf("failed to get host home directory: %w", err)
 	}
-	return baseTemplate + fmt.Sprintf(
-		"\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: %q\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n",
-		spec.ContainerEngine.Name,
-		toLinuxPath(hostHome),
-		spec.Kubernetes.Enabled,
-		spec.Kubernetes.Version,
-	), nil
+	return strings.Join([]string{
+		baseTemplate,
+		"param:",
+		fmt.Sprintf("  CONTAINER_ENGINE: %s", spec.ContainerEngine.Name),
+		fmt.Sprintf("  HOST_HOME_GUEST: %q", toLinuxPath(hostHome)),
+		fmt.Sprintf("  HOST_SHORT_DIR: %q", instance.ShortDir()),
+		fmt.Sprintf("  KUBERNETES_ENABLED: %v", spec.Kubernetes.Enabled),
+		fmt.Sprintf("  KUBERNETES_VERSION: %s", spec.Kubernetes.Version),
+		"",
+	}, "\n"), nil
 }
 
 // toLinuxPath converts a host path to a Linux-accessible path inside a Lima VM.
@@ -70,6 +74,8 @@ func toLinuxPath(hostPath string) string {
 	if len(hostPath) >= 2 && hostPath[1] == ':' {
 		drive := strings.ToLower(string(hostPath[0]))
 		rest := strings.ReplaceAll(hostPath[2:], `\`, `/`)
+		// /mnt/ is the mount point for drvfs disks in WSL2, per the default
+		// value of `[automount] root=` in `/etc/wsl.conf`.
 		return "/mnt/" + drive + rest
 	}
 	return hostPath
