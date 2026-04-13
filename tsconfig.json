@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2024",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "moduleDetection": "force",
     "jsx": "react",
     "lib": [
@@ -16,13 +16,15 @@
     "sourceMap": true,
     "strict": true,
     "experimentalDecorators": true,
-    "baseUrl": ".",
     "paths": {
+      "@/*": [
+        "./*"
+      ],
       "@pkg/*": [
-        "pkg/rancher-desktop/*"
+        "./pkg/rancher-desktop/*"
       ],
       "@rdd-client": [
-        "pkg/rdd-client/index"
+        "./pkg/rdd-client/index"
       ],
       "@shell/*": [
         "./node_modules/@rancher/shell/*"

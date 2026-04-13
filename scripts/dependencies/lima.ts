@@ -19,8 +19,8 @@ import {
   GitHubDependency,
   GitHubRelease,
   GlobalDependency,
-} from 'scripts/lib/dependencies';
-import { simpleSpawn } from 'scripts/simple_process';
+} from '@/scripts/lib/dependencies';
+import { simpleSpawn } from '@/scripts/simple_process';
 
 export class Lima extends GlobalDependency(GitHubDependency) {
   readonly name = 'lima';
@@ -137,7 +137,7 @@ export class AlpineLimaISO extends GlobalDependency(GitHubDependency) {
     if (!matchingAsset) {
       throw new Error(`Could not find matching asset name in set ${ release.assets }`);
     }
-    const nameMatch = matchingAsset.name.match(/alpine-lima-rd-([0-9]+\.[0-9]+\.[0-9])-.*/);
+    const nameMatch = /alpine-lima-rd-([0-9]+\.[0-9]+\.[0-9])-.*/.exec(matchingAsset.name);
 
     if (!nameMatch) {
       throw new Error(`Failed to parse name "${ matchingAsset.name }"`);
@@ -154,7 +154,7 @@ export class AlpineLimaISO extends GlobalDependency(GitHubDependency) {
     const response = await getOctokit().rest.repos.listReleases({ owner: this.githubOwner, repo: this.githubRepo });
     const releases = response.data;
 
-    return await Promise.all(releases.map(this.assembleAlpineLimaISOVersionFromGitHubRelease));
+    return releases.map(release => this.assembleAlpineLimaISOVersionFromGitHubRelease(release));
   }
 
   versionToTagName(version: AlpineLimaISOVersion): string {
