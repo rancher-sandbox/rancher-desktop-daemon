@@ -77,6 +77,13 @@ jobs:
       run: |
         brew install bash coreutils make
 
+        # Disable Spotlight indexing on all volumes. On macos-15-intel CI
+        # runners, mds/mds_stores/mdworker_shared collectively consumed
+        # ~230% CPU during BATS runs — more than two of the runner's four
+        # logical cores — starving Lima's VM of the cycles it needs to
+        # boot within the test timeout.
+        sudo mdutil -a -i off
+
         # Set up run-in-shell helper script (as a symlink to bash)
         mkdir -p bin
         ln -s $(brew --prefix bash)/bin/bash bin/run-in-shell
