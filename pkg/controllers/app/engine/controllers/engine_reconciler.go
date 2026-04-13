@@ -90,15 +90,23 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 	running := meta.IsStatusConditionTrue(app.Status.Conditions, "Running")
 	engineIsDocker := app.Spec.ContainerEngine.Name == engineMoby
 
+	// Detach a dead watcher from the reconciler under watcherMu, then
+	// stop it outside the lock. Holding the mutex across w.stop() —
+	// which blocks on <-w.done and cli.Close() — would stall any
+	// concurrent reconcile the moment MaxConcurrentReconciles > 1.
+	var diedWatcher *dockerWatcher
 	r.watcherMu.Lock()
 	watcherRunning := r.watcher != nil
-	watcherDied := watcherRunning && !r.watcher.alive()
-	if watcherDied {
-		r.watcher.stop()
+	if watcherRunning && !r.watcher.alive() {
+		diedWatcher = r.watcher
 		r.watcher = nil
 		watcherRunning = false
 	}
 	r.watcherMu.Unlock()
+	watcherDied := diedWatcher != nil
+	if watcherDied {
+		diedWatcher.stop()
+	}
 
 	// A watcher that dies while the App is still running is treated as a
 	// transient disconnect: log it, clear the watcher pointer, and fall
@@ -163,15 +171,18 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 			}
 			return ctrl.Result{}, err
 		}
-		if err := r.setEngineCondition(ctx, &app, metav1.ConditionTrue, "Connected", "Container engine synced"); err != nil {
-			return ctrl.Result{}, err
-		}
-		// Fall through so pending spec.state patches and finalizers
-		// made during the watcher-down window are processed on this
-		// same reconcile, instead of waiting for a later event. The
-		// restart-after-crash path would otherwise stall if the
-		// ContainerEngineReady condition hadn't changed (setEngineCondition
-		// is a no-op) and no mirror watch event follows.
+	}
+
+	// Re-assert the Connected condition on every steady-state reconcile
+	// so its observedGeneration tracks the App's current generation. When
+	// the spec is patched without cycling the watcher (e.g. `rdd set
+	// running=true kubernetes.enabled=true` from an already-running App),
+	// this is the only place that stamps the new generation into
+	// ContainerEngineReady, and rdd set's wait predicate depends on it.
+	// setEngineCondition no-ops when nothing changed, so the extra call
+	// is free on stable reconciles.
+	if err := r.setEngineCondition(ctx, &app, metav1.ConditionTrue, "Connected", "Container engine synced"); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// reconcileContainerSpecs + processFinalizers each issue one or more
@@ -321,6 +332,10 @@ func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.Obje
 				obj, obj.GetName(), retryErr))
 			continue
 		}
+		// Delete uses obj (the stale list item) rather than latest
+		// from the retry closure. That is safe because Delete keys
+		// off name+namespace and does not send resourceVersion, so
+		// the staleness cannot trigger a 409.
 		if err := client.IgnoreNotFound(r.Delete(ctx, obj)); err != nil {
 			errs = append(errs, fmt.Errorf("failed to delete %T %s: %w",
 				obj, obj.GetName(), err))
@@ -451,10 +466,22 @@ func (r *EngineReconciler) processImageFinalizers(ctx context.Context, w *docker
 				continue
 			}
 		}
-		if removeFinalizer(img, mirrorFinalizer) {
-			if err := client.IgnoreNotFound(r.Update(ctx, img)); err != nil {
-				errs = append(errs, fmt.Errorf("failed to remove finalizer from Image %s: %w", img.Name, err))
+		key := client.ObjectKeyFromObject(img)
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &containersv1alpha1.Image{}
+			if err := r.Get(ctx, key, latest); err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil
+				}
+				return err
 			}
+			if !removeFinalizer(latest, mirrorFinalizer) {
+				return nil
+			}
+			return r.Update(ctx, latest)
+		})
+		if retryErr != nil {
+			errs = append(errs, fmt.Errorf("failed to remove finalizer from Image %s: %w", img.Name, retryErr))
 		}
 	}
 	return errors.Join(errs...)
@@ -482,10 +509,22 @@ func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *docke
 				continue
 			}
 		}
-		if removeFinalizer(v, mirrorFinalizer) {
-			if err := client.IgnoreNotFound(r.Update(ctx, v)); err != nil {
-				errs = append(errs, fmt.Errorf("failed to remove finalizer from Volume %s: %w", v.Name, err))
+		key := client.ObjectKeyFromObject(v)
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &containersv1alpha1.Volume{}
+			if err := r.Get(ctx, key, latest); err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil
+				}
+				return err
 			}
+			if !removeFinalizer(latest, mirrorFinalizer) {
+				return nil
+			}
+			return r.Update(ctx, latest)
+		})
+		if retryErr != nil {
+			errs = append(errs, fmt.Errorf("failed to remove finalizer from Volume %s: %w", v.Name, retryErr))
 		}
 	}
 	return errors.Join(errs...)

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -200,8 +201,20 @@ func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontaine
 		})
 		for _, portName := range portNames {
 			ports := inspect.NetworkSettings.Ports[portName]
+			// Sort bindings by (HostIP, HostPort) for the same reason
+			// portNames is sorted above: ContainerPort.Bindings is
+			// atomic under SSA, and Docker can return dual-stack
+			// bindings in either order, so an unsorted apply would
+			// mint a new resourceVersion on every sync.
+			sortedPorts := slices.Clone(ports)
+			sort.Slice(sortedPorts, func(i, j int) bool {
+				if sortedPorts[i].HostIP.String() != sortedPorts[j].HostIP.String() {
+					return sortedPorts[i].HostIP.String() < sortedPorts[j].HostIP.String()
+				}
+				return sortedPorts[i].HostPort < sortedPorts[j].HostPort
+			})
 			var bindings []*containersv1alpha1apply.ContainerPortBindingApplyConfiguration
-			for _, port := range ports {
+			for _, port := range sortedPorts {
 				bindings = append(bindings, containersv1alpha1apply.ContainerPortBinding().
 					WithHostIP(port.HostIP.String()).
 					WithHostPort(port.HostPort))

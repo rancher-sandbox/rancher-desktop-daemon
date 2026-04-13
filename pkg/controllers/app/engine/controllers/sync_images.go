@@ -9,6 +9,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +30,27 @@ import (
 // Kubernetes object names.
 func sanitizeKubernetesObjectName(input string) string {
 	return strings.NewReplacer("/", "-", ":", ".").Replace(input)
+}
+
+// imageMirrorNames derives the deterministic `Image` mirror names that
+// correspond to a Docker image ID and its RepoTags. A tagged image gets
+// one mirror per tag (name = sanitized-id + "-" + sha256(tag)); a
+// dangling image gets a single mirror named after the sanitized ID.
+// Sharing this helper between applyImageFromInspect and syncAllImages
+// lets the stale-mirror sweep seed activeNames from the list response
+// alone, so a transient Inspect failure cannot classify existing
+// mirrors as stale.
+func imageMirrorNames(id string, repoTags []string) []string {
+	if len(repoTags) == 0 {
+		return []string{sanitizeKubernetesObjectName(id)}
+	}
+	names := make([]string, 0, len(repoTags))
+	for _, tag := range repoTags {
+		names = append(names, fmt.Sprintf("%s-%x",
+			sanitizeKubernetesObjectName(id),
+			sha256.Sum256([]byte(tag))))
+	}
+	return names
 }
 
 // syncAllImages lists all Docker images and creates/updates `Image`
@@ -54,15 +77,18 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 	// syncAllContainers): a single broken image must not block the
 	// watcher from coming up. Structural errors below (k8s list,
 	// stale-mirror cleanup) are still fatal.
+	//
+	// Seed activeNames from the list response before calling Inspect.
+	// If Inspect fails transiently the mirror stays in activeNames and
+	// is not pruned below — otherwise a flaky Docker daemon would
+	// classify a perfectly good Image mirror as stale and delete it.
 	var errs []error
 	for _, summary := range listResult.Items {
-		names, err := w.syncImageFromSummary(ctx, summary)
-		if err != nil {
-			log.Error(err, "Skipping image during full sync", "id", summary.ID)
-			continue
-		}
-		for _, n := range names {
+		for _, n := range imageMirrorNames(summary.ID, summary.RepoTags) {
 			activeNames[n] = true
+		}
+		if err := w.syncImageFromSummary(ctx, summary); err != nil {
+			log.Error(err, "Skipping image during full sync", "id", summary.ID)
 		}
 	}
 
@@ -85,37 +111,32 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 }
 
 // syncImageFromSummary creates `Image` mirrors from a Docker image
-// summary. Returns the mirror names that were created. NotFound races
-// during fullSync are treated as success; the stale Image mirror is
-// pruned later by syncAllImages' remove-stale step.
-func (w *dockerWatcher) syncImageFromSummary(ctx context.Context, summary mobyimage.Summary) ([]string, error) {
+// summary. NotFound races during fullSync are treated as success; the
+// stale Image mirror is pruned later by syncAllImages' remove-stale step.
+func (w *dockerWatcher) syncImageFromSummary(ctx context.Context, summary mobyimage.Summary) error {
 	result, err := w.cli.ImageInspect(ctx, summary.ID)
 	if cerrdefs.IsNotFound(err) {
-		return nil, nil
+		return nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to inspect image %s: %w", summary.ID, err)
+		return fmt.Errorf("failed to inspect image %s: %w", summary.ID, err)
 	}
-	return w.applyImageFromInspect(ctx, result.InspectResponse)
+	_, err = w.applyImageFromInspect(ctx, result.InspectResponse)
+	return err
 }
 
 // applyImageFromInspect creates or updates `Image` mirrors from a Docker
 // InspectResponse. One Image per tag, plus one for dangling images.
-// Returns the mirror names that were created.
+// Returns the mirror names that were created so reconcileImageByID can
+// prune mirrors whose tags were removed.
 func (w *dockerWatcher) applyImageFromInspect(ctx context.Context, inspect mobyimage.InspectResponse) ([]string, error) {
-	var names []string
+	names := imageMirrorNames(inspect.ID, inspect.RepoTags)
 	var errs []error
 
 	if len(inspect.RepoTags) > 0 {
-		for _, tag := range inspect.RepoTags {
-			// Deterministic name from image ID + tag hash (same as mock controller).
-			name := fmt.Sprintf("%s-%x",
-				sanitizeKubernetesObjectName(inspect.ID),
-				sha256.Sum256([]byte(tag)))
-			names = append(names, name)
-
+		for i, tag := range inspect.RepoTags {
 			if err := w.applyImage(ctx,
-				containersv1alpha1apply.Image(name, apiNamespace).
+				containersv1alpha1apply.Image(names[i], apiNamespace).
 					WithFinalizers(mirrorFinalizer),
 				imageStatusFromInspect(inspect).
 					WithRepoTag(tag).
@@ -128,10 +149,8 @@ func (w *dockerWatcher) applyImageFromInspect(ctx context.Context, inspect mobyi
 		// Dangling image (no tags). status.namespace is a required
 		// field on the CRD, so set it here too even though it carries
 		// no additional information beyond what the tagged branch sets.
-		name := sanitizeKubernetesObjectName(inspect.ID)
-		names = append(names, name)
 		if err := w.applyImage(ctx,
-			containersv1alpha1apply.Image(name, apiNamespace).
+			containersv1alpha1apply.Image(names[0], apiNamespace).
 				WithFinalizers(mirrorFinalizer),
 			imageStatusFromInspect(inspect).
 				WithNamespace(containerNamespace),
@@ -149,9 +168,15 @@ func (w *dockerWatcher) applyImageFromInspect(ctx context.Context, inspect mobyi
 // one "copy" would otherwise mutate the backing memory shared with
 // other callers.
 func imageStatusFromInspect(inspect mobyimage.InspectResponse) *containersv1alpha1apply.ImageStatusApplyConfiguration {
+	// Sort RepoDigests before applying: the field is atomic under SSA,
+	// and Docker does not guarantee a stable order between inspects, so
+	// an unsorted apply would mint a new resourceVersion on every sync
+	// and trigger a cascade of engine-reconciler reconciles.
+	digests := slices.Clone(inspect.RepoDigests)
+	sort.Strings(digests)
 	statusApply := containersv1alpha1apply.ImageStatus().
 		WithID(inspect.ID).
-		WithRepoDigests(inspect.RepoDigests...).
+		WithRepoDigests(digests...).
 		WithArchitecture(inspect.Architecture).
 		WithOS(inspect.Os).
 		WithSize(inspect.Size).

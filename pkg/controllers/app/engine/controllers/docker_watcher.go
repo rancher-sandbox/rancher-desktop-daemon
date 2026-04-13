@@ -190,6 +190,16 @@ func (w *dockerWatcher) run(ctx context.Context, since string) {
 				w.enqueueReconcile()
 				return
 			}
+			// A transient handleEvent error (apiserver 503, SSA conflict
+			// past its internal retry) is logged and the event is
+			// dropped. Container events tend to self-heal because the
+			// next state change (start/stop/die) triggers another sync
+			// on the same ID; image pull and volume create events fire
+			// only once, so a dropped apply leaves the mirror missing
+			// until the next full resync (watcher restart or engine
+			// reconnect). The bounded-window fix is a periodic
+			// fullSync tick, deferred until the rest of the mirroring
+			// work lands.
 			if err := w.handleEvent(ctx, msg); err != nil {
 				log.Error(err, "Failed to handle Docker event",
 					"type", msg.Type, "action", msg.Action, "actor", msg.Actor.ID)
@@ -231,7 +241,8 @@ func (w *dockerWatcher) handleContainerEvent(ctx context.Context, msg events.Mes
 		events.ActionDie,
 		events.ActionPause,
 		events.ActionUnPause,
-		events.ActionRestart:
+		events.ActionRestart,
+		events.ActionRename:
 		log.V(1).Info("Container event", "action", msg.Action, "id", msg.Actor.ID)
 		return w.syncContainer(ctx, msg.Actor.ID)
 
