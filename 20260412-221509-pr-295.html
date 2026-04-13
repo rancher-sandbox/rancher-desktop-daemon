@@ -213,15 +213,23 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 	running := meta.IsStatusConditionTrue(app.Status.Conditions, &quot;Running&quot;)
 	engineIsDocker := app.Spec.ContainerEngine.Name == engineMoby
 
+	// Detach a dead watcher from the reconciler under watcherMu, then
+	// stop it outside the lock. Holding the mutex across w.stop() —
+	// which blocks on &lt;-w.done and cli.Close() — would stall any
+	// concurrent reconcile the moment MaxConcurrentReconciles &gt; 1.
+	var diedWatcher *dockerWatcher
 	r.watcherMu.Lock()
 	watcherRunning := r.watcher != nil
-	watcherDied := watcherRunning &amp;&amp; !r.watcher.alive()
-	if watcherDied {
-		r.watcher.stop()
+	if watcherRunning &amp;&amp; !r.watcher.alive() {
+		diedWatcher = r.watcher
 		r.watcher = nil
 		watcherRunning = false
 	}
 	r.watcherMu.Unlock()
+	watcherDied := diedWatcher != nil
+	if watcherDied {
+		diedWatcher.stop()
+	}
 
 	// A watcher that dies while the App is still running is treated as a
 	// transient disconnect: log it, clear the watcher pointer, and fall
@@ -286,15 +294,18 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 			}
 			return ctrl.Result{}, err
 		}
-		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionTrue, &quot;Connected&quot;, &quot;Container engine synced&quot;); err != nil {
-			return ctrl.Result{}, err
-		}
-		// Fall through so pending spec.state patches and finalizers
-		// made during the watcher-down window are processed on this
-		// same reconcile, instead of waiting for a later event. The
-		// restart-after-crash path would otherwise stall if the
-		// ContainerEngineReady condition hadn&#39;t changed (setEngineCondition
-		// is a no-op) and no mirror watch event follows.
+	}
+
+	// Re-assert the Connected condition on every steady-state reconcile
+	// so its observedGeneration tracks the App&#39;s current generation. When
+	// the spec is patched without cycling the watcher (e.g. `rdd set
+	// running=true kubernetes.enabled=true` from an already-running App),
+	// this is the only place that stamps the new generation into
+	// ContainerEngineReady, and rdd set&#39;s wait predicate depends on it.
+	// setEngineCondition no-ops when nothing changed, so the extra call
+	// is free on stable reconciles.
+	if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionTrue, &quot;Connected&quot;, &quot;Container engine synced&quot;); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// reconcileContainerSpecs + processFinalizers each issue one or more
@@ -306,18 +317,7 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 	// changed&quot;); until then the sweep runs on every event.
 	if err := r.reconcileContainerSpecs(ctx); err != nil {
 		return ctrl.Result{}, fmt.Errorf(&quot;failed to reconcile container specs: %w&quot;, err)
-	}
-	if err := r.processFinalizers(ctx); err != nil {
-		return ctrl.Result{}, fmt.Errorf(&quot;failed to process finalizers: %w&quot;, err)
-	}
-
-	return ctrl.Result{}, nil
-}
-
-// startWatcher creates and starts a Docker watcher goroutine.
-func (r *EngineReconciler) startWatcher(ctx context.Context) error {
-	r.watcherMu.Lock()
-	defer r.watcherMu.Unlock()</code></pre>
+	}</code></pre>
     <p><code>rdd set</code> now waits by default (commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/762c1e8"><code>762c1e8</code></a>). The wait predicate at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L478-L481"><code>cmd/rdd/set.go:478-481</code></a> looks for <code>ContainerEngineReady.status == True &amp;&amp; observedGeneration &gt;= minGen</code>, where <code>minGen</code> is <code>app.Generation</code> right after <code>patchApp</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L425-L447"><code>cmd/rdd/set.go:425-447</code></a>). That generation filter is the exact fix for stale-snapshot races and is correct by itself.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/cmd/rdd/set.go#L420-L452">cmd/rdd/set.go</a></div>
       <pre data-start="420" data-line="425-447"><code class="language-go">// patchApp applies a merge patch with the given spec properties. In dry-run
@@ -407,35 +407,35 @@ func patchApp(ctx context.Context, c client.Client, app *appv1alpha1.App, specMa
         <span class="finding-num">I1.</span> <code>ContainerNamespace/moby</code> is not re-mirrored after user delete <span class="pill pill-codex">Codex</span> <span class="pill pill-claude">Claude</span><a href="#I1" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L490-L518">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="490" data-line="495-513"><code class="language-go">	}
-	return errors.Join(errs...)
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *EngineReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.reconcileChan = make(chan event.GenericEvent, 1)
-
-	// Map any Container/Image/Volume event to a reconcile of the App singleton.
-	enqueueApp := handler.EnqueueRequestsFromMapFunc(
-		func(_ context.Context, _ client.Object) []reconcile.Request {
-			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: appName}}}
-		},
-	)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&amp;appv1alpha1.App{}).
-		Named(&quot;engine-reconciler&quot;).
-		WatchesRawSource(source.Channel(r.reconcileChan, enqueueApp)).
-		Watches(&amp;containersv1alpha1.Container{}, enqueueApp).
-		Watches(&amp;containersv1alpha1.Image{}, enqueueApp).
-		Watches(&amp;containersv1alpha1.Volume{}, enqueueApp).
-		Complete(r)
-}
-
-// hasFinalizer checks whether an object has the specified finalizer.
-func hasFinalizer(obj metav1.Object, finalizer string) bool {
-	for _, f := range obj.GetFinalizers() {
-		if f == finalizer {</code></pre>
+      <pre data-start="490" data-line="495-513"><code class="language-go">func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var volumes containersv1alpha1.VolumeList
+	if err := r.List(ctx, &amp;volumes, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	var errs []error
+	for i := range volumes.Items {
+		v := &amp;volumes.Items[i]
+		if v.DeletionTimestamp == nil || !hasFinalizer(v, mirrorFinalizer) {
+			continue
+		}
+		// A Volume mirror with an empty Status.Name has no
+		// engine-populated status yet — either a user created it as a
+		// bare skeleton or it landed in the startup race window before
+		// applyVolume ran. There is no Docker-side name to forward a
+		// delete to, so strip the finalizer and let the Delete proceed.
+		if v.Status.Name != &quot;&quot; {
+			if err := w.deleteVolume(ctx, v.Status.Name); err != nil {
+				errs = append(errs, fmt.Errorf(&quot;failed to delete volume %s from Docker: %w&quot;, v.Name, err))
+				continue
+			}
+		}
+		key := client.ObjectKeyFromObject(v)
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &amp;containersv1alpha1.Volume{}
+			if err := r.Get(ctx, key, latest); err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil
+				}</code></pre>
     <p><code>syncContainerNamespace()</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_volumes.go#L62-L66"><code>pkg/controllers/app/engine/controllers/sync_volumes.go:62-66</code></a> creates <code>containernamespace/moby</code> exactly once from <code>fullSync</code> on watcher startup. The reconciler watches <code>Container</code>, <code>Image</code>, and <code>Volume</code> but not <code>ContainerNamespace</code>, and <code>ContainerNamespace</code> has no mirror finalizer, so a user who runs <code>rdd ctl delete containernamespace/moby</code> succeeds and produces no event that wakes the engine reconciler back up. Subsequent Container/Image/Volume Docker events trigger reconciles, but <code>reconcileContainerSpecs</code>/<code>processFinalizers</code> never touch the namespace — it stays gone until the VM is restarted (or the watcher dies and fullSyncs).</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_volumes.go#L57-L71">pkg/controllers/app/engine/controllers/sync_volumes.go</a></div>
       <pre data-start="57" data-line="62-66"><code class="language-go">// Unlike `Container` / `Image` / `Volume` mirrors, this resource has no
@@ -499,7 +499,22 @@ metadata:
         <span class="finding-num">I2.</span> <code>processImageFinalizers</code>/<code>processVolumeFinalizers</code> skip <code>retry.RetryOnConflict</code> <span class="pill pill-gemini">Gemini</span> <span class="pill pill-claude">Claude</span><a href="#I2" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L426-L497">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="426" data-line="431-492"><code class="language-go">		}
+      <pre data-start="426" data-line="431-492"><code class="language-go">		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &amp;containersv1alpha1.Container{}
+			if err := r.Get(ctx, key, latest); err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil
+				}
+				return err
+			}
+			if !removeFinalizer(latest, mirrorFinalizer) {
+				return nil
+			}
+			return r.Update(ctx, latest)
+		})
+		if retryErr != nil {
+			errs = append(errs, fmt.Errorf(&quot;failed to remove finalizer from Container %s: %w&quot;, c.Name, retryErr))
+		}
 	}
 	return errors.Join(errs...)
 }
@@ -527,60 +542,9 @@ func (r *EngineReconciler) processImageFinalizers(ctx context.Context, w *docker
 				continue
 			}
 		}
-		if removeFinalizer(img, mirrorFinalizer) {
-			if err := client.IgnoreNotFound(r.Update(ctx, img)); err != nil {
-				errs = append(errs, fmt.Errorf(&quot;failed to remove finalizer from Image %s: %w&quot;, img.Name, err))
-			}
-		}
-	}
-	return errors.Join(errs...)
-}
-
-func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *dockerWatcher) error {
-	var volumes containersv1alpha1.VolumeList
-	if err := r.List(ctx, &amp;volumes, client.InNamespace(apiNamespace)); err != nil {
-		return err
-	}
-	var errs []error
-	for i := range volumes.Items {
-		v := &amp;volumes.Items[i]
-		if v.DeletionTimestamp == nil || !hasFinalizer(v, mirrorFinalizer) {
-			continue
-		}
-		// A Volume mirror with an empty Status.Name has no
-		// engine-populated status yet — either a user created it as a
-		// bare skeleton or it landed in the startup race window before
-		// applyVolume ran. There is no Docker-side name to forward a
-		// delete to, so strip the finalizer and let the Delete proceed.
-		if v.Status.Name != &quot;&quot; {
-			if err := w.deleteVolume(ctx, v.Status.Name); err != nil {
-				errs = append(errs, fmt.Errorf(&quot;failed to delete volume %s from Docker: %w&quot;, v.Name, err))
-				continue
-			}
-		}
-		if removeFinalizer(v, mirrorFinalizer) {
-			if err := client.IgnoreNotFound(r.Update(ctx, v)); err != nil {
-				errs = append(errs, fmt.Errorf(&quot;failed to remove finalizer from Volume %s: %w&quot;, v.Name, err))
-			}
-		}
-	}
-	return errors.Join(errs...)
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *EngineReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.reconcileChan = make(chan event.GenericEvent, 1)
-</code></pre>
-    <p><code>processContainerFinalizers</code> (lines 410-423) correctly re-Gets <code>latest</code> under <code>retry.RetryOnConflict</code> before stripping the finalizer. The Image and Volume helpers mutate the stale <code>img</code>/<code>v</code> from the outer List and call <code>Update</code> directly. On a 409 — which can fire any time a concurrent watcher sync just re-applied status — the Update fails and the finalizer isn&#39;t stripped. The Docker-side delete has already succeeded by that point, so the reconciler requeues, re-Lists, re-inspects, and re-issues the engine-side delete against an already-gone object before finally stripping the finalizer. It&#39;s self-healing but burns a Docker round-trip per conflict and breaks the invariant &quot;once we tell Docker to delete, we strip the finalizer on the first attempt,&quot; which the adjacent Container path upholds.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L405-L428">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="405" data-line="410-423"><code class="language-go">		// Strip the finalizer with retry-on-conflict so a stale cache
-		// does not force a whole-reconcile requeue just to reach the
-		// same idempotent deleteContainer call. NotFound is benign: a
-		// concurrent Docker destroy event may already have stripped
-		// the finalizer and deleted the mirror.
-		key := client.ObjectKeyFromObject(c)
+		key := client.ObjectKeyFromObject(img)
 		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			latest := &amp;containersv1alpha1.Container{}
+			latest := &amp;containersv1alpha1.Image{}
 			if err := r.Get(ctx, key, latest); err != nil {
 				if apierrors.IsNotFound(err) {
 					return nil
@@ -593,10 +557,46 @@ func (r *EngineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return r.Update(ctx, latest)
 		})
 		if retryErr != nil {
-			errs = append(errs, fmt.Errorf(&quot;failed to remove finalizer from Container %s: %w&quot;, c.Name, retryErr))
+			errs = append(errs, fmt.Errorf(&quot;failed to remove finalizer from Image %s: %w&quot;, img.Name, retryErr))
 		}
 	}
-	return errors.Join(errs...)</code></pre>
+	return errors.Join(errs...)
+}
+
+func (r *EngineReconciler) processVolumeFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var volumes containersv1alpha1.VolumeList
+	if err := r.List(ctx, &amp;volumes, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	var errs []error
+	for i := range volumes.Items {
+		v := &amp;volumes.Items[i]</code></pre>
+    <p><code>processContainerFinalizers</code> (lines 410-423) correctly re-Gets <code>latest</code> under <code>retry.RetryOnConflict</code> before stripping the finalizer. The Image and Volume helpers mutate the stale <code>img</code>/<code>v</code> from the outer List and call <code>Update</code> directly. On a 409 — which can fire any time a concurrent watcher sync just re-applied status — the Update fails and the finalizer isn&#39;t stripped. The Docker-side delete has already succeeded by that point, so the reconciler requeues, re-Lists, re-inspects, and re-issues the engine-side delete against an already-gone object before finally stripping the finalizer. It&#39;s self-healing but burns a Docker round-trip per conflict and breaks the invariant &quot;once we tell Docker to delete, we strip the finalizer on the first attempt,&quot; which the adjacent Container path upholds.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L405-L428">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="405" data-line="410-423"><code class="language-go">func (r *EngineReconciler) processContainerFinalizers(ctx context.Context, w *dockerWatcher) error {
+	var containers containersv1alpha1.ContainerList
+	if err := r.List(ctx, &amp;containers, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+	var errs []error
+	for i := range containers.Items {
+		c := &amp;containers.Items[i]
+		if c.DeletionTimestamp == nil || !hasFinalizer(c, mirrorFinalizer) {
+			continue
+		}
+		if err := w.deleteContainer(ctx, c.Name); err != nil {
+			errs = append(errs, fmt.Errorf(&quot;failed to delete container %s from Docker: %w&quot;, c.Name, err))
+			continue
+		}
+		// Strip the finalizer with retry-on-conflict so a stale cache
+		// does not force a whole-reconcile requeue just to reach the
+		// same idempotent deleteContainer call. NotFound is benign: a
+		// concurrent Docker destroy event may already have stripped
+		// the finalizer and deleted the mirror.
+		key := client.ObjectKeyFromObject(c)
+		retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &amp;containersv1alpha1.Container{}
+			if err := r.Get(ctx, key, latest); err != nil {</code></pre>
     <p>Fix: mirror the <code>processContainerFinalizers</code> pattern in both helpers. Put the finalizer strip inside a <code>retry.RetryOnConflict</code> loop that re-Gets <code>latest</code> and treats <code>NotFound</code> as benign:</p>
       <pre><code class="language-diff">-        if removeFinalizer(img, mirrorFinalizer) {
 -            if err := client.IgnoreNotFound(r.Update(ctx, img)); err != nil {
@@ -658,19 +658,19 @@ func (r *EngineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // disconnects, resource-version compaction) re-list transparently</code></pre>
     <p>The <code>running=true</code> branch only accepts <code>ContainerEngineReady=True</code>. If startup fails — LimaVM publishes <code>Running=False/StartFailed</code> at <code>pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go:382-385,427-430,463-476</code>, or the engine reconciler publishes <code>ContainerEngineReady=False/ConnectFailed</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L161-L163"><code>engine_reconciler.go:161-163</code></a> — the wait keeps looping until the 5-minute timeout and returns the generic &quot;timed out waiting for App state&quot; error instead of the actual failure reason. Users see a timeout when they should have seen &quot;start failed&quot; immediately.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L156-L168">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="156" data-line="161-163"><code class="language-go">
+      <pre data-start="156" data-line="161-163"><code class="language-go">		if !alreadyClean {
+			if err := r.cleanupMirrorResources(ctx); err != nil {
+				log.Error(err, &quot;Failed to clean up mirror resources&quot;)
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, r.setEngineCondition(ctx, &amp;app, terminalStatus, terminalReason, terminalMessage)
+	}
+
 	if !watcherRunning {
 		log.Info(&quot;App is running, starting Docker watcher&quot;)
 		if err := r.startWatcher(ctx); err != nil {
-			log.Error(err, &quot;Failed to start Docker watcher&quot;)
-			if condErr := r.setEngineCondition(ctx, &amp;app, metav1.ConditionFalse, &quot;ConnectFailed&quot;, err.Error()); condErr != nil {
-				log.Error(condErr, &quot;Failed to update ContainerEngineReady to ConnectFailed&quot;)
-			}
-			return ctrl.Result{}, err
-		}
-		if err := r.setEngineCondition(ctx, &amp;app, metav1.ConditionTrue, &quot;Connected&quot;, &quot;Container engine synced&quot;); err != nil {
-			return ctrl.Result{}, err
-		}</code></pre>
+			log.Error(err, &quot;Failed to start Docker watcher&quot;)</code></pre>
     <p>The <code>running=false</code> branch has the opposite problem: it treats <em>any</em> refreshed non-<code>True</code> <code>Running</code> condition as success. When Lima publishes <code>Running=False/StopFailed</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L527-L539"><code>limavm_lifecycle.go:527-539</code></a>, the wait returns success even though the VM didn&#39;t stop.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go#L522-L544">pkg/controllers/lima/limavm/controllers/limavm_lifecycle.go</a></div>
       <pre data-start="522" data-line="527-539"><code class="language-go">
@@ -708,7 +708,17 @@ running=false failure  : Running.reason in {StopFailed}</code></pre>
         <span class="finding-num">I4.</span> <code>docker rename</code> events are dropped <span class="pill pill-codex">Codex</span><a href="#I4" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L218-L250">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
-      <pre data-start="218" data-line="223-245"><code class="language-go">	default:
+      <pre data-start="218" data-line="223-245"><code class="language-go">
+// handleEvent processes a single Docker event.
+func (w *dockerWatcher) handleEvent(ctx context.Context, msg events.Message) error {
+	switch msg.Type {
+	case events.ContainerEventType:
+		return w.handleContainerEvent(ctx, msg)
+	case events.ImageEventType:
+		return w.handleImageEvent(ctx, msg)
+	case events.VolumeEventType:
+		return w.handleVolumeEvent(ctx, msg)
+	default:
 		return nil
 	}
 }
@@ -724,26 +734,17 @@ func (w *dockerWatcher) handleContainerEvent(ctx context.Context, msg events.Mes
 		events.ActionDie,
 		events.ActionPause,
 		events.ActionUnPause,
-		events.ActionRestart:
+		events.ActionRestart,
+		events.ActionRename:
 		log.V(1).Info(&quot;Container event&quot;, &quot;action&quot;, msg.Action, &quot;id&quot;, msg.Actor.ID)
 		return w.syncContainer(ctx, msg.Actor.ID)
 
 	case events.ActionDestroy:
-		log.V(1).Info(&quot;Container destroyed&quot;, &quot;id&quot;, msg.Actor.ID)
-		return w.removeMirrorResource(ctx, &amp;containersv1alpha1.Container{}, msg.Actor.ID)
-
-	default:
-		return nil
-	}
-}
-
-// handleImageEvent processes image events.
-func (w *dockerWatcher) handleImageEvent(ctx context.Context, msg events.Message) error {
-	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)
-</code></pre>
+		log.V(1).Info(&quot;Container destroyed&quot;, &quot;id&quot;, msg.Actor.ID)</code></pre>
     <p><code>applyContainer</code> derives the mirrored name from <code>inspect.Name</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_containers.go#L111"><code>sync_containers.go:111</code></a> and writes it into <code>status.name</code>/<code>status.namespace</code>. Docker emits <code>events.ActionRename</code> when <code>docker rename</code> is used, but the switch lets it fall through to <code>default: return nil</code>. The mirror&#39;s <code>status.name</code> therefore stays stale indefinitely — until some unrelated start/stop/destroy event happens to trigger another <code>syncContainer</code>, which re-inspects and rewrites the name. Consumers of <code>Container.status.name</code> (including the <code>rdd ctl</code> UX and any future label selectors) see the old name until that happens.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_containers.go#L106-L116">pkg/controllers/app/engine/controllers/sync_containers.go</a></div>
-      <pre data-start="106" data-line="111"><code class="language-go">// reasserting spec.state=unknown, clobbering any user patch to
+      <pre data-start="106" data-line="111"><code class="language-go">// WithSpec(unknown), the engine-controller field owner would keep
+// reasserting spec.state=unknown, clobbering any user patch to
 // running/created. Gating the WithSpec call behind a Get — so spec is
 // written exactly once, on creation — keeps the invariant &quot;subsequent
 // syncs never touch spec&quot; without needing a second field owner.
@@ -752,8 +753,7 @@ func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontaine
 
 	// Create the `Container` mirror if it doesn&#39;t exist. spec.state is
 	// always set to &quot;unknown&quot; on creation — meaning the engine mirrors
-	// Docker container state without expressing intent. The user can later
-	// set it to &quot;running&quot; or &quot;created&quot; to control the Docker container;</code></pre>
+	// Docker container state without expressing intent. The user can later</code></pre>
     <p>Fix: add <code>events.ActionRename</code> to the same case block as the other state-refreshing events. Also add a BATS test that renames a running container and waits for <code>.status.name</code> to reflect the new name:</p>
       <pre><code class="language-diff"> 	case events.ActionCreate,
  		events.ActionStart,
@@ -773,7 +773,30 @@ func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontaine
         <span class="finding-num">I5.</span> Transient Docker <code>Inspect</code> failures during <code>syncAllImages</code> delete valid <code>Image</code> mirrors <span class="pill pill-gemini">Gemini</span><a href="#I5" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_images.go#L36-L90">pkg/controllers/app/engine/controllers/sync_images.go</a></div>
-      <pre data-start="36" data-line="41-85"><code class="language-go">// Images are Inspected sequentially for the same reason as
+      <pre data-start="36" data-line="41-85"><code class="language-go">// correspond to a Docker image ID and its RepoTags. A tagged image gets
+// one mirror per tag (name = sanitized-id + &quot;-&quot; + sha256(tag)); a
+// dangling image gets a single mirror named after the sanitized ID.
+// Sharing this helper between applyImageFromInspect and syncAllImages
+// lets the stale-mirror sweep seed activeNames from the list response
+// alone, so a transient Inspect failure cannot classify existing
+// mirrors as stale.
+func imageMirrorNames(id string, repoTags []string) []string {
+	if len(repoTags) == 0 {
+		return []string{sanitizeKubernetesObjectName(id)}
+	}
+	names := make([]string, 0, len(repoTags))
+	for _, tag := range repoTags {
+		names = append(names, fmt.Sprintf(&quot;%s-%x&quot;,
+			sanitizeKubernetesObjectName(id),
+			sha256.Sum256([]byte(tag))))
+	}
+	return names
+}
+
+// syncAllImages lists all Docker images and creates/updates `Image`
+// mirrors, then removes stale ones.
+//
+// Images are Inspected sequentially for the same reason as
 // syncAllContainers: one-shot at startup, typical dev machines have
 // tens of images, and we need fields that only Inspect exposes
 // (RepoDigests, full Labels, detailed metadata). Parallelise here if
@@ -794,40 +817,17 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 	// syncAllContainers): a single broken image must not block the
 	// watcher from coming up. Structural errors below (k8s list,
 	// stale-mirror cleanup) are still fatal.
+	//
+	// Seed activeNames from the list response before calling Inspect.
+	// If Inspect fails transiently the mirror stays in activeNames and
+	// is not pruned below — otherwise a flaky Docker daemon would
+	// classify a perfectly good Image mirror as stale and delete it.
 	var errs []error
 	for _, summary := range listResult.Items {
-		names, err := w.syncImageFromSummary(ctx, summary)
-		if err != nil {
-			log.Error(err, &quot;Skipping image during full sync&quot;, &quot;id&quot;, summary.ID)
-			continue
-		}
-		for _, n := range names {
+		for _, n := range imageMirrorNames(summary.ID, summary.RepoTags) {
 			activeNames[n] = true
 		}
-	}
-
-	// Remove stale Image mirrors.
-	var imageMirrors containersv1alpha1.ImageList
-	if err := w.k8s.List(ctx, &amp;imageMirrors, client.InNamespace(apiNamespace)); err != nil {
-		return fmt.Errorf(&quot;failed to list Images: %w&quot;, err)
-	}
-	for i := range imageMirrors.Items {
-		img := &amp;imageMirrors.Items[i]
-		if !activeNames[img.Name] {
-			log.V(1).Info(&quot;Removing stale Image&quot;, &quot;name&quot;, img.Name)
-			if err := w.removeMirrorResource(ctx, img, img.Name); err != nil {
-				errs = append(errs, err)
-			}
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-// syncImageFromSummary creates `Image` mirrors from a Docker image
-// summary. Returns the mirror names that were created. NotFound races
-// during fullSync are treated as success; the stale Image mirror is
-// pruned later by syncAllImages&#39; remove-stale step.</code></pre>
+		if err := w.syncImageFromSummary(ctx, summary); err != nil {</code></pre>
     <p><code>syncImageFromSummary</code> returns the mirror names <em>after</em> a successful <code>ImageInspect</code>. If Docker returns a transient 500/503 for a single image — which happens on loaded or recently-restarted daemons — the names are never added to <code>activeNames</code>, and the stale-mirror sweep at the bottom then deletes the valid K8s <code>Image</code> mirror that already existed for that image. The user sees their <code>Image</code> blink out and reappear on the next event or fullSync.</p>
     <p>The <code>applyImageFromInspect</code> helper already computes the deterministic mirror name from <code>inspect.ID + RepoTags</code> (or the ID alone for dangling images). The same name can be computed from the <code>ImageListItem</code> summary — it has both <code>ID</code> and <code>RepoTags</code>.</p>
     <p>Fix: pre-compute the expected names from the summary and seed <code>activeNames</code> <em>before</em> calling <code>syncImageFromSummary</code>, so transient inspect failures can&#39;t trigger mirror deletion:</p>
@@ -888,18 +888,18 @@ func (w *dockerWatcher) syncAllImages(ctx context.Context) error {
 				w.enqueueReconcile()
 				return
 			}
+			// A transient handleEvent error (apiserver 503, SSA conflict
+			// past its internal retry) is logged and the event is
+			// dropped. Container events tend to self-heal because the
+			// next state change (start/stop/die) triggers another sync
+			// on the same ID; image pull and volume create events fire
+			// only once, so a dropped apply leaves the mirror missing
+			// until the next full resync (watcher restart or engine
+			// reconnect). The bounded-window fix is a periodic
+			// fullSync tick, deferred until the rest of the mirroring
+			// work lands.
 			if err := w.handleEvent(ctx, msg); err != nil {
-				log.Error(err, &quot;Failed to handle Docker event&quot;,
-					&quot;type&quot;, msg.Type, &quot;action&quot;, msg.Action, &quot;actor&quot;, msg.Actor.ID)
-			}
-		}
-	}
-}
-
-// enqueueReconcile triggers a reconcile in the engine reconciler.
-func (w *dockerWatcher) enqueueReconcile() {
-	select {
-	case w.reconcileChan &lt;- event.GenericEvent{}:</code></pre>
+				log.Error(err, &quot;Failed to handle Docker event&quot;,</code></pre>
     <p>A transient failure inside <code>handleEvent</code> — apiserver 503, SSA conflict that survives its internal retry, temporary network partition — is logged and dropped. The watcher never periodically resyncs (there&#39;s no time-based <code>fullSync</code> tick), so whether the mirror eventually catches up depends on whether Docker emits <em>another</em> event for the same object:</p>
     <ul>
       <li><strong>Container:</strong> a subsequent Start/Stop/Die usually arrives, so drift tends to self-heal.</li>
@@ -926,23 +926,34 @@ func (w *dockerWatcher) enqueueReconcile() {
 	running := meta.IsStatusConditionTrue(app.Status.Conditions, &quot;Running&quot;)
 	engineIsDocker := app.Spec.ContainerEngine.Name == engineMoby
 
+	// Detach a dead watcher from the reconciler under watcherMu, then
+	// stop it outside the lock. Holding the mutex across w.stop() —
+	// which blocks on &lt;-w.done and cli.Close() — would stall any
+	// concurrent reconcile the moment MaxConcurrentReconciles &gt; 1.
+	var diedWatcher *dockerWatcher
 	r.watcherMu.Lock()
 	watcherRunning := r.watcher != nil
-	watcherDied := watcherRunning &amp;&amp; !r.watcher.alive()
-	if watcherDied {
-		r.watcher.stop()
+	if watcherRunning &amp;&amp; !r.watcher.alive() {
+		diedWatcher = r.watcher
 		r.watcher = nil
 		watcherRunning = false
 	}
 	r.watcherMu.Unlock()
-
-	// A watcher that dies while the App is still running is treated as a
-	// transient disconnect: log it, clear the watcher pointer, and fall
-	// through to the normal reconcile flow. If wantWatcher is still true
-	// below, the reconciler starts a fresh watcher whose fullSync</code></pre>
+	watcherDied := diedWatcher != nil</code></pre>
     <p>The standalone <code>stopWatcher()</code> helper at lines 212-221 correctly captures the watcher, releases <code>watcherMu</code>, <em>then</em> calls <code>w.stop()</code>. The inline version above holds the lock across a blocking <code>cli.Close()</code>. It&#39;s only a latent bug at <code>MaxConcurrentReconciles=1</code> (the current default), but the asymmetry is a trap: anyone who later enables concurrent reconciles will hit a lock held across a blocking Docker close. Match the pattern:</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L207-L226">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="207" data-line="212-221"><code class="language-go">	r.watcher = w
+      <pre data-start="207" data-line="212-221"><code class="language-go">	r.watcherMu.Lock()
+	defer r.watcherMu.Unlock()
+
+	if r.watcher != nil {
+		return nil
+	}
+
+	w, err := newDockerWatcher(ctx, r.Client, r.reconcileChan)
+	if err != nil {
+		return err
+	}
+	r.watcher = w
 	return nil
 }
 
@@ -950,18 +961,7 @@ func (w *dockerWatcher) enqueueReconcile() {
 func (r *EngineReconciler) stopWatcher() {
 	r.watcherMu.Lock()
 	w := r.watcher
-	r.watcher = nil
-	r.watcherMu.Unlock()
-
-	if w != nil {
-		w.stop()
-	}
-}
-
-// setEngineCondition updates the ContainerEngineReady condition on the
-// App resource. The App controller also writes App.Status.Conditions
-// (to mirror LimaVM conditions) and controller-runtime does not
-// serialize reconciles across controllers, so a naive Update can race</code></pre>
+	r.watcher = nil</code></pre>
       <pre><code class="language-diff"> 	r.watcherMu.Lock()
  	watcherRunning := r.watcher != nil
 -	watcherDied := watcherRunning &amp;&amp; !r.watcher.alive()
@@ -987,30 +987,30 @@ func (r *EngineReconciler) stopWatcher() {
         <span class="finding-num">S2.</span> <code>ImageStatus.RepoDigests</code> is sent to SSA in Docker&#39;s order <span class="pill pill-claude">Claude</span><a href="#S2" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_images.go#L146-L169">pkg/controllers/app/engine/controllers/sync_images.go</a></div>
-      <pre data-start="146" data-line="151-164"><code class="language-go">// imageStatusFromInspect builds a fresh ImageStatus apply config from a
+      <pre data-start="146" data-line="151-164"><code class="language-go">			}
+		}
+	} else {
+		// Dangling image (no tags). status.namespace is a required
+		// field on the CRD, so set it here too even though it carries
+		// no additional information beyond what the tagged branch sets.
+		if err := w.applyImage(ctx,
+			containersv1alpha1apply.Image(names[0], apiNamespace).
+				WithFinalizers(mirrorFinalizer),
+			imageStatusFromInspect(inspect).
+				WithNamespace(containerNamespace),
+		); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return names, errors.Join(errs...)
+}
+
+// imageStatusFromInspect builds a fresh ImageStatus apply config from a
 // Docker inspect response. Returning a new value per call avoids the
 // aliasing trap of a shallow struct copy — slice/map WithX calls on
 // one &quot;copy&quot; would otherwise mutate the backing memory shared with
-// other callers.
-func imageStatusFromInspect(inspect mobyimage.InspectResponse) *containersv1alpha1apply.ImageStatusApplyConfiguration {
-	statusApply := containersv1alpha1apply.ImageStatus().
-		WithID(inspect.ID).
-		WithRepoDigests(inspect.RepoDigests...).
-		WithArchitecture(inspect.Architecture).
-		WithOS(inspect.Os).
-		WithSize(inspect.Size).
-		WithLabels(inspect.Config.Labels)
-
-	if t, err := time.Parse(time.RFC3339Nano, inspect.Created); err == nil {
-		statusApply.WithCreatedAt(metav1.NewTime(t))
-	}
-	return statusApply
-}
-
-// applyImage creates or updates a single `Image` mirror and its status.
-func (w *dockerWatcher) applyImage(
-	ctx context.Context,
-	image *containersv1alpha1apply.ImageApplyConfiguration,</code></pre>
+// other callers.</code></pre>
     <p><code>ImageStatus.RepoDigests</code> in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/apis/containers/v1alpha1/image_types.go#L28-L31"><code>pkg/apis/containers/v1alpha1/image_types.go:28-31</code></a> is a plain <code>[]string</code> with no <code>+listType</code> — atomic under SSA. Docker&#39;s <code>RepoDigests</code> is sourced from the reference store and is not documented to have a stable order, so an image with multiple references can reorder between inspects. Any reorder mints a new <code>resourceVersion</code> on every status apply, which fires watch events and re-triggers the engine reconciler — exactly the churn the port-sort already guards against.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/apis/containers/v1alpha1/image_types.go#L23-L36">pkg/apis/containers/v1alpha1/image_types.go</a></div>
       <pre data-start="23" data-line="28-31"><code class="language-go">	// multiple Image objects.  Images without tags will have this unset, but
@@ -1041,7 +1041,8 @@ func (w *dockerWatcher) applyImage(
         <span class="finding-num">S3.</span> <code>ContainerPort.Bindings</code> is sent to SSA in Docker&#39;s order <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/sync_containers.go#L187-L219">pkg/controllers/app/engine/controllers/sync_containers.go</a></div>
-      <pre data-start="187" data-line="192-214"><code class="language-go">	// name before building the apply slice: even with
+      <pre data-start="187" data-line="192-214"><code class="language-go">	// Port bindings. Go map iteration is randomized, so sort by port
+	// name before building the apply slice: even with
 	// +listType=map +listMapKey=name on Status.Ports, the entries land
 	// in the stored object in the order we provide, and a stable order
 	// avoids spurious resourceVersion churn when consumers render the
@@ -1057,23 +1058,22 @@ func (w *dockerWatcher) applyImage(
 		})
 		for _, portName := range portNames {
 			ports := inspect.NetworkSettings.Ports[portName]
+			// Sort bindings by (HostIP, HostPort) for the same reason
+			// portNames is sorted above: ContainerPort.Bindings is
+			// atomic under SSA, and Docker can return dual-stack
+			// bindings in either order, so an unsorted apply would
+			// mint a new resourceVersion on every sync.
+			sortedPorts := slices.Clone(ports)
+			sort.Slice(sortedPorts, func(i, j int) bool {
+				if sortedPorts[i].HostIP.String() != sortedPorts[j].HostIP.String() {
+					return sortedPorts[i].HostIP.String() &lt; sortedPorts[j].HostIP.String()
+				}
+				return sortedPorts[i].HostPort &lt; sortedPorts[j].HostPort
+			})
 			var bindings []*containersv1alpha1apply.ContainerPortBindingApplyConfiguration
-			for _, port := range ports {
+			for _, port := range sortedPorts {
 				bindings = append(bindings, containersv1alpha1apply.ContainerPortBinding().
-					WithHostIP(port.HostIP.String()).
-					WithHostPort(port.HostPort))
-			}
-			applyPorts = append(applyPorts, containersv1alpha1apply.ContainerPort().
-				WithName(portName.String()).
-				WithBindings(bindings...))
-		}
-	}
-	statusApply.WithPorts(applyPorts...)
-
-	statusConfig := containersv1alpha1apply.Container(inspect.ID, apiNamespace).
-		WithStatus(statusApply)
-
-	err = w.k8s.SubResource(&quot;status&quot;).Apply(ctx, statusConfig,</code></pre>
+					WithHostIP(port.HostIP.String()).</code></pre>
     <p>Same pattern as S2, one nesting level deeper: the outer <code>portNames</code> slice is correctly sorted at line 198, but the inner <code>bindings</code> slice follows whatever order Docker returned (Dual-stack <code>docker run -p 80:80</code> can emit either order depending on the kernel). <code>ContainerPort.Bindings</code> in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/apis/containers/v1alpha1/container_types.go#L48-L52"><code>container_types.go:48-52</code></a> has no <code>+listType</code>, so it&#39;s atomic. Sort by <code>(HostIP, HostPort)</code> before building the apply config. Classification: gap, suggestion.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/apis/containers/v1alpha1/container_types.go#L43-L57">pkg/apis/containers/v1alpha1/container_types.go</a></div>
       <pre data-start="43" data-line="48-52"><code class="language-go">	// Name of the port; in the form [port]/[protocol], e.g. &quot;80/tcp&quot;.
@@ -1123,7 +1123,18 @@ type ContainerSpec struct {
         <span class="finding-num">S5.</span> <code>deleteAllOfType</code> passes the stale list item to <code>r.Delete</code> <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/engine_reconciler.go#L294-L333">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="294" data-line="299-328"><code class="language-go">	if err != nil {
+      <pre data-start="294" data-line="299-328"><code class="language-go">// deleteAllOfType lists resources, strips finalizers, and deletes them.
+// Finalizer removal uses retry.RetryOnConflict so a stale cache or a
+// concurrent Update does not require the caller to requeue. Per-item
+// errors are collected so one stuck object does not block the rest of
+// the list.
+func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.ObjectList) error {
+	if err := r.List(ctx, list, client.InNamespace(apiNamespace)); err != nil {
+		return err
+	}
+
+	items, err := meta.ExtractList(list)
+	if err != nil {
 		return err
 	}
 
@@ -1151,18 +1162,7 @@ type ContainerSpec struct {
 		if retryErr != nil {
 			errs = append(errs, fmt.Errorf(&quot;failed to remove finalizer from %T %s: %w&quot;,
 				obj, obj.GetName(), retryErr))
-			continue
-		}
-		if err := client.IgnoreNotFound(r.Delete(ctx, obj)); err != nil {
-			errs = append(errs, fmt.Errorf(&quot;failed to delete %T %s: %w&quot;,
-				obj, obj.GetName(), err))
-		}
-	}
-	return errors.Join(errs...)
-}
-
-// reconcileContainerSpecs handles `Container` spec.state changes by
-// calling Docker start/stop. Per-Container errors are collected with</code></pre>
+			continue</code></pre>
     <p>The final <code>r.Delete</code> passes <code>obj</code> — the stale list item — not <code>latest</code> from the retry closure. That&#39;s functionally correct because <code>Delete</code> keys off name+namespace and doesn&#39;t send <code>resourceVersion</code>, but the closure-scoped <code>latest</code> isn&#39;t visible outside the retry body and future maintainers could reasonably think they need to pass it. Add a one-line comment explaining that <code>obj</code> is acceptable because <code>Delete</code> doesn&#39;t use <code>resourceVersion</code>, or hoist <code>latest</code> out of the closure. Classification: gap, suggestion.</p>
     </div>
     <div class="card card-suggestion">
@@ -1258,7 +1258,18 @@ func (c *immutableValidator) ValidateUpdate(_ context.Context, oldContainer, new
         <span class="finding-num">S9.</span> <code>reconcileContainerState</code> silently ignores unknown desired states <span class="pill pill-claude">Claude</span><a href="#S9" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/536ccb243012a21e665e5b9d7f0fdc99ab8e5abe/pkg/controllers/app/engine/controllers/docker_watcher.go#L356-L397">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
-      <pre data-start="356" data-line="361-392"><code class="language-go">// running branch handles paused explicitly because Docker rejects
+      <pre data-start="356" data-line="361-392"><code class="language-go">// Full state matrix (rows=desired from the spec.state enum, columns=actual
+// from Docker). The webhook restricts desired to {unknown, created,
+// running}; actual can be any value in the CRD enum.
+//
+//	desired \ actual  | running | paused   | created | exited | dead | pausing/restarting | removing | unknown
+//	------------------+---------+----------+---------+--------+------+--------------------+----------+--------
+//	running           | nil     | unpause  | start   | start  | start| start              | start    | start
+//	created           | stop    | stop     | nil     | nil    | nil  | stop               | stop     | stop
+//
+// ContainerStop handles paused/restarting containers natively, so the
+// created branch always dispatches Stop from any non-stopped state. The
+// running branch handles paused explicitly because Docker rejects
 // ContainerStart on a paused container. isStopped() treats
 // created/exited/dead as terminal stopped states: the user&#39;s intent
 // (&quot;do not run&quot;) is already satisfied and redispatching Stop would be
@@ -1288,18 +1299,7 @@ func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containe
 	case containersv1alpha1.ContainerStatusCreated:
 		if isStopped(actual) {
 			return nil
-		}
-		log.Info(&quot;Stopping container&quot;, &quot;id&quot;, c.Name)
-		_, err := w.cli.ContainerStop(ctx, c.Name, dockerclient.ContainerStopOptions{})
-		return err
-	}
-	return nil
-}
-
-// isStopped reports whether a container status represents a terminal
-// non-running state. Every state listed here satisfies a desired state
-// of &quot;created&quot;: the container is not running, cannot transition without
-// a user action (start/rm), and dispatching ContainerStop again would</code></pre>
+		}</code></pre>
     <p>Today the webhook restricts <code>desired</code> to <code>{unknown, running, created}</code>, so the switch covers every reachable value. A future relaxation of the enum — or a direct storage manipulation that bypasses admission — would produce a silent no-op. Add a <code>default</code> branch that logs the unexpected state (at <code>Error</code> level) so regressions surface quickly instead of silently dropping state transitions. Classification: gap, suggestion.</p>
     </div>
     <hr>
