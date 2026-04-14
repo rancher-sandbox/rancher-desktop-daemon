@@ -10,6 +10,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"os"
+	goruntime "runtime"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,13 +45,34 @@ type AppReconciler struct {
 	LimaTemplateData string
 }
 
-func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) string {
+func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, error) {
+	hostHome, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get host home directory: %w", err)
+	}
 	return baseTemplate + fmt.Sprintf(
-		"\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: \"{{.Home}}\"\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n",
+		"\nparam:\n  CONTAINER_ENGINE: %s\n  HOST_HOME: %q\n  KUBERNETES_ENABLED: %v\n  KUBERNETES_VERSION: %s\n",
 		spec.ContainerEngine.Name,
+		toLinuxPath(hostHome),
 		spec.Kubernetes.Enabled,
 		spec.Kubernetes.Version,
-	)
+	), nil
+}
+
+// toLinuxPath converts a host path to a Linux-accessible path inside a Lima VM.
+// On Windows, os.UserHomeDir() returns a Windows path (e.g. C:\Users\foo).
+// Inside a WSL2 Lima VM the Windows filesystem is mounted at /mnt/<drive>/...,
+// so we convert it to WSL2 supported path. On other platforms the path is returned unchanged.
+func toLinuxPath(hostPath string) string {
+	if goruntime.GOOS != "windows" {
+		return hostPath
+	}
+	if len(hostPath) >= 2 && hostPath[1] == ':' {
+		drive := strings.ToLower(string(hostPath[0]))
+		rest := strings.ReplaceAll(hostPath[2:], `\`, `/`)
+		return "/mnt/" + drive + rest
+	}
+	return hostPath
 }
 
 // Reconcile implements a singleton app reconciliation loop.
@@ -152,19 +176,23 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 	}
 
 	if apierrors.IsNotFound(limaVMErr) {
-		inputCM := &corev1.ConfigMap{}
-		err := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM)
-		if err != nil && !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, err
+		template, err := applySpecToTemplate(r.LimaTemplateData, app.Spec)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to apply spec to template: %w", err)
 		}
-		if apierrors.IsNotFound(err) {
+		inputCM := &corev1.ConfigMap{}
+		cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM)
+		if cmErr != nil && !apierrors.IsNotFound(cmErr) {
+			return ctrl.Result{}, cmErr
+		}
+		if apierrors.IsNotFound(cmErr) {
 			inputCM = &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      inputConfigMapName,
 					Namespace: namespace,
 				},
 				Data: map[string]string{
-					limav1alpha1.TemplateConfigMapKey: applySpecToTemplate(r.LimaTemplateData, app.Spec),
+					limav1alpha1.TemplateConfigMapKey: template,
 				},
 			}
 			if err := ctrl.SetControllerReference(&app, inputCM, r.Scheme); err != nil {
@@ -232,7 +260,10 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 				return ctrl.Result{}, fmt.Errorf("failed to fetch LimaVM template ConfigMap: %w", err)
 			}
 		} else {
-			desired := applySpecToTemplate(r.LimaTemplateData, app.Spec)
+			desired, err := applySpecToTemplate(r.LimaTemplateData, app.Spec)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to apply spec to template: %w", err)
+			}
 			if templateCM.Data[limav1alpha1.TemplateConfigMapKey] != desired {
 				patch := client.MergeFrom(templateCM.DeepCopy())
 				if templateCM.Data == nil {

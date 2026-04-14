@@ -40,9 +40,11 @@ provision:
 
     systemctl stop rancher-desktop.target
 
-    # Write the selected container engine; docker.service and containerd.service
+    # Write runtime parameters; service ExecCondition checks read these from this file.
     mkdir -p /etc/sysconfig
-    echo "CONTAINER_ENGINE=${PARAM_CONTAINER_ENGINE}" >/etc/sysconfig/rancher-desktop
+    printf 'CONTAINER_ENGINE=%s\nKUBERNETES_ENABLED=%s\nKUBERNETES_PORT=6443\n' \
+        "${PARAM_CONTAINER_ENGINE}" "${PARAM_KUBERNETES_ENABLED}" \
+        >/etc/sysconfig/rancher-desktop
 
     # Enable the requested container engine and disable the other.
     # containerd.service has a Conflicts=docker, so we must not start both.
@@ -76,7 +78,10 @@ provision:
         rm -f /etc/rancher/k3s/k3s.yaml
     fi
 
-    systemctl start rancher-desktop.target
+    # Use --no-block so the provision script exits immediately. Lima writes
+    # lima-boot-done as soon as all provision scripts finish, and k3s startup
+    # time is absorbed by the kubeconfig probe below instead of blocking here.
+    systemctl start --no-block rancher-desktop.target
 
 probes:
 - description: Update kube config on the host
@@ -92,7 +97,7 @@ probes:
     fi
 
     K3S_YAML=/etc/rancher/k3s/k3s.yaml
-    for _ in $(seq 90); do
+    for _ in $(seq 300); do
         if [[ -e $K3S_YAML ]]; then
             sleep 1
             # Rename the default context/user/cluster to "rancher-desktop".

@@ -12,6 +12,8 @@ VM_NAME="rd"
 INPUT_CM_NAME="rd"
 
 delete_app() {
+    # Stop the VM first so the LimaVM finalizer clears quickly.
+    rdd set running=false 2>/dev/null || true
     rdd ctl delete app "${APP_NAME}" --ignore-not-found
     # Wait for full deletion so that create_app always starts with no
     # pre-existing App resource. Without this, rdd ctl apply in create_app
@@ -291,5 +293,55 @@ EOF
     create_app false
     rdd ctl wait --for=create limavm/"${VM_NAME}" \
         --namespace "${RDD_NAMESPACE}" --timeout=60s
+    delete_app
+}
+
+@test "valid Kubernetes version allows LimaVM creation" {
+    skip_on_windows "Kubernetes tests require further setup on Windows"
+    delete_app
+    rdd ctl apply -f - <<EOF
+apiVersion: app.rancherdesktop.io/v1alpha1
+kind: App
+metadata:
+  name: ${APP_NAME}
+spec:
+  namespace: ${RDD_NAMESPACE}
+  running: false
+  kubernetes:
+    enabled: true
+    version: "1.32.0"
+EOF
+    rdd ctl wait --for=create limavm/"${VM_NAME}" \
+        --namespace "${RDD_NAMESPACE}" --timeout=60s
+}
+
+@test "start VM with Kubernetes enabled" {
+    skip_on_windows "Kubernetes tests require further setup on Windows"
+    rdd set running=true
+    rdd ctl wait --for=condition=Running \
+        limavm/"${VM_NAME}" --namespace "${RDD_NAMESPACE}" --timeout=300s
+}
+
+@test "wait for k3s nodes to be Ready" {
+    skip_on_windows "Kubernetes tests require further setup on Windows"
+    # k3s.service goes active ~53s before the kubelet registers the node.
+    # Poll the apiserver directly so we don't race past node registration.
+    try --max 36 --delay 10 -- \
+        rdd limavm shell "${VM_NAME}" sudo k3s kubectl wait \
+        --for=condition=Ready node --all --timeout=5s
+}
+
+@test "kubernetes nodes are Ready" {
+    skip_on_windows "Kubernetes tests require further setup on Windows"
+    run -0 rdd limavm shell "${VM_NAME}" sudo k3s kubectl get nodes
+    # Use surrounding spaces to avoid matching "NotReady".
+    assert_output --partial " Ready "
+}
+
+@test "stop VM after Kubernetes test" {
+    skip_on_windows "Kubernetes tests require further setup on Windows"
+    rdd set running=false
+    rdd ctl wait --for=condition=Running=False \
+        limavm/"${VM_NAME}" --namespace "${RDD_NAMESPACE}" --timeout=60s
     delete_app
 }
