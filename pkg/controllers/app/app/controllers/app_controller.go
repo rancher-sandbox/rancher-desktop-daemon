@@ -234,11 +234,12 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 		} else {
 			desired := applySpecToTemplate(r.LimaTemplateData, app.Spec)
 			if templateCM.Data[limav1alpha1.TemplateConfigMapKey] != desired {
+				patch := client.MergeFrom(templateCM.DeepCopy())
 				if templateCM.Data == nil {
 					templateCM.Data = make(map[string]string)
 				}
 				templateCM.Data[limav1alpha1.TemplateConfigMapKey] = desired
-				if err := r.Update(ctx, templateCM); err != nil {
+				if err := r.Patch(ctx, templateCM, patch); err != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to update template ConfigMap: %w", err)
 				}
 				log.Info("Updated template ConfigMap",
