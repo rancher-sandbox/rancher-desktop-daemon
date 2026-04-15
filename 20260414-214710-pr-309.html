@@ -223,14 +223,21 @@ local_setup_file() {
         <span class="finding-num">I2.</span> Engine controller is excluded from <code>--controllers=app</code> <span class="pill pill-codex">Codex</span><a href="#I2" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/controllers/app/engine/controller.go#L20-L48">pkg/controllers/app/engine/controller.go</a></div>
-      <pre data-start="20" data-line="25-43"><code class="language-go">
+      <pre data-start="20" data-line="25-43"><code class="language-go">	&quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base&quot;
+)
+
 func init() {
+	// Windows lacks a Docker socket transport, so the reconciler would
+	// hot-loop on connect errors. Skip registration until WSL2 support lands.
+	if runtime.GOOS == &quot;windows&quot; {
+		return
+	}
 	base.RegisterController(newController())
 }
 
 const (
 	controllerName = &quot;engine&quot;
-	apiGroup       = &quot;engine&quot;
+	apiGroup       = &quot;app&quot;
 )
 
 type controller struct{}
@@ -244,14 +251,7 @@ var _ base.Controller = &amp;controller{}
 func (c *controller) GetName() string {
 	return controllerName
 }
-
-func (c *controller) GetAPIGroup() string {
-	return apiGroup
-}
-
-func (c *controller) GetCRDData() string {
-	return &quot;&quot;
-}</code></pre>
+</code></pre>
     <p>The embedded control plane&#39;s controller selector in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/service/cmd/service.go#L494-L554"><code>pkg/service/cmd/service.go:494-554</code></a> enables a controller only when the <code>--controllers</code> spec matches the controller&#39;s <code>GetAPIGroup()</code> or <code>GetName()</code>. Every other controller under <code>pkg/controllers/app/</code> (<code>app</code>, <code>demo</code>) reports <code>APIGroup = &quot;app&quot;</code>, but this new one uses <code>&quot;engine&quot;</code>. As a direct consequence <code>rdd svc start --controllers=app</code> does not bring up the engine controller: <code>ContainerEngineReady</code> is never written and no mirror resources appear. That is why <code>bats/tests/32-app-controllers/app.bats</code> had to widen its selector from <code>&quot;app,limavm&quot;</code> to <code>&quot;*&quot;</code> in this PR.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/service/cmd/service.go#L489-L559">pkg/service/cmd/service.go</a></div>
       <pre data-start="489" data-line="494-554"><code class="language-go">	}
@@ -470,8 +470,9 @@ func waitForDesiredState(ctx context.Context, config *rest.Config, properties ma
       <div class="finding-title" id="S3">
         <span class="finding-num">S3.</span> <code>fullSync</code> continues after <code>syncContainerNamespace</code> failure <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/controllers/app/engine/controllers/docker_watcher.go#L420-L450">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
-      <pre data-start="420" data-line="425-450"><code class="language-go">	return err
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/controllers/app/engine/controllers/docker_watcher.go#L420-L451">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="420" data-line="425-450"><code class="language-go">	}
+	return err
 }
 
 // fullSync lists all containers, images, and volumes from Docker and
@@ -508,33 +509,11 @@ func (w *dockerWatcher) fullSync(ctx context.Context) error {
       <div class="finding-title" id="S4">
         <span class="finding-num">S4.</span> Custom <code>hasFinalizer</code>/<code>removeFinalizer</code> helpers duplicate <code>controllerutil</code> <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/controllers/app/engine/controllers/engine_reconciler.go#L527-L553">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="527" data-line="532-553"><code class="language-go">		Watches(&amp;containersv1alpha1.Image{}, enqueueApp).
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/626c789cf0e22f66adacfe9b09543430d4a1558c/pkg/controllers/app/engine/controllers/engine_reconciler.go#L527-L531">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="527" data-line="532-553"><code class="language-go">		Watches(&amp;containersv1alpha1.Container{}, enqueueApp).
+		Watches(&amp;containersv1alpha1.Image{}, enqueueApp).
 		Watches(&amp;containersv1alpha1.Volume{}, enqueueApp).
 		Complete(r)
-}
-
-// hasFinalizer checks whether an object has the specified finalizer.
-func hasFinalizer(obj metav1.Object, finalizer string) bool {
-	for _, f := range obj.GetFinalizers() {
-		if f == finalizer {
-			return true
-		}
-	}
-	return false
-}
-
-// removeFinalizer removes the specified finalizer from an object. Returns true
-// if the finalizer was present and removed.
-func removeFinalizer(obj metav1.Object, finalizer string) bool {
-	finalizers := obj.GetFinalizers()
-	for i, f := range finalizers {
-		if f == finalizer {
-			obj.SetFinalizers(append(finalizers[:i], finalizers[i+1:]...))
-			return true
-		}
-	}
-	return false
 }</code></pre>
     <p><code>sigs.k8s.io/controller-runtime/pkg/controller/controllerutil</code> already provides <code>ContainsFinalizer</code> and <code>RemoveFinalizer</code> with identical semantics. The only friction is that <code>controllerutil.RemoveFinalizer</code> does not return a bool, but <code>len(finalizers) != len(obj.GetFinalizers())</code> is a trivial post-check. Using the upstream helpers would match the pattern used elsewhere in the codebase and reduce surface area to maintain.</p>
     </div>
