@@ -6,8 +6,8 @@ load '../../helpers/load'
 
 # Engine controller tests — verify that the engine controller mirrors Docker
 # containers, images, and volumes into Container, Image, and Volume
-# resources, and that deletions and spec.state changes are forwarded
-# to Docker.
+# resources, and that deletions and action annotations on Container
+# resources are forwarded to Docker.
 
 local_setup_file() {
     # The Docker socket access pattern used by these tests is not yet wired
@@ -134,9 +134,10 @@ local_setup_file() {
         -o jsonpath='{.status.name}'
     assert_output "test-lifecycle"
 
+    # Fresh mirrors carry no action history.
     run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
-        -o jsonpath='{.spec.state}'
-    assert_output "unknown"
+        -o jsonpath='{.status.lastAction}'
+    refute_output
 }
 
 @test "docker stop updates Container status to exited" {
@@ -241,95 +242,245 @@ local_setup_file() {
         "${image_ref}" --timeout=30s
 }
 
-# --- Container state transitions via spec ---
+# --- Container actions via annotation ---
 
-@test "patching spec.state=created stops Docker container" {
+# assert_action_consumed reports success once the reconciler has
+# removed the action annotation, which is how we know the dispatch
+# has completed.
+assert_action_consumed() {
+    local cid=$1
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o "jsonpath={.metadata.annotations['containers\.rancherdesktop\.io/action']}"
+    refute_output
+}
+
+# request_action sets the action annotation and blocks until the
+# reconciler removes it. The annotation is a one-shot trigger.
+request_action() {
+    local cid=$1 action=$2
+    rdd ctl annotate container "${cid}" --namespace="${RDD_NAMESPACE}" --overwrite \
+        "containers.rancherdesktop.io/action=${action}"
+    try --max 30 --delay 1 -- assert_action_consumed "${cid}"
+}
+
+assert_last_action() {
+    local cid=$1 action=$2 state=$3
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.action}={.status.lastAction.state}'
+    assert_output "${action}=${state}"
+}
+
+@test "stop action stops a running container" {
     run_e -0 docker run -d --name test-state busybox sleep inf
     cid=${output}
 
     rdd ctl wait --for=jsonpath='{.status.status}'=running \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
 
-    rdd ctl patch container "${cid}" --namespace="${RDD_NAMESPACE}" \
-        --type=merge -p '{"spec":{"state":"created"}}'
+    request_action "${cid}" stop
 
     rdd ctl wait --for=jsonpath='{.status.status}'=exited \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+    assert_last_action "${cid}" stop Succeeded
 
     run -0 docker inspect test-state --format '{{.State.Status}}'
     assert_output "exited"
 }
 
-@test "patching spec.state=running restarts Docker container" {
+@test "start action restarts a stopped container" {
     run -0 docker inspect test-state --format '{{.Id}}'
     cid=${output}
 
-    rdd ctl patch container "${cid}" --namespace="${RDD_NAMESPACE}" \
-        --type=merge -p '{"spec":{"state":"running"}}'
+    request_action "${cid}" start
 
     rdd ctl wait --for=jsonpath='{.status.status}'=running \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+    assert_last_action "${cid}" start Succeeded
 
     run -0 docker inspect test-state --format '{{.State.Status}}'
     assert_output "running"
 }
 
-@test "patching spec.state=created stops a paused container" {
-    # Docker's ContainerStop handles paused containers natively, so
-    # the reconciler must dispatch ContainerStop whenever the desired
-    # state differs from the actual state rather than only when the
-    # container is actively running.
+@test "pause and unpause actions toggle a running container" {
     run -0 docker inspect test-state --format '{{.Id}}'
     cid=${output}
 
-    # Park the reconciler on spec.state=unknown before pausing. With
-    # spec.state=running, the reconciler would race us by auto-unpausing
-    # (desired=running, actual=paused → ContainerUnpause) before our
-    # wait can observe status=paused.
-    rdd ctl patch container "${cid}" --namespace="${RDD_NAMESPACE}" \
-        --type=merge -p '{"spec":{"state":"unknown"}}'
-
-    docker pause test-state
+    request_action "${cid}" pause
     rdd ctl wait --for=jsonpath='{.status.status}'=paused \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+    assert_last_action "${cid}" pause Succeeded
 
-    rdd ctl patch container "${cid}" --namespace="${RDD_NAMESPACE}" \
-        --type=merge -p '{"spec":{"state":"created"}}'
+    request_action "${cid}" unpause
+    rdd ctl wait --for=jsonpath='{.status.status}'=running \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+    assert_last_action "${cid}" unpause Succeeded
+
+    run -0 docker inspect test-state --format '{{.State.Status}}'
+    assert_output "running"
+}
+
+@test "pause action on a stopped container records failure" {
+    # Docker refuses to pause a non-running container. The action
+    # still removes the annotation; the failure surfaces in
+    # status.lastAction so the GUI can react.
+    run_e -0 docker run -d --name test-pause-fail busybox /bin/true
+    cid=${output}
 
     rdd ctl wait --for=jsonpath='{.status.status}'=exited \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
 
-    run -0 docker inspect test-state --format '{{.State.Status}}'
-    assert_output "exited"
+    request_action "${cid}" pause
+    assert_last_action "${cid}" pause Failed
+
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.error}'
+    assert_output --partial "not running"
+
+    docker rm --force test-pause-fail
 }
 
-@test "patching spec.state=running unpauses a paused container" {
-    # Docker rejects ContainerStart on a paused container with
-    # "container is paused, unpause before starting". The reconciler
-    # must dispatch ContainerUnpause when desired=running and
-    # actual=paused, symmetric with the ContainerStop path above.
-    run_e -0 docker run -d --name test-unpause busybox sleep inf
+@test "unpause action on a stopped container records failure" {
+    # Docker's unpause would succeed silently on a non-running container
+    # because the pre-check sees it as not-paused. The reconciler inspects
+    # Running explicitly so unpause on a stopped container surfaces a
+    # failure, symmetric with pause's behavior above.
+    run_e -0 docker run -d --name test-unpause-fail busybox /bin/true
+    cid=${output}
+
+    rdd ctl wait --for=jsonpath='{.status.status}'=exited \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+
+    request_action "${cid}" unpause
+    assert_last_action "${cid}" unpause Failed
+
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.error}'
+    assert_output --partial "not running"
+
+    docker rm --force test-unpause-fail
+}
+
+@test "invalid action annotation is rejected by the webhook" {
+    # An unknown action value must fail admission so the reconciler never
+    # sees a value it cannot process. Without this gate, a bad value would
+    # fail to persist in status.lastAction (the CRD enum rejects it) and
+    # the annotation would stay in place, wedging the retry loop.
+    run_e -0 docker run -d --name test-invalid-action busybox sleep inf
     cid=${output}
 
     rdd ctl wait --for=jsonpath='{.status.status}'=running \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
 
-    docker pause test-unpause
-    rdd ctl wait --for=jsonpath='{.status.status}'=paused \
-        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
-    run -0 docker inspect test-unpause --format '{{.State.Status}}'
-    assert_output "paused"
+    run -1 rdd ctl annotate container "${cid}" --namespace="${RDD_NAMESPACE}" --overwrite \
+        "containers.rancherdesktop.io/action=bogus"
+    assert_output --partial "invalid"
 
-    rdd ctl patch container "${cid}" --namespace="${RDD_NAMESPACE}" \
-        --type=merge -p '{"spec":{"state":"running"}}'
+    # The rejected request leaves status.lastAction untouched.
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction}'
+    refute_output
+
+    docker rm --force test-invalid-action
+}
+
+@test "action annotation on create is rejected by the webhook" {
+    # The engine watcher creates Container mirrors and never sets the
+    # action annotation. Reject any hand-written create that carries one,
+    # so it cannot drive a Docker action against its metadata.name.
+    run -1 rdd ctl apply -f - <<EOF
+apiVersion: containers.rancherdesktop.io/v1alpha1
+kind: Container
+metadata:
+  name: hand-written-create
+  namespace: "${RDD_NAMESPACE}"
+  annotations:
+    containers.rancherdesktop.io/action: start
+EOF
+    assert_output --partial "not allowed on create"
+}
+
+@test "restart action restarts a running container" {
+    run_e -0 docker run -d --name test-restart busybox sleep inf
+    cid=${output}
 
     rdd ctl wait --for=jsonpath='{.status.status}'=running \
         --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
 
-    run -0 docker inspect test-unpause --format '{{.State.Status}}'
-    assert_output "running"
+    # Record the pre-restart StartedAt so we can verify the container
+    # was actually restarted rather than left untouched.
+    run -0 docker inspect test-restart --format '{{.State.StartedAt}}'
+    local before=${output}
 
-    docker rm --force test-unpause
+    request_action "${cid}" restart
+    assert_last_action "${cid}" restart Succeeded
+
+    run -0 docker inspect test-restart --format '{{.State.StartedAt}}'
+    refute_output "${before}"
+
+    docker rm --force test-restart
+}
+
+@test "lastAction survives a direct docker stop" {
+    # lastAction records the most recent reconciler action and survives
+    # observable state changes (e.g. a direct docker stop) that the
+    # reconciler did not initiate.
+    run_e -0 docker run -d --name test-persist busybox sleep inf
+    cid=${output}
+
+    rdd ctl wait --for=jsonpath='{.status.status}'=running \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+
+    request_action "${cid}" start
+    assert_last_action "${cid}" start Succeeded
+
+    docker stop test-persist
+    rdd ctl wait --for=jsonpath='{.status.status}'=exited \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+    assert_last_action "${cid}" start Succeeded
+
+    docker rm --force test-persist
+}
+
+@test "lastAction timestamps advance across consecutive actions" {
+    run_e -0 docker run -d --name test-timestamps busybox sleep inf
+    cid=${output}
+
+    rdd ctl wait --for=jsonpath='{.status.status}'=running \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+
+    request_action "${cid}" stop
+    rdd ctl wait --for=jsonpath='{.status.status}'=exited \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+
+    # Capture timestamps from the first action; both must be set.
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.observedAt}'
+    assert_output
+    first_observed=${output}
+
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.completedAt}'
+    assert_output
+    first_completed=${output}
+
+    # Wait so the second action's timestamps land in a later second.
+    sleep 1
+
+    request_action "${cid}" start
+    rdd ctl wait --for=jsonpath='{.status.status}'=running \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+    assert_last_action "${cid}" start Succeeded
+
+    # Both timestamps must advance on the second action.
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.observedAt}'
+    refute_output "${first_observed}"
+
+    run -0 rdd ctl get container "${cid}" --namespace="${RDD_NAMESPACE}" \
+        -o jsonpath='{.status.lastAction.completedAt}'
+    refute_output "${first_completed}"
+
+    docker rm --force test-timestamps
 }
 
 # --- Cleanup on shutdown ---

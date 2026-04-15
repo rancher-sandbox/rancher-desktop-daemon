@@ -21,8 +21,14 @@ type immutableValidator struct {
 }
 
 // ValidateCreate implements [ctrlwebhookadmission.Validator].
-func (c *immutableValidator) ValidateCreate(context.Context, *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
-	return nil, errors.New("webhook does not implement create")
+// The engine watcher creates Container mirrors and never sets the action
+// annotation; reject any create that carries one so a hand-written
+// Container cannot drive a Docker action against its metadata.name.
+func (c *immutableValidator) ValidateCreate(_ context.Context, newContainer *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
+	if _, ok := newContainer.Annotations[v1alpha1.AnnotationAction]; ok {
+		return nil, fmt.Errorf("%s annotation is not allowed on create", v1alpha1.AnnotationAction)
+	}
+	return nil, nil
 }
 
 // ValidateDelete implements [ctrlwebhookadmission.Validator].
@@ -31,15 +37,24 @@ func (c *immutableValidator) ValidateDelete(context.Context, *v1alpha1.Container
 }
 
 // ValidateUpdate implements [ctrlwebhookadmission.Validator].
-// Only spec.state changes are allowed; all other spec fields are immutable.
-// The CRD schema already constrains spec.state to the valid enum
-// ({created, running, unknown}), so this webhook only enforces that
-// nothing else in the spec changes.
+// The whole Container spec is immutable on update: actions are requested via
+// the AnnotationAction annotation on metadata, not via a level-triggered
+// desired-state field.
+//
+// Provenance of the annotation is not checked. ValidateCreate rejects
+// creates that carry the action annotation, but a caller can create an
+// empty Container and then PATCH the annotation in. Closing that bypass
+// would require a managedFields check, which is more cost than benefit on
+// a single-user desktop where the principal already has Docker socket
+// access.
 func (c *immutableValidator) ValidateUpdate(_ context.Context, oldContainer, newContainer *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
-	oldCopy := oldContainer.Spec
-	oldCopy.State = newContainer.Spec.State
-	if !equality.Semantic.DeepEqual(oldCopy, newContainer.Spec) {
-		return nil, fmt.Errorf("only spec.state may be changed: old: %v, new: %v", oldContainer.Spec, newContainer.Spec)
+	if !equality.Semantic.DeepEqual(oldContainer.Spec, newContainer.Spec) {
+		return nil, fmt.Errorf("spec is immutable: old: %v, new: %v", oldContainer.Spec, newContainer.Spec)
+	}
+	if raw, ok := newContainer.Annotations[v1alpha1.AnnotationAction]; ok {
+		if !v1alpha1.ContainerAction(raw).IsValid() {
+			return nil, fmt.Errorf("invalid %s annotation %q", v1alpha1.AnnotationAction, raw)
+		}
 	}
 	return nil, nil
 }

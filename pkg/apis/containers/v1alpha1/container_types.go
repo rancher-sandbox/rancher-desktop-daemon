@@ -26,6 +26,77 @@ const (
 	ContainerStatusUnknown    ContainerStatusValue = "unknown"
 )
 
+// AnnotationAction requests a one-shot action on a container. The reconciler
+// performs the action, records the outcome in status.lastAction, and removes
+// the annotation. Setting a new value replaces any pending action — there is
+// no queue.
+const AnnotationAction = "containers.rancherdesktop.io/action"
+
+// +kubebuilder:validation:Enum=start;stop;pause;unpause;restart
+
+// ContainerAction is the name of an action that can be requested on a
+// container via the AnnotationAction annotation.
+type ContainerAction string
+
+// Possible values for ContainerAction.
+const (
+	ContainerActionStart   ContainerAction = "start"
+	ContainerActionStop    ContainerAction = "stop"
+	ContainerActionPause   ContainerAction = "pause"
+	ContainerActionUnpause ContainerAction = "unpause"
+	ContainerActionRestart ContainerAction = "restart"
+)
+
+// IsValid reports whether a is one of the defined ContainerAction values.
+func (a ContainerAction) IsValid() bool {
+	switch a {
+	case ContainerActionStart, ContainerActionStop,
+		ContainerActionPause, ContainerActionUnpause,
+		ContainerActionRestart:
+		return true
+	}
+	return false
+}
+
+// +kubebuilder:validation:Enum=Succeeded;Failed
+
+// ContainerActionState describes the outcome of an action that was requested
+// via the AnnotationAction annotation.
+type ContainerActionState string
+
+// Possible values for ContainerActionState.
+const (
+	ContainerActionSucceeded ContainerActionState = "Succeeded"
+	ContainerActionFailed    ContainerActionState = "Failed"
+)
+
+// ContainerLastAction records the most recent action requested via the
+// AnnotationAction annotation and its outcome.
+type ContainerLastAction struct {
+	// Action is the action that was requested.
+	//
+	// +required
+	Action ContainerAction `json:"action"`
+	// State is the outcome of the action.
+	//
+	// +required
+	State ContainerActionState `json:"state"`
+	// Error is the error message if the action failed.
+	//
+	// +optional
+	Error string `json:"error,omitempty"`
+	// ObservedAt is when the reconciler began processing the action annotation.
+	// Backlog may delay this relative to the user's write time, and dispatch
+	// (especially restart's grace period) extends the gap to CompletedAt.
+	//
+	// +optional
+	ObservedAt metav1.Time `json:"observedAt,omitempty,omitzero"`
+	// CompletedAt is when the action completed, regardless of outcome.
+	//
+	// +optional
+	CompletedAt metav1.Time `json:"completedAt,omitempty,omitzero"`
+}
+
 // ContainerPortBinding describes one host port for the container to bind to.
 type ContainerPortBinding struct {
 	// HostIP is the host IP address that the container's port is mapped to.
@@ -51,24 +122,11 @@ type ContainerPort struct {
 	Bindings []ContainerPortBinding `json:"bindings"`
 }
 
-// ContainerSpec defines the configuration the container was created with.
-type ContainerSpec struct {
-	// State is the desired state of the container. Valid values are
-	// "unknown", "created", and "running".
-	//
-	// The engine controller creates mirrors with state=unknown, which
-	// means "mirror Docker status but take no action". Setting the
-	// field to "running" or "created" expresses user intent: the
-	// reconciler dispatches ContainerStart, ContainerUnpause, or
-	// ContainerStop until the container reaches the desired state.
-	// "created" is satisfied by any non-running state (created,
-	// exited, dead).
-	//
-	// +required
-	// +kubebuilder:default:=unknown
-	// +kubebuilder:validation:Enum=created;running;unknown
-	State ContainerStatusValue `json:"state"`
-}
+// ContainerSpec is currently empty. Actions are requested via the AnnotationAction
+// annotation, not a level-triggered desired-state field. Docker's restart
+// policy and out-of-band `docker start/stop` are competing writers, so a
+// level-triggered desired state would fight them.
+type ContainerSpec struct{}
 
 // ContainerStatus defines the observed state of the container.
 type ContainerStatus struct {
@@ -149,6 +207,12 @@ type ContainerStatus struct {
 	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LastAction records the most recent action requested via the
+	// AnnotationAction annotation and its outcome. Persists after the
+	// action completes until overwritten by the next action.
+	//
+	// +optional
+	LastAction *ContainerLastAction `json:"lastAction,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -167,10 +231,12 @@ type Container struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 
-	// Spec defines the desired state of Container
+	// Spec is reserved for future use. The Container API has no
+	// desired-state fields today: actions are requested via the
+	// AnnotationAction annotation on metadata instead.
 	//
-	// +required
-	Spec ContainerSpec `json:"spec"`
+	// +optional
+	Spec ContainerSpec `json:"spec,omitempty,omitzero"`
 
 	// Status defines the observed state of Container
 	//

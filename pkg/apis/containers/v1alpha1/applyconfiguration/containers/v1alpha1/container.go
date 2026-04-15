@@ -3,6 +3,7 @@
 package v1alpha1
 
 import (
+	containersv1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	v1 "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -16,8 +17,10 @@ type ContainerApplyConfiguration struct {
 	v1.TypeMetaApplyConfiguration `json:",inline"`
 	// Metadata is a standard object metadata
 	*v1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	// Spec defines the desired state of Container
-	Spec *ContainerSpecApplyConfiguration `json:"spec,omitempty"`
+	// Spec is reserved for future use. The Container API has no
+	// desired-state fields today: actions are requested via the
+	// AnnotationAction annotation on metadata instead.
+	Spec *containersv1alpha1.ContainerSpec `json:"spec,omitempty"`
 	// Status defines the observed state of Container
 	Status *ContainerStatusApplyConfiguration `json:"status,omitempty"`
 }
@@ -196,8 +199,8 @@ func (b *ContainerApplyConfiguration) ensureObjectMetaApplyConfigurationExists()
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *ContainerApplyConfiguration) WithSpec(value *ContainerSpecApplyConfiguration) *ContainerApplyConfiguration {
-	b.Spec = value
+func (b *ContainerApplyConfiguration) WithSpec(value containersv1alpha1.ContainerSpec) *ContainerApplyConfiguration {
+	b.Spec = &value
 	return b
 }
 

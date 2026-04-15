@@ -18,14 +18,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 	// Group=containers.rancherdesktop.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithKind("Container"):
 		return &containersv1alpha1.ContainerApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("ContainerLastAction"):
+		return &containersv1alpha1.ContainerLastActionApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ContainerNamespace"):
 		return &containersv1alpha1.ContainerNamespaceApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ContainerPort"):
 		return &containersv1alpha1.ContainerPortApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ContainerPortBinding"):
 		return &containersv1alpha1.ContainerPortBindingApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("ContainerSpec"):
-		return &containersv1alpha1.ContainerSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ContainerStatus"):
 		return &containersv1alpha1.ContainerStatusApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Image"):
