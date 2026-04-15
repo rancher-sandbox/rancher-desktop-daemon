@@ -27,14 +27,13 @@ portForwards:
   hostPortRange:
   - 0
   - 0
-  hostSocket: "{{.Home}}/.rd/docker.sock"
+  hostSocket: "{{.Param.HOST_SHORT_DIR}}/docker.sock"
 provision:
 - mode: system
   script: |
     #!/bin/bash
 
     # All param need to be mentioned for Lima validation.
-    # $PARAM_HOST_HOME - used by the kubeconfig probe
 
     set -o errexit -o nounset -o pipefail -o xtrace
 
@@ -106,7 +105,7 @@ probes:
             sudo sed 's/: default$/: rancher-desktop/g' "$K3S_YAML" >"$KUBECONFIG_LOCAL"
             # Merge into the host kubeconfig.
             KUBECONFIG_MERGED=$HOME/kubeconfig
-            KUBECONFIG_HOST="$PARAM_HOST_HOME/.kube/config"
+            KUBECONFIG_HOST="$PARAM_HOST_HOME_GUEST/.kube/config"
             export KUBECONFIG="$KUBECONFIG_HOST:$KUBECONFIG_LOCAL"
             kubectl config view --merge --flatten >"$KUBECONFIG_MERGED" || break
             # Only overwrite if the merged config has at least as many contexts.
