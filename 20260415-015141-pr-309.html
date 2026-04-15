@@ -289,11 +289,24 @@ func (d *ControllerManagerDiscovery) IsControllerRunning(ctx context.Context, co
         <span class="finding-num">I2.</span> Engine cleanup and full-sync prune delete every <code>Container</code>/<code>Image</code>/<code>Volume</code> in <code>rancher-desktop</code>, not only engine-owned mirrors <span class="pill pill-codex">Codex</span><a href="#I2" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/controllers/app/engine/controllers/engine_reconciler.go#L288-L341">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="288" data-line="293-336"><code class="language-go">}
+      <pre data-start="288" data-line="293-336"><code class="language-go">	}
+	if err := r.deleteAllOfType(ctx, &amp;containersv1alpha1.ImageList{}); err != nil {
+		errs = append(errs, fmt.Errorf(&quot;failed to delete Images: %w&quot;, err))
+	}
+	if err := r.deleteAllOfType(ctx, &amp;containersv1alpha1.ContainerNamespaceList{}); err != nil {
+		errs = append(errs, fmt.Errorf(&quot;failed to delete ContainerNamespaces: %w&quot;, err))
+	}
+	return errors.Join(errs...)
+}
 
-// deleteAllOfType lists resources, strips finalizers, and deletes
-// them. Finalizer removal retries on conflict; per-item errors are
-// collected so one stuck object does not block the rest.
+// deleteAllOfType lists and removes every resource of the given kind
+// in apiNamespace. Engine is authoritative for Container, Image, and
+// Volume in `rancher-desktop`: this loop deletes every object, not
+// just engine-owned mirrors. Coexistence with another writer to these
+// kinds requires an engine-owned label and matching filters here and
+// in the sync_*.go full-sync prune paths. Finalizer removal retries
+// on conflict; per-item errors are collected so one stuck object does
+// not block the rest.
 func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.ObjectList) error {
 	if err := r.List(ctx, list, client.InNamespace(apiNamespace)); err != nil {
 		return err
@@ -329,20 +342,7 @@ func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.Obje
 				obj, obj.GetName(), retryErr))
 			continue
 		}
-		// Delete uses the stale list item, not latest from the retry
-		// closure: Delete keys off name+namespace and does not send
-		// resourceVersion, so staleness cannot trigger a 409.
-		if err := client.IgnoreNotFound(r.Delete(ctx, obj)); err != nil {
-			errs = append(errs, fmt.Errorf(&quot;failed to delete %T %s: %w&quot;,
-				obj, obj.GetName(), err))
-		}
-	}
-	return errors.Join(errs...)
-}
-
-// reconcileContainerSpecs handles Container spec.state changes by
-// calling Docker start/stop. Per-container errors are joined and
-// returned so controller-runtime requeues with backoff; without the</code></pre>
+		// Delete uses the stale list item, not latest from the retry</code></pre>
     <p>When <code>cleanupMirrorResources</code> runs (App stopped, backend switched, controller teardown), <code>deleteAllOfType</code> lists every object of a given kind in the <code>rancher-desktop</code> namespace. For each object, it enters a retry closure that removes the engine <code>mirrorFinalizer</code> if present — but the closure exits with <code>nil</code> on &quot;finalizer not present&quot; (line 319). The outer loop then falls through to <code>r.Delete(ctx, obj)</code> unconditionally at line 331. An object created by any other controller in <code>rancher-desktop</code>, lacking the engine finalizer, is deleted anyway.</p>
     <p>The full-sync prune paths have the same shape:</p>
       <pre><code class="language-go">// sync_containers.go:62-75
@@ -372,7 +372,10 @@ for i := range containerMirrors.Items {
 	if err := w.k8s.List(ctx, &amp;images, client.InNamespace(apiNamespace)); err != nil {
 		return errors.Join(applyErr, err)
 	}
-	errs := []error{applyErr}
+	var errs []error
+	if applyErr != nil {
+		errs = append(errs, applyErr)
+	}
 	for i := range images.Items {
 		img := &amp;images.Items[i]
 		if img.Status.ID != result.InspectResponse.ID {
@@ -387,10 +390,7 @@ for i := range containerMirrors.Items {
 	}
 	return errors.Join(errs...)
 }
-
-// removeImagesByID removes every Image mirror whose status.id matches
-// the given Docker image ID.
-//</code></pre>
+</code></pre>
     <p>Fix: stamp engine-owned objects with a distinguishing label or annotation (e.g. <code>engine.rancherdesktop.io/owned-by=engine-controller</code>) in addition to the finalizer, and filter both <code>deleteAllOfType</code> and every full-sync prune by that marker. Unmarked objects must be skipped entirely so other controllers — the mock used by <code>containers-mock.bats</code> today, any future containerd mirror, or a human-created test fixture — can coexist in the same namespace without losing state on a VM stop or backend switch. Deleting by marker also removes the need for the <code>-engine</code> carve-out in <code>containers-mock.bats</code>.</p>
     <p>Two earlier rounds discussed the related &quot;namespace self-healing&quot; question and decided not to re-create <code>rancher-desktop</code> / <code>containernamespace/moby</code> after a user deletes them mid-run. That decision is distinct from this one: self-healing is about re-creating your own objects, while this finding is about not destroying someone else&#39;s.</p>
     </div>
@@ -398,7 +398,7 @@ for i := range containerMirrors.Items {
       <div class="finding-title" id="I3">
         <span class="finding-num">I3.</span> <code>cmd/app-controller</code> imports the engine package, but <code>external.RunControllers</code> does not filter by API group — the standalone binary can register <code>engine</code> under the wrong shared manager <span class="pill pill-codex">Codex</span><a href="#I3" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/cmd/app-controller/main.go#L8-L21">cmd/app-controller/main.go</a></div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/cmd/app-controller/main.go#L8-L20">cmd/app-controller/main.go</a></div>
       <pre data-start="8" data-line="13-20"><code class="language-go">
 import (
 	&quot;os&quot;
@@ -406,7 +406,6 @@ import (
 	// Import app controller packages to trigger init() functions.
 	_ &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/app&quot;
 	_ &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/demo&quot;
-	_ &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/engine&quot;
 	&quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/external&quot;
 )
 
@@ -457,13 +456,27 @@ for _, controller := range base.GetAllControllers() {
         <span class="finding-num">S1.</span> <code>context.WithoutCancel</code> leaks the watcher goroutine on manager shutdown <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/controllers/app/engine/controllers/engine_reconciler.go#L196-L227">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="196" data-line="201-222"><code class="language-go">		finErr = fmt.Errorf(&quot;failed to process finalizers: %w&quot;, err)
+      <pre data-start="196" data-line="201-222"><code class="language-go">	//
+	// Run both passes unconditionally and join their errors. Early
+	// return on specsErr would stall every mirror&#39;s finalizer behind
+	// a single stuck spec.state actuation: the next reconcile would
+	// hit the same broken container first and skip finalizers again.
+	var specsErr, finErr error
+	if err := r.reconcileContainerSpecs(ctx); err != nil {
+		specsErr = fmt.Errorf(&quot;failed to reconcile container specs: %w&quot;, err)
+	}
+	if err := r.processFinalizers(ctx); err != nil {
+		finErr = fmt.Errorf(&quot;failed to process finalizers: %w&quot;, err)
 	}
 	return ctrl.Result{}, errors.Join(specsErr, finErr)
 }
 
-// startWatcher creates and starts a Docker watcher goroutine.
-func (r *EngineReconciler) startWatcher(ctx context.Context) error {
+// startWatcher creates and starts a Docker watcher goroutine. The
+// watcher inherits watcherCtx, which cancels only on manager
+// shutdown; startWatcher deliberately drops Reconcile&#39;s ctx so a
+// future ReconciliationTimeout or per-request deadline cannot kill
+// the watcher the moment Reconcile returns.
+func (r *EngineReconciler) startWatcher(_ context.Context) error {
 	r.watcherMu.Lock()
 	defer r.watcherMu.Unlock()
 
@@ -471,24 +484,10 @@ func (r *EngineReconciler) startWatcher(ctx context.Context) error {
 		return nil
 	}
 
-	// context.WithoutCancel decouples the watcher&#39;s lifetime from
-	// this Reconcile call. Controller-runtime does not per-request
-	// cancel Reconcile today, but adding a ReconciliationTimeout or
-	// a middleware that attaches a deadline would otherwise kill
-	// the watcher the moment Reconcile returns, triggering an
-	// immediate reconnect loop.
-	w, err := newDockerWatcher(context.WithoutCancel(ctx), r.Client, r.reconcileChan)
+	w, err := newDockerWatcher(r.watcherCtx, r.Client, r.reconcileChan)
 	if err != nil {
 		return err
-	}
-	r.watcher = w
-	return nil
-}
-
-// stopWatcher stops the Docker watcher goroutine and waits for it to finish.
-func (r *EngineReconciler) stopWatcher() {
-	r.watcherMu.Lock()
-	w := r.watcher</code></pre>
+	}</code></pre>
     <p>The round-3 fix for &quot;watcher bound to Reconcile context&quot; correctly prevents per-request cancellation from killing the watcher, but it also prevents <em>manager-shutdown</em> cancellation from reaching the watcher. The only shutdown path for the watcher is <code>stopWatcher</code>, which is called from <code>Reconcile</code>. On manager shutdown, controller-runtime cancels the manager context, <code>Reconcile</code> stops being invoked, and <code>stopWatcher</code> never runs. The watcher goroutine stays alive — and holds the Docker client connection open — until the process exits moments later.</p>
     <p>Practical impact is small: <code>GracefulShutdownTimeout</code> on the manager is 10 s (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/service/controllers/manager.go#L161"><code>manager.go:161</code></a>), process exit follows quickly, and the watcher goroutine dies with the process. But <code>cli.Close()</code> never runs, the watcher&#39;s shutdown logs are missing, and any future refactor that wants ordered cleanup (flush pending events, fsync metadata) would have no hook to plug into. Claude rated this Important; we classify as Suggestion given the narrow shutdown-only impact, while noting it regresses the explicit intent of the round-3 fix.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/service/controllers/manager.go#L156-L166">pkg/service/controllers/manager.go</a></div>
@@ -536,42 +535,42 @@ load &#39;../../helpers/load&#39;
 	if err := w.k8s.List(ctx, &amp;images, client.InNamespace(apiNamespace)); err != nil {
 		return errors.Join(applyErr, err)
 	}
-	errs := []error{applyErr}
+	var errs []error
+	if applyErr != nil {
+		errs = append(errs, applyErr)
+	}
 	for i := range images.Items {
-		img := &amp;images.Items[i]
-		if img.Status.ID != result.InspectResponse.ID {
-			continue
-		}</code></pre>
+		img := &amp;images.Items[i]</code></pre>
     <p><code>errors.Join</code> at line 239 discards nils, so the behaviour is correct. The pattern reads as if every call returns at least one error, and diverges from the more common <code>var errs []error; if applyErr != nil { errs = append(errs, applyErr) }</code> shape used elsewhere in the same package. Pure style; change only if you are in the file anyway.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/controllers/app/engine/controllers/sync_images.go#L234-L244">pkg/controllers/app/engine/controllers/sync_images.go</a></div>
       <pre data-start="234" data-line="239"><code class="language-go">		}
+		if keep[img.Name] {
+			continue
+		}
 		if err := w.removeMirrorResource(ctx, img, img.Name); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	return errors.Join(errs...)
 }
-
-// removeImagesByID removes every Image mirror whose status.id matches
-// the given Docker image ID.
-//</code></pre>
+</code></pre>
     </div>
     <div class="card card-suggestion">
       <div class="finding-title" id="S4">
         <span class="finding-num">S4.</span> <code>--controllers</code> help text does not list the new <code>containers</code> group <span class="pill pill-codex">Codex</span><a href="#S4" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/service/controllers/options.go#L27-L37">pkg/service/controllers/options.go</a></div>
-      <pre data-start="27" data-line="32"><code class="language-go">func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	if o == nil {
-		return
-	}
+      <pre data-start="27" data-line="32"><code class="language-go">}
 
-	fs.StringVar(&amp;o.Controllers, &quot;controllers&quot;, &quot;*&quot;, &quot;Controllers to enable. Use &#39;*&#39; for all, or specify comma-separated list. API groups: &#39;rdd&#39; (configmapreplicaset, notary), &#39;app&#39; (demo). Prefix with &#39;-&#39; to exclude, e.g., &#39;*,-demo&#39;&quot;)
+// CompletedOptions holds the completed controller configuration options.
+type CompletedOptions struct {
+	*completedOptions
 }
 
-// Complete returns the completed configuration.
-func (o *Options) Complete() CompletedOptions {
-	return CompletedOptions{</code></pre>
+// AddFlags adds the flags for the controller options to the given FlagSet.
+func (o *Options) AddFlags(fs *pflag.FlagSet) {
+	if o == nil {
+		return</code></pre>
     <p>The round-3 fix moved <code>engine</code> from the <code>app</code> group to the <code>containers</code> group, but both help strings (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/service/cmd/options/options.go#L32"><code>options.go:32</code></a> and the equivalent line in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/cmd/rdd/service.go#L174"><code>cmd/rdd/service.go:174</code></a>) still only document <code>rdd</code> and <code>app</code>. A user who reads <code>--help</code> has no indication that <code>-engine</code>, <code>containers,-engine</code>, or <code>containers</code> are valid selectors — and this PR introduces a <code>containers-mock.bats</code> test that already relies on the <code>containers,-engine</code> form.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a5235c8da3943af6183e427c860b502009e56f2c/pkg/service/cmd/options/options.go#L27-L37">pkg/service/cmd/options/options.go</a></div>
       <pre data-start="27" data-line="32"><code class="language-go">	&quot;k8s.io/client-go/util/keyutil&quot;
@@ -592,7 +591,7 @@ func (o *Options) Complete() CompletedOptions {
 		RunE: serviceCreateAction,
 	}
 
-	command.Flags().String(&quot;controllers&quot;, &quot;*&quot;, &quot;Controllers to enable. Use &#39;*&#39; for all, or specify comma-separated list. API groups: &#39;rdd&#39; (configmapreplicaset,notary), &#39;app&#39; (demo). Prefix with &#39;-&#39; to exclude, e.g., &#39;*,-demo&#39;&quot;)
+	command.Flags().String(&quot;controllers&quot;, &quot;*&quot;, controllers.ControllersFlagUsage)
 	command.Flags().Int(&quot;secure-port&quot;, 0, &quot;The port on which to serve HTTPS with authentication and authorization (default: 6443 + instance index)&quot;)
 	if !developer.Mode() {
 		_ = command.Flags().MarkHidden(&quot;controllers&quot;)
