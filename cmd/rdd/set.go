@@ -58,6 +58,7 @@ var appGVR = schema.GroupVersionResource{
 func newSetCommand() *cobra.Command {
 	var (
 		dryRun  bool
+		wait    bool
 		timeout time.Duration
 	)
 	command := &cobra.Command{
@@ -75,25 +76,28 @@ func newSetCommand() *cobra.Command {
 
 			By default, rdd set waits for the desired state: when running=true
 			is set, it waits for the container engine to be ready; when
-			running=false, it waits for the VM to stop. Use --timeout=0 to
-			skip waiting.
+			running=false, it waits for the VM to stop. Pass --wait=false to
+			return as soon as the patch is accepted, or --timeout=0 to wait
+			indefinitely.
 
 			Examples:
 			  rdd set running=true
 			  rdd set running=true containerEngine.name=containerd
 			  rdd set kubernetes.enabled=true kubernetes.version=1.32.2
 			  rdd set --dry-run running=true
-			  rdd set --timeout=0 running=true
+			  rdd set --wait=false running=true
 		`),
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return setAction(cmd.Context(), args, dryRun, timeout)
+			return setAction(cmd.Context(), args, dryRun, wait, timeout)
 		},
 	}
 	command.Flags().BoolVar(&dryRun, "dry-run", false,
 		"Validate changes against the API server without persisting them")
+	command.Flags().BoolVar(&wait, "wait", true,
+		"Wait for the desired state after the patch is accepted")
 	command.Flags().DurationVar(&timeout, "timeout", 300*time.Second,
-		"Timeout for waiting (0 to skip)")
+		"Timeout for waiting (0 to wait indefinitely)")
 
 	// Override help to append live property descriptions from the CRD schema.
 	defaultHelp := command.HelpFunc()
@@ -255,7 +259,7 @@ func collectEntries(schema *apiextensionsv1.JSONSchemaProps, prefix string, out 
 	}
 }
 
-func setAction(ctx context.Context, args []string, dryRun bool, timeout time.Duration) error {
+func setAction(ctx context.Context, args []string, dryRun, wait bool, timeout time.Duration) error {
 	// Parse PROPERTY=VALUE arguments.
 	properties := make(map[string]string, len(args))
 	for _, arg := range args {
@@ -321,7 +325,7 @@ func setAction(ctx context.Context, args []string, dryRun bool, timeout time.Dur
 		targetGen = gen
 	}
 
-	if dryRun || timeout == 0 {
+	if dryRun || !wait {
 		return nil
 	}
 	return waitForDesiredState(ctx, restConfig, properties, timeout, targetGen)
@@ -473,7 +477,8 @@ func waitForDesiredState(ctx context.Context, config *rest.Config, properties ma
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	// timeout == 0 means "no deadline", matching kubectl wait.
+	ctx, cancel := watchtools.ContextWithOptionalTimeout(ctx, timeout)
 	defer cancel()
 
 	if runningVal == "true" {

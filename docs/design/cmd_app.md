@@ -2,7 +2,7 @@
 
 The application commands use short option names for usability. Unlike the `rdctl` tool from "Rancher Desktop 1" they will use e.g. `--cpus` instead of `--virtual-machine.number-cpus`.
 
-## `rdd set [--dry-run] [--timeout=DURATION] PROPERTY=VALUE [PROPERTY=VALUE ...]`
+## `rdd set [--dry-run] [--wait=BOOL] [--timeout=DURATION] PROPERTY=VALUE [PROPERTY=VALUE ...]`
 
 Set one or more properties on the App singleton resource. Properties use dot notation for nested fields.
 
@@ -21,7 +21,8 @@ schema:
 The wait filters on the App's post-patch `metadata.generation`, so a leftover `ContainerEngineReady=True` from a prior backend cannot prematurely satisfy it.
 
 - `--dry-run`: Validate changes against the API server's admission controller without persisting them. If the App does not exist, it is created with defaults (the VM will not start) so the admission controller can validate the patch. The wait is skipped in dry-run mode.
-- `--timeout=DURATION`: How long to wait (default `5m`). `--timeout=0` skips the wait and returns as soon as the patch is accepted.
+- `--wait`: Wait for the desired state after the patch is accepted (default `true`). Pass `--wait=false` to return as soon as the patch is accepted.
+- `--timeout=DURATION`: How long to wait (default `5m`). `--timeout=0` waits indefinitely, matching `kubectl wait`.
 
 Examples:
 
@@ -30,7 +31,7 @@ rdd set running=true
 rdd set running=true containerEngine.name=containerd
 rdd set kubernetes.enabled=true kubernetes.version=1.32.2
 rdd set --dry-run running=true
-rdd set --timeout=0 running=true
+rdd set --wait=false running=true
 ```
 
 ## `rdd create`
