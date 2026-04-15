@@ -82,24 +82,13 @@ bats-containers: check-bats build-rdd build-mock-controller
 .PHONY: bats-containers
 
 # Run all controller tests.
-bats-controllers: bats-builtin bats-rdd bats-app bats-lima bats-containers
+BATS_CONTROLLERS_TARGETS := bats-builtin bats-rdd bats-app bats-lima bats-containers
+bats-controllers: $(BATS_CONTROLLERS_TARGETS)
 .PHONY: bats-controllers
 
-# Run all BATS tests. bats-app is serialized with the rest of the suite
-# via recursive make because bats-app and bats-lima each boot a WSL2 VM
-# and Lima's WSL2 driver hard-codes SSH to guest port 22 per instance,
-# so two VMs in parallel collide on Windows localhost forwarding. CI
-# splits the two halves onto separate runners via `bats-non-app` + the
-# `bats-app` target; `-j` still parallelizes within each half.
-bats-all:
-	$(MAKE) bats-non-app
-	$(MAKE) bats-app
+# Run all BATS tests.
+bats-all: $(filter-out $(BATS_EXCLUDES),bats-helpers bats-cli bats-service $(BATS_CONTROLLERS_TARGETS))
 .PHONY: bats-all
-
-# Everything bats-all runs except bats-app. CI runs this alongside
-# bats-app on a separate runner.
-bats-non-app: bats-helpers bats-cli bats-service bats-builtin bats-rdd bats-lima bats-containers
-.PHONY: bats-non-app
 
 # Run specific BATS test file
 # Usage: make bats-file FILE=bats/tests/31-rdd-controllers/configmapreplicaset.bats

@@ -48,9 +48,10 @@ jobs:
         # with bats-lima's on Windows (Lima hard-codes SSH port 22 per
         # instance), and so bats-app can grow independently of the rest
         # of the suite.
-        target:
-        - bats-non-app
+        suite:
         - bats-app
+        - bats-lima
+        - bats-others
     runs-on: ${{ matrix.runs-on }}
     steps:
     - name: "Linux: Install prerequisites"
@@ -180,7 +181,24 @@ jobs:
         output-dir: rdd-logs/_diag
       continue-on-error: true
 
-    - run: make -C bats ${{ matrix.target }} --keep-going --jobs=$(nproc) --output-sync=target
+    - name: Configure BATS targets
+      shell: bash
+      run: |
+        case "${{ matrix.suite }}" in
+          bats-app|bats-lima)
+            echo "BATS_TARGET=${{ matrix.suite }}" >> "$GITHUB_ENV"
+            ;;
+          bats-others)
+            echo "BATS_EXCLUDES=bats-app bats-lima" >> "$GITHUB_ENV"
+            echo "BATS_TARGET=bats-all" >> "$GITHUB_ENV"
+            ;;
+          *)
+            echo "Unknown test suite: ${{ matrix.suite }}" >&2
+            exit 1
+            ;;
+        esac
+
+    - run: make -C bats ${{ env.BATS_TARGET }} --keep-going
       shell: run-in-shell {0}
       env:
         RDD_TRACE: true
@@ -203,6 +221,6 @@ jobs:
       if: always()
       uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
-        name: rdd-logs-${{ matrix.runs-on }}-${{ matrix.target }}
+        name: rdd-logs-${{ matrix.runs-on }}-${{ matrix.suite }}
         path: rdd-logs/
         if-no-files-found: ignore
