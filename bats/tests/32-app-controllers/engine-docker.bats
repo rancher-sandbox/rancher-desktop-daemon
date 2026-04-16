@@ -405,3 +405,89 @@ local_setup_file() {
     run -0 rdd ctl get ContainerNamespaces --namespace="${RDD_NAMESPACE}" --output=name
     refute_output
 }
+
+# --- Docker context management ---
+
+# docker_context_dir returns the ~/.docker/contexts/meta/<hash> directory for
+# the named context. Docker derives the sub-directory from sha256(name).
+docker_context_dir() {
+    local name="$1"
+    local hash
+    # sha256sum on Linux, shasum on macOS
+    if command -v sha256sum &>/dev/null; then
+        hash=$(printf '%s' "${name}" | sha256sum | awk '{print $1}')
+    else
+        hash=$(printf '%s' "${name}" | shasum -a 256 | awk '{print $1}')
+    fi
+    echo "${HOME}/.docker/contexts/meta/${hash}"
+}
+
+@test "moby engine creates Docker context for the instance" {
+    # Restart with moby (the containerd test above may have left the engine in
+    # containerd mode).
+    rdd set running=true containerEngine.name=moby
+    rdd ctl wait --for=condition=ContainerEngineReady \
+        app/app --timeout=30s
+
+    local context_name="rancher-desktop-${RDD_INSTANCE}"
+    local meta_file
+    meta_file="$(docker_context_dir "${context_name}")/meta.json"
+
+    assert_file_exists "${meta_file}"
+
+    run -0 jq -r '.Name' "${meta_file}"
+    assert_output "${context_name}"
+
+    run -0 rdd service paths docker_socket
+    local socket_path=${output}
+    run -0 jq -r '.Endpoints.docker.Host' "${meta_file}"
+    assert_output "unix://${socket_path}"
+}
+
+@test "moby engine sets currentContext when no healthy context exists" {
+    local context_name="rancher-desktop-${RDD_INSTANCE}"
+
+    # Save and clear any existing currentContext so the probe finds no
+    # healthy context and promotes ours. Restored in teardown.
+    local saved_context
+    saved_context=$(jq -r '.currentContext // empty' "${HOME}/.docker/config.json" 2>/dev/null || true)
+
+    # Clear the current context and restart the engine so the probe runs fresh.
+    jq 'del(.currentContext)' "${HOME}/.docker/config.json" >"${HOME}/.docker/config.json.tmp" &&
+        mv "${HOME}/.docker/config.json.tmp" "${HOME}/.docker/config.json"
+
+    rdd set running=false
+    rdd set running=true containerEngine.name=moby
+    rdd ctl wait --for=condition=ContainerEngineReady app/app --timeout=30s
+
+    # The probe goroutine runs asynchronously; give it a moment.
+    try --max 6 --delay 1 -- \
+        bash -c "jq -r '.currentContext' '${HOME}/.docker/config.json' | grep -qx '${context_name}'"
+
+    run -0 jq -r '.currentContext' "${HOME}/.docker/config.json"
+    assert_output "${context_name}"
+
+    # Restore the original context if there was one.
+    if [[ -n "${saved_context}" ]]; then
+        jq --arg ctx "${saved_context}" '.currentContext = $ctx' \
+            "${HOME}/.docker/config.json" >"${HOME}/.docker/config.json.tmp" &&
+            mv "${HOME}/.docker/config.json.tmp" "${HOME}/.docker/config.json"
+    fi
+}
+
+@test "stopping moby engine removes Docker context and clears currentContext" {
+    rdd set running=false
+
+    local context_name="rancher-desktop-${RDD_INSTANCE}"
+    run_e -0 docker_context_dir "${context_name}"
+    local context_dir="${output}"
+
+    # removeDockerContext runs asynchronously after the reconciler processes
+    # the Running=False transition; poll until the directory is gone.
+    try --max 10 --delay 1 -- test ! -d "${context_dir}"
+    assert_dir_not_exists "${context_dir}"
+
+    # currentContext should either be gone or point to something else.
+    run jq -r '.currentContext // empty' "${HOME}/.docker/config.json"
+    refute_output "${context_name}"
+}
