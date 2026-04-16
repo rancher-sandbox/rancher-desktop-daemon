@@ -237,8 +237,10 @@ be represented by an `Image` object without `.status.repoTag` and
 apiVersion: containers.rancherdesktop.io/v1alpha1
 kind: Image
 metadata:
-  # Image ID, colon replaced with dot, with random suffix.
-  name: 'sha256.999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b-12345'
+  # `img-` plus hex SHA-256. A tagged image hashes `id + "\0" + tag`;
+  # a dangling image (no tags) hashes the id alone. The raw id is
+  # kept in `.status.id` and the tag in `.status.repoTag`.
+  name: img-2b0d7f4e7d2f2e2d3c6f0a8a4b5a6c7d8e9f0a1b2c3d4e5f607182a3b4c5d6e7
   namespace: rancher-desktop # not the containerd namespace
 status:
   namespace: moby # Refers to a `ContainerNamespace` object
@@ -294,7 +296,7 @@ metadata:
   namespace: rancher-desktop
 spec:
   # `.metadata.name` of the image tag to push.
-  imageRef: 'sha256.999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b-12345'
+  imageRef: img-2b0d7f4e7d2f2e2d3c6f0a8a4b5a6c7d8e9f0a1b2c3d4e5f607182a3b4c5d6e7
 status:
   conditions:
   - type: Complete
@@ -313,7 +315,7 @@ metadata:
   namespace: rancher-desktop # not containerd namespace
 spec:
   # The `.metadata.name` of an `Image` object.
-  imageRef: 'sha256.999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b-12345'
+  imageRef: img-2b0d7f4e7d2f2e2d3c6f0a8a4b5a6c7d8e9f0a1b2c3d4e5f607182a3b4c5d6e7
 status:
   conditions:
   - type: Complete

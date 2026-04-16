@@ -4,7 +4,11 @@
 
 package controllers
 
-import "testing"
+import (
+	"testing"
+
+	"gotest.tools/v3/assert"
+)
 
 func TestParseContainerName(t *testing.T) {
 	tests := []struct {
@@ -46,10 +50,11 @@ func TestParseContainerName(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
 			ns, name := parseContainerName(tc.input)
-			if ns != tc.wantNamespace || name != tc.wantName {
-				t.Errorf("parseContainerName(%q) = (%q, %q), want (%q, %q)",
-					tc.input, ns, name, tc.wantNamespace, tc.wantName)
-			}
+			assert.DeepEqual(
+				t,
+				[]string{ns, name},
+				[]string{tc.wantNamespace, tc.wantName},
+			)
 		})
 	}
 }
