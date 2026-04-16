@@ -191,6 +191,11 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	// Two passes run per Reconcile: reconcileContainerSpecs drives
+	// Docker start/stop from Container.spec.state, and
+	// processFinalizers forwards K8s-side deletes to Docker for any
+	// mirror still carrying the mirror finalizer.
+	//
 	// Both passes issue List calls per reconcile, and every
 	// Container/Image/Volume watch event triggers a reconcile — so
 	// cost is O(N) per child event. The long-term fix is to split
@@ -246,13 +251,16 @@ func (r *EngineReconciler) stopWatcher() {
 	}
 }
 
-// setEngineCondition updates the ContainerEngineReady condition on
-// the App. The App controller also writes App.Status.Conditions (to
-// mirror LimaVM conditions) and controller-runtime does not serialize
-// reconciles across controllers, so a naive Update races and 409s.
-// retry.RetryOnConflict + re-Get matches removeMirrorResource and
-// deleteAllOfType.
+// setEngineCondition updates the ContainerEngineReady condition on the App.
 func (r *EngineReconciler) setEngineCondition(ctx context.Context, app *appv1alpha1.App, status metav1.ConditionStatus, reason, message string) error {
+	// The App controller also writes App.Status.Conditions (to
+	// mirror LimaVM conditions), and controller-runtime runs
+	// reconciles across controllers in parallel, so a naive Update
+	// races and 409s. Retry on conflict with a re-Get.
+	//
+	// Use client-go Update rather than SSA: ObservedGeneration must
+	// reflect the specific generation this call's Get observed, and
+	// meta.SetStatusCondition expects the read-modify-write pattern.
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		latest := &appv1alpha1.App{}
 		if err := r.Get(ctx, client.ObjectKey{Name: app.Name}, latest); err != nil {
@@ -459,11 +467,11 @@ func (r *EngineReconciler) processImageFinalizers(ctx context.Context, w *docker
 		if img.DeletionTimestamp == nil || !controllerutil.ContainsFinalizer(img, mirrorFinalizer) {
 			continue
 		}
-		// An Image mirror with no engine-populated status has no
-		// Docker reference to forward the delete to (bare-skeleton
+		// An Image mirror with empty status.id and status.repoTag has
+		// no Docker reference to forward the delete to (bare-skeleton
 		// user create, or the startup race before applyImage ran).
 		// Strip the finalizer and let the Delete proceed — symmetric
-		// with processVolumeFinalizers' empty-Status.Name guard.
+		// with processVolumeFinalizers' empty-status.name guard.
 		if img.Status.ID != "" || img.Status.RepoTag != "" {
 			if err := w.deleteImage(ctx, img); err != nil {
 				errs = append(errs, fmt.Errorf("failed to delete image %s from Docker: %w", img.Name, err))

@@ -184,9 +184,10 @@ func (w *dockerWatcher) run(ctx context.Context, since string) {
 			// its internal retry) are logged and dropped. Container
 			// events self-heal on the next state change; image pull and
 			// volume create events fire once, so a dropped apply leaves
-			// the mirror missing until the next full resync. A periodic
-			// fullSync tick is deferred until the rest of the mirroring
-			// work lands.
+			// the mirror missing until the next full resync.
+			//
+			// TODO: add a periodic fullSync tick so dropped image/volume
+			// events self-heal without waiting for a watcher restart.
 			if err := w.handleEvent(ctx, msg); err != nil {
 				log.Error(err, "Failed to handle Docker event",
 					"type", msg.Type, "action", msg.Action, "actor", msg.Actor.ID)
@@ -195,7 +196,10 @@ func (w *dockerWatcher) run(ctx context.Context, since string) {
 	}
 }
 
-// enqueueReconcile triggers a reconcile in the engine reconciler.
+// enqueueReconcile wakes the engine reconciler. The channel has a
+// buffer of one, so enqueueReconcile is a no-op when a reconcile is
+// already queued — the reconciler will pick up the current watcher
+// state when it runs.
 func (w *dockerWatcher) enqueueReconcile() {
 	select {
 	case w.reconcileChan <- event.GenericEvent{}:
@@ -326,21 +330,15 @@ func (w *dockerWatcher) removeMirrorResource(ctx context.Context, obj client.Obj
 // reconcileContainerState dispatches the Docker action that bridges
 // the Container's spec.state and its observed status. spec.state of
 // "unknown" is a no-op.
-//
-// State matrix (rows=desired, columns=actual). The webhook restricts
-// desired to {unknown, created, running}; actual can be any CRD enum
-// value.
-//
-//	desired \ actual  | running | paused   | created | exited | dead | pausing/restarting | removing | unknown
-//	------------------+---------+----------+---------+--------+------+--------------------+----------+--------
-//	running           | nil     | unpause  | start   | start  | start| start              | start    | start
-//	created           | stop    | stop     | nil     | nil    | nil  | stop               | stop     | stop
-//
-// ContainerStop handles paused and restarting containers natively, so
-// the created branch always dispatches Stop from any non-stopped
-// state. The running branch handles paused explicitly because Docker
-// rejects ContainerStart on a paused container.
 func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containersv1alpha1.Container) error {
+	// State matrix (rows=desired, columns=actual). The webhook
+	// restricts desired to {unknown, created, running}; actual can
+	// be any CRD enum value.
+	//
+	//	desired \ actual  | running | paused   | created | exited | dead | pausing/restarting | removing | unknown
+	//	------------------+---------+----------+---------+--------+------+--------------------+----------+--------
+	//	running           | nil     | unpause  | start   | start  | start| start              | start    | start
+	//	created           | stop    | stop     | nil     | nil    | nil  | stop               | stop     | stop
 	desired := c.Spec.State
 	if desired == containersv1alpha1.ContainerStatusUnknown {
 		return nil
@@ -355,6 +353,8 @@ func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containe
 			return nil
 		}
 		if actual == containersv1alpha1.ContainerStatusPaused {
+			// Docker rejects ContainerStart on a paused container,
+			// so unpause explicitly.
 			log.Info("Unpausing container", "id", c.Name)
 			_, err := w.cli.ContainerUnpause(ctx, c.Name, dockerclient.ContainerUnpauseOptions{})
 			return err
@@ -366,6 +366,8 @@ func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containe
 		if isStopped(actual) {
 			return nil
 		}
+		// ContainerStop handles paused and restarting containers
+		// natively, so one call covers any non-stopped state.
 		log.Info("Stopping container", "id", c.Name)
 		_, err := w.cli.ContainerStop(ctx, c.Name, dockerclient.ContainerStopOptions{})
 		return err
@@ -448,6 +450,6 @@ func (w *dockerWatcher) fullSync(ctx context.Context) error {
 		errs = append(errs, fmt.Errorf("failed to sync volumes: %w", err))
 	}
 
-	log.Info("Full sync complete")
+	log.Info("Full sync complete", "errors", len(errs))
 	return errors.Join(errs...)
 }
