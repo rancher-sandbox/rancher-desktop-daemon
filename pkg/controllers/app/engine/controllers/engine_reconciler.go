@@ -52,10 +52,6 @@ const (
 	// are forwarded to the container engine before the resource is removed.
 	mirrorFinalizer = "engine.rancherdesktop.io/mirror"
 
-	// conditionContainerEngineReady goes to True once the engine
-	// controller has connected to Docker and finished the initial sync.
-	conditionContainerEngineReady = "ContainerEngineReady"
-
 	// engineMoby is the App.spec.containerEngine.name value that selects
 	// the Docker backend. Containerd has no watcher yet and reports
 	// NotApplicable.
@@ -100,7 +96,7 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 	}
 	r.apiNamespace = app.GetResourceNamespace()
 
-	running := meta.IsStatusConditionTrue(app.Status.Conditions, "Running")
+	running := meta.IsStatusConditionTrue(app.Status.Conditions, appv1alpha1.AppConditionRunning)
 	engineIsDocker := app.Spec.ContainerEngine.Name == engineMoby
 
 	// Detach a dead watcher under watcherMu, then stop it outside the
@@ -157,7 +153,7 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 			terminalStatus = metav1.ConditionTrue
 			terminalMessage = "Engine mirroring is only supported with the moby backend"
 		}
-		current := meta.FindStatusCondition(app.Status.Conditions, conditionContainerEngineReady)
+		current := meta.FindStatusCondition(app.Status.Conditions, appv1alpha1.AppConditionContainerEngineReady)
 		alreadyClean := !watcherDied && current != nil && current.Reason == terminalReason && current.Status == terminalStatus
 		if !alreadyClean {
 			if err := r.cleanupMirrorResources(ctx); err != nil {
@@ -261,7 +257,7 @@ func (r *EngineReconciler) setEngineCondition(ctx context.Context, app *appv1alp
 			return err
 		}
 		changed := meta.SetStatusCondition(&latest.Status.Conditions, metav1.Condition{
-			Type:               conditionContainerEngineReady,
+			Type:               appv1alpha1.AppConditionContainerEngineReady,
 			Status:             status,
 			Reason:             reason,
 			Message:            message,

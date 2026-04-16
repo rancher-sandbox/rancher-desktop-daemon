@@ -107,6 +107,8 @@ status:
   | `ContainerEngineReady` | `False`   | `ConnectFailed`  | Engine controller failed to connect to Docker                     |
   | `ContainerEngineReady` | `False`   | `Stopped`        | The VM is stopped; the engine watcher is not running              |
 
+  `Running=True` means the Lima guest has finished booting and SSH is reachable. It says nothing about the container engine socket; consumers that depend on the engine (container/image/volume mirrors, `docker` against the forwarded socket) must also check `ContainerEngineReady`, which flips to `True` only after the engine controller has connected to the socket and completed its initial full sync.
+
   `Created` and `Running` are mirrored, so their `lastTransitionTime` reflects the LimaVM transition rather than the copy — the timestamp is meaningful for staleness checks. `ContainerEngineReady.observedGeneration` is stamped with the App's generation when the engine controller writes the condition, so `rdd set` can distinguish stale snapshots from fresh ones.
 
 Deleting the `App` resource triggers the finalizer to stop and delete the owned LimaVM (and wait for the LimaVM controller to complete its own cleanup before removing the App finalizer).

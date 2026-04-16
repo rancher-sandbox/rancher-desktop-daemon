@@ -11,6 +11,24 @@ import (
 // AppKind is the Kind string for App resources.
 const AppKind = "App"
 
+// App condition types.
+const (
+	// AppConditionRunning mirrors the LimaVM Running condition: True
+	// means the Lima guest has finished booting and SSH is reachable.
+	// It says nothing about the container engine socket; consumers
+	// that depend on the engine must also check
+	// AppConditionContainerEngineReady.
+	AppConditionRunning = "Running"
+
+	// AppConditionContainerEngineReady goes True once the engine
+	// controller has connected to the container engine socket and
+	// completed its initial full sync of Container, Image, and Volume
+	// mirrors. The engine controller stamps the App's generation into
+	// ObservedGeneration, so `rdd set` can distinguish a stale True
+	// from a fresh one.
+	AppConditionContainerEngineReady = "ContainerEngineReady"
+)
+
 // ContainerEngineSpec defines the desired container engine configuration.
 type ContainerEngineSpec struct {
 	// name specifies the container engine to use.
