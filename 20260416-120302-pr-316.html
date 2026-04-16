@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260416-120302-pr-316</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260416-120302-pr-316</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-16 12:44</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>2</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/316" class="gh-ref" data-title="engine: replace Container.spec.state with action annotations" data-state="open" data-type="pr">#316</a> — engine: replace Container.spec.state with action annotations</td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/6251b90"><code>6251b90</code></a> engine: replace Container.spec.state with action annotations</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; design is sound; I1 and I2 are genuine gaps worth addressing before merge.</td></tr>
+      <tr><td>Wall-clock time</td><td><code>44 min 54 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The PR replaces <code>Container.spec.state</code> (a level-triggered desired-state field) with a one-shot <code>containers.rancherdesktop.io/action</code> annotation and a new <code>status.lastAction</code> outcome record. The motivation — Docker&#39;s restart policy and direct <code>docker start/stop</code> are concurrent writers that a level-trigger mirror cannot sanely own — is correct, and the resulting shape (empty spec, edge-triggered intent, persistent outcome) is a clean fit. The SSA simplification (dropping the <code>engine-controller-finalizer</code> field owner) falls out naturally once the spec is empty, and the pause/unpause pre-checks address the documented informer-cache replay hazard.</p>
+    <p>Three important gaps remain on the edges: the admission webhook validates the action annotation only on <code>Update</code>, leaving <code>Create</code> unguarded; <code>patchContainerLastAction</code> and <code>removeActionAnnotation</code> both surface <code>NotFound</code> as an error on self-healing races; and the Get-Patch sequence between <code>patchContainerLastAction</code> and <code>removeActionAnnotation</code> can race the informer cache, producing 409 loops that replay the Docker action. None is critical, but all three are worth fixing before merge.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Action-annotation validation absent on <code>Create</code> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/containers/container/container_controller.go#L77-L97">pkg/controllers/containers/container/container_controller.go</a></div>
+      <pre data-start="77" data-line="82-92"><code class="language-go">		Recorder: mgr.GetEventRecorder(ControllerName + &quot;-controller&quot;),
+	}).SetupWithManager(mgr)
+}
+
+// set up the container controller with a webhook which prevents all modification.
+func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
+	mgr.GetLogger().Info(&quot;Setting up container webhook&quot;)
+	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{
+		Name:        &quot;container-mutating&quot;,
+		WebhookName: &quot;container-mutating.containers.rancherdesktop.io&quot;,
+		WebhookPort: c.webhookPort,
+		Operations: []admissionregistrationv1.OperationType{
+			admissionregistrationv1.Update,
+		},
+		Validator: &amp;immutableValidator{},
+	}
+
+	managers, err := base.SetupWebhookForResource(mgr, &amp;v1alpha1.Container{}, mutatingConfig)
+	if err != nil {
+		return err
+	}</code></pre>
+      <pre><code class="language-go">// container_webhooks.go
+func (c *immutableValidator) ValidateCreate(context.Context, *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
+    return nil, errors.New(&quot;webhook does not implement create&quot;)
+}
+// ValidateUpdate
+if raw, ok := newContainer.Annotations[v1alpha1.AnnotationAction]; ok {
+    if !v1alpha1.ContainerAction(raw).IsValid() {
+        return nil, fmt.Errorf(&quot;invalid %s annotation %q&quot;, v1alpha1.AnnotationAction, raw)
+    }
+}</code></pre>
+    <p>The webhook registers only for <code>Update</code>, so <code>ValidateUpdate</code> is the only enforcer of the action enum. A client that POSTs a hand-written <code>Container</code> with <code>metadata.annotations[&quot;containers.rancherdesktop.io/action&quot;]=bogus</code> passes admission because <code>ValidateCreate</code> is never invoked. <code>.spec</code> is now optional (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/apis/containers/v1alpha1/container_types.go#L233-L238"><code>container_types.go:233-238</code></a>), and the CRD no longer requires <code>spec</code> at the top level (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/app/crd.yaml#L270-L275"><code>crd.yaml:270-275</code></a>, <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/app/crd.yaml#L493-L500"><code>crd.yaml:493-500</code></a>), so the barrier to a hand-written <code>Container</code> is lower than before the PR. The reconciler&#39;s <code>!action.IsValid()</code> fallback at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L350"><code>docker_watcher.go:350</code></a> catches invalid values, but a valid action on a hand-written mirror would be dispatched against whatever container ID was put in <code>metadata.name</code>, bypassing the documented <code>ContainerCreateRequest</code> flow. The new BATS coverage at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/bats/tests/32-app-controllers/engine-docker.bats#L366-L387"><code>engine-docker.bats:366-387</code></a> only exercises the Update-reject path.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/apis/containers/v1alpha1/container_types.go#L228-L243">pkg/apis/containers/v1alpha1/container_types.go</a></div>
+      <pre data-start="228" data-line="233-238"><code class="language-go">	// Metadata is a standard object metadata
+	//
+	// +optional
+	metav1.ObjectMeta `json:&quot;metadata,omitempty,omitzero&quot;`
+
+	// Spec is reserved for future use. The Container API has no
+	// desired-state fields today: actions are requested via the
+	// AnnotationAction annotation on metadata instead.
+	//
+	// +optional
+	Spec ContainerSpec `json:&quot;spec,omitempty,omitzero&quot;`
+
+	// Status defines the observed state of Container
+	//
+	// +optional
+	Status ContainerStatus `json:&quot;status,omitempty,omitzero&quot;`</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L345-L355">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="345" data-line="350"><code class="language-go">
+	// The webhook rejects invalid action values, but one written while the
+	// webhook is offline can still reach storage. Drop such values here;
+	// otherwise the CRD enum rejects the status.lastAction write, the
+	// annotation stays in place, and every reconcile retries forever.
+	if !action.IsValid() {
+		log.Info(&quot;Dropping invalid container action annotation&quot;, &quot;id&quot;, c.Name, &quot;action&quot;, raw)
+		return w.removeActionAnnotation(ctx, c.Name, raw)
+	}
+
+	dockerErr := w.dispatchContainerAction(ctx, log, c.Name, action)</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/bats/tests/32-app-controllers/engine-docker.bats#L361-L392">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="361" data-line="366-387"><code class="language-plaintext">    assert_output --partial &quot;not running&quot;
+
+    docker rm --force test-unpause-fail
+}
+
+@test &quot;invalid action annotation is rejected by the webhook&quot; {
+    # An unknown action value must fail admission so the reconciler never
+    # sees a value it cannot process. Without this gate, a bad value would
+    # fail to persist in status.lastAction (the CRD enum rejects it) and
+    # the annotation would stay in place, wedging the retry loop.
+    run_e -0 docker run -d --name test-invalid-action busybox sleep inf
+    cid=${output}
+
+    rdd ctl wait --for=jsonpath=&#39;{.status.status}&#39;=running \
+        --namespace=&quot;${RDD_NAMESPACE}&quot; container/&quot;${cid}&quot; --timeout=30s
+
+    run -1 rdd ctl annotate container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; --overwrite \
+        &quot;containers.rancherdesktop.io/action=bogus&quot;
+    assert_output --partial &quot;invalid&quot;
+
+    # The rejected request leaves status.lastAction untouched.
+    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+        -o jsonpath=&#39;{.status.lastAction}&#39;
+    refute_output
+
+    docker rm --force test-invalid-action
+}
+
+@test &quot;restart action restarts a running container&quot; {
+    run_e -0 docker run -d --name test-restart busybox sleep inf
+    cid=${output}
+</code></pre>
+    <p>Fix: register the validator for <code>Create</code> as well and implement <code>ValidateCreate</code> symmetrically with <code>ValidateUpdate</code>. If direct Container creates should be rejected outright, keep the current <code>errors.New(&quot;webhook does not implement create&quot;)</code> body and gate the engine reconciler&#39;s own apply path (it uses <code>client.ForceOwnership</code> with <code>engine-controller</code> as field owner, which bypasses admission for controller-initiated applies only if configured that way). Add a BATS test that <code>rdd ctl apply -f</code> of a hand-written Container with a bogus action annotation fails admission on create.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> <code>patchContainerLastAction</code> and <code>removeActionAnnotation</code> surface <code>NotFound</code> as an error <span class="pill pill-claude">Claude</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L444-L465">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="444" data-line="449-460"><code class="language-go">}
+
+// patchContainerLastAction writes status.lastAction with retry-on-conflict.
+// The main engine sync writes to the status subresource on every reconcile
+// pass, so the lastAction write races against it.
+func (w *dockerWatcher) patchContainerLastAction(ctx context.Context, id string, lastAction *containersv1alpha1.ContainerLastAction) error {
+	key := client.ObjectKey{Name: id, Namespace: w.apiNamespace}
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var latest containersv1alpha1.Container
+		if err := w.k8s.Get(ctx, key, &amp;latest); err != nil {
+			return err
+		}
+		patch := client.MergeFromWithOptions(latest.DeepCopy(), client.MergeFromWithOptimisticLock{})
+		latest.Status.LastAction = lastAction
+		return w.k8s.Status().Patch(ctx, &amp;latest, patch)
+	})
+}
+
+// removeActionAnnotation clears the AnnotationAction annotation only if its
+// value still matches the action we just processed. A concurrent writer may
+// have replaced the annotation with a fresh action between dispatch and
+// cleanup; in that case the new value must survive so the next reconcile</code></pre>
+    <p>If the Container mirror is deleted (by <code>cleanupMirrorResources</code>, a concurrent <code>docker rm</code> destroy event, or a user delete) between <code>dispatchContainerAction</code> and these helpers, the <code>Get</code> returns <code>NotFound</code>. <code>retry.RetryOnConflict</code> does not retry on <code>NotFound</code>, so the error propagates up through <code>processContainerAction</code> (line 371) into the joined error at <code>reconcileContainerActions:374</code>. The controller then requeues and logs &quot;failed to patch lastAction: NotFound&quot; for a container that no longer exists. The same log message fires for genuine conflict-exhaustion failures, so the noise misdirects a debugger.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L366-L376">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="366" data-line="371"><code class="language-go">		lastAction.Error = dockerErr.Error()
+		log.Info(&quot;Container action failed&quot;, &quot;id&quot;, c.Name, &quot;action&quot;, action, &quot;error&quot;, dockerErr)
+	}
+
+	if err := w.patchContainerLastAction(ctx, c.Name, lastAction); err != nil {
+		return fmt.Errorf(&quot;failed to patch lastAction for %s: %w&quot;, c.Name, err)
+	}
+	if err := w.removeActionAnnotation(ctx, c.Name, raw); err != nil {
+		return fmt.Errorf(&quot;failed to remove action annotation for %s: %w&quot;, c.Name, err)
+	}
+	return nil</code></pre>
+    <p>Fix: treat <code>NotFound</code> as success on both the <code>Get</code> and the <code>Patch</code>, in both <code>patchContainerLastAction</code> and <code>removeActionAnnotation</code>.</p>
+      <pre><code class="language-diff"> func (w *dockerWatcher) patchContainerLastAction(ctx context.Context, id string, lastAction *containersv1alpha1.ContainerLastAction) error {
+     key := client.ObjectKey{Name: id, Namespace: w.apiNamespace}
+     return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+         var latest containersv1alpha1.Container
+         if err := w.k8s.Get(ctx, key, &amp;latest); err != nil {
+-            return err
++            return client.IgnoreNotFound(err)
+         }
+         patch := client.MergeFromWithOptions(latest.DeepCopy(), client.MergeFromWithOptimisticLock{})
+         latest.Status.LastAction = lastAction
+-        return w.k8s.Status().Patch(ctx, &amp;latest, patch)
++        return client.IgnoreNotFound(w.k8s.Status().Patch(ctx, &amp;latest, patch))
+     })
+ }</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I3">
+        <span class="finding-num">I3.</span> Status-patch-then-annotation-patch races the informer cache <span class="pill pill-gemini">Gemini</span><a href="#I3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L365-L380">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="365" data-line="370-375"><code class="language-go">		lastAction.State = containersv1alpha1.ContainerActionFailed
+		lastAction.Error = dockerErr.Error()
+		log.Info(&quot;Container action failed&quot;, &quot;id&quot;, c.Name, &quot;action&quot;, action, &quot;error&quot;, dockerErr)
+	}
+
+	if err := w.patchContainerLastAction(ctx, c.Name, lastAction); err != nil {
+		return fmt.Errorf(&quot;failed to patch lastAction for %s: %w&quot;, c.Name, err)
+	}
+	if err := w.removeActionAnnotation(ctx, c.Name, raw); err != nil {
+		return fmt.Errorf(&quot;failed to remove action annotation for %s: %w&quot;, c.Name, err)
+	}
+	return nil
+}
+
+// dispatchContainerAction executes the Docker call for a single action. The
+// caller pre-validates the action name; the default branch triggers only</code></pre>
+    <p><code>patchContainerLastAction</code> writes the status subresource, which bumps the object&#39;s <code>resourceVersion</code>. <code>removeActionAnnotation</code> then re-Gets via the cached client and patches with <code>client.MergeFromWithOptimisticLock{}</code>, which attaches the Got <code>resourceVersion</code> to the payload. Between the two writes, the informer has not yet received the watch event for the status bump, so the Get returns the stale pre-status version; the subsequent patch then 409s. <code>retry.RetryOnConflict</code> re-runs the closure but re-reads the same cache, so successive attempts keep seeing stale data until the informer catches up. If the cache does not sync within <code>retry.DefaultRetry</code>&#39;s ~310ms budget, <code>removeActionAnnotation</code> returns the error, <code>processContainerAction</code> propagates it, and the next reconcile replays the whole Docker action because the annotation is still present. For <code>start</code>/<code>stop</code>/<code>pause</code>/<code>unpause</code> the replay is a no-op (Docker returns 304 or the pre-check skips); for <code>restart</code> the replay is a real double-restart.</p>
+    <p>Fix: thread the fresh <code>Container</code> object through from <code>patchContainerLastAction</code> into <code>removeActionAnnotation</code>. The status <code>Patch</code> updates the passed-in object in place with the new <code>resourceVersion</code>, so <code>removeActionAnnotation</code> can skip its initial Get on the happy path and patch against the known-fresh version.</p>
+      <pre><code class="language-diff">-func (w *dockerWatcher) patchContainerLastAction(ctx context.Context, id string, lastAction *containersv1alpha1.ContainerLastAction) error {
++func (w *dockerWatcher) patchContainerLastAction(ctx context.Context, id string, lastAction *containersv1alpha1.ContainerLastAction) (*containersv1alpha1.Container, error) {
+     key := client.ObjectKey{Name: id, Namespace: w.apiNamespace}
++    var latest containersv1alpha1.Container
+-    return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+-        var latest containersv1alpha1.Container
++    err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+         if err := w.k8s.Get(ctx, key, &amp;latest); err != nil {
+             return err
+         }
+         patch := client.MergeFromWithOptions(latest.DeepCopy(), client.MergeFromWithOptimisticLock{})
+         latest.Status.LastAction = lastAction
+         return w.k8s.Status().Patch(ctx, &amp;latest, patch)
+     })
++    return &amp;latest, err
+ }</code></pre>
+    <p>Note: preserving the current <code>observed != current</code> check in <code>removeActionAnnotation</code> is important for the concurrent-rewrite path (I1 design strength in Claude&#39;s and Gemini&#39;s observations). Threading the fresh object through removes the cache-race on the common path without losing that guard; if the threaded object shows the annotation still equal to <code>observed</code>, the Patch uses its resourceVersion.</p>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> Same-value action rewrites are indistinguishable from cleanup <span class="pill pill-codex">Codex</span> <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L457-L485">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="457" data-line="462-480"><code class="language-go">		latest.Status.LastAction = lastAction
+		return w.k8s.Status().Patch(ctx, &amp;latest, patch)
+	})
+}
+
+// removeActionAnnotation clears the AnnotationAction annotation only if its
+// value still matches the action we just processed. A concurrent writer may
+// have replaced the annotation with a fresh action between dispatch and
+// cleanup; in that case the new value must survive so the next reconcile
+// picks it up.
+func (w *dockerWatcher) removeActionAnnotation(ctx context.Context, id, observed string) error {
+	key := client.ObjectKey{Name: id, Namespace: w.apiNamespace}
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var latest containersv1alpha1.Container
+		if err := w.k8s.Get(ctx, key, &amp;latest); err != nil {
+			return err
+		}
+		current, present := latest.Annotations[containersv1alpha1.AnnotationAction]
+		if !present || current != observed {
+			return nil
+		}
+		patch := client.MergeFromWithOptions(latest.DeepCopy(), client.MergeFromWithOptimisticLock{})
+		delete(latest.Annotations, containersv1alpha1.AnnotationAction)
+		return w.k8s.Patch(ctx, &amp;latest, patch)
+	})
+}
+
+// deleteContainer removes a container from Docker. NotFound is treated
+// as success; other errors propagate so the caller keeps the finalizer</code></pre>
+    <p><code>removeActionAnnotation</code> distinguishes concurrent writes by comparing the annotation value to the value it dispatched. A user who writes <code>restart</code> twice in quick succession (e.g., a deliberate re-trigger after the first completes) has the second write silently consumed because <code>current == observed</code>. For idempotent actions (<code>start</code>/<code>stop</code>/<code>pause</code>/<code>unpause</code>) the observable state is unchanged and this is fine. For <code>restart</code>, re-hitting the &quot;Restart&quot; button does not produce a second restart. The design is intentionally &quot;latest wins, no queue&quot; (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L237-L240"><code>api_containers.md:237-240</code></a>), so this is a documentation opportunity rather than a code bug.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L232-L245">docs/design/api_containers.md</a></div>
+      <pre data-start="232" data-line="237-240"><code class="language-plaintext">| `stop`    | `ContainerStop`     |
+| `pause`   | `ContainerPause`    |
+| `unpause` | `ContainerUnpause`  |
+| `restart` | `ContainerRestart`  |
+
+A single annotation holds at most one pending action. Writing a new
+value replaces the old, so a user who requests `pause` and then
+`unpause` before the reconciler has run will see only the unpause. No
+queue, no accumulating history.
+
+The engine calls Docker before patching `status.lastAction` and
+removing the annotation, so a crash mid-flight leaves the annotation
+in place and the next reconcile replays the action. Start, stop,
+pause, and unpause are idempotent against a container already in the</code></pre>
+    <p>Fix: add a sentence to <code>api_containers.md</code> under &quot;Change container state&quot; noting that a repeated same-value action is collapsed — the GUI needs to rewrite to a different intermediate value (or let the first complete) to force a second dispatch. Alternatively, encode a request nonce in the annotation payload (e.g., <code>restart/abc123</code>) and compare by id instead of by action name.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> <code>LastAction.RequestedAt</code> name doesn&#39;t match what it records <span class="pill pill-claude">Claude</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/apis/containers/v1alpha1/container_types.go#L83-L96">pkg/apis/containers/v1alpha1/container_types.go</a></div>
+      <pre data-start="83" data-line="88-91"><code class="language-go">	State ContainerActionState `json:&quot;state&quot;`
+	// Error is the error message if the action failed.
+	//
+	// +optional
+	Error string `json:&quot;error,omitempty&quot;`
+	// RequestedAt is when the action was observed by the reconciler.
+	//
+	// +optional
+	RequestedAt metav1.Time `json:&quot;requestedAt,omitempty,omitzero&quot;`
+	// CompletedAt is when the action completed, regardless of outcome.
+	//
+	// +optional
+	CompletedAt metav1.Time `json:&quot;completedAt,omitempty,omitzero&quot;`
+}</code></pre>
+      <pre><code class="language-go">requestedAt := metav1.Now()</code></pre>
+    <p>The JSON key reads as &quot;when the UI requested the action&quot;; the value is actually &quot;when the reconciler first observed the annotation&quot;. Under load the two can differ by seconds. Since the CRD has not shipped, renaming is cheap.</p>
+    <p>Fix: rename to <code>observedAt</code> (field, JSON tag, apply configuration, CRD enum, doc examples), or keep the name and sharpen the docstring: &quot;the time the reconciler first observed the action annotation; backlog may delay it relative to the user&#39;s write time.&quot;</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> The <code>!action.IsValid()</code> reconciler fallback has no test <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L341-L358">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="341" data-line="346-353"><code class="language-go">
+	log := logf.FromContext(ctx).WithName(&quot;docker-watcher&quot;)
+	action := containersv1alpha1.ContainerAction(raw)
+	requestedAt := metav1.Now()
+
+	// The webhook rejects invalid action values, but one written while the
+	// webhook is offline can still reach storage. Drop such values here;
+	// otherwise the CRD enum rejects the status.lastAction write, the
+	// annotation stays in place, and every reconcile retries forever.
+	if !action.IsValid() {
+		log.Info(&quot;Dropping invalid container action annotation&quot;, &quot;id&quot;, c.Name, &quot;action&quot;, raw)
+		return w.removeActionAnnotation(ctx, c.Name, raw)
+	}
+
+	dockerErr := w.dispatchContainerAction(ctx, log, c.Name, action)
+
+	lastAction := &amp;containersv1alpha1.ContainerLastAction{
+		Action:      action,</code></pre>
+    <p>The comment describes a real failure mode that BATS cannot easily exercise (webhook offline). A unit test against a fake client that constructs a Container with <code>annotations[AnnotationAction]=&quot;bogus&quot;</code>, calls <code>processContainerAction</code>, and asserts the annotation was removed and <code>lastAction</code> was not written would close the gap without an integration tail. If I1 is applied, the exposure shrinks but doesn&#39;t disappear — the comment specifically targets the webhook-offline case.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> Restart replay after crash is more disruptive than &quot;harmless&quot; <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L237-L253">docs/design/api_containers.md</a></div>
+      <pre data-start="237" data-line="242-248"><code class="language-plaintext">A single annotation holds at most one pending action. Writing a new
+value replaces the old, so a user who requests `pause` and then
+`unpause` before the reconciler has run will see only the unpause. No
+queue, no accumulating history.
+
+The engine calls Docker before patching `status.lastAction` and
+removing the annotation, so a crash mid-flight leaves the annotation
+in place and the next reconcile replays the action. Start, stop,
+pause, and unpause are idempotent against a container already in the
+target state, so replay is safe. Restart has no target state to match,
+so a replay after a crash runs a second restart; the double restart
+is harmless.
+
+If the Docker call fails (for example, `pause` on a container that is
+not running), the reconciler still removes the annotation and records
+the failure in `status.lastAction`:
+</code></pre>
+      <pre><code class="language-plaintext"># api_containers.md:246-248
+# Restart has no target state to match,
+# so a replay after a crash runs a second restart; the double restart
+# is harmless.</code></pre>
+    <p>&quot;Harmless&quot; understates it. <code>ContainerRestart</code> sends SIGTERM and waits the container&#39;s grace period; a double-restart during graceful shutdown can interrupt a long-running workload (database drain, mid-request HTTP handler) twice in quick succession.</p>
+    <p>Fix: reword as &quot;a second restart interrupts whatever the container was doing; the controller cannot distinguish a crash-replay from a deliberate second request.&quot;</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>AnnotationAction</code> is a package-level <code>var</code> <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/apis/containers/v1alpha1/container_types.go#L28-L38">pkg/apis/containers/v1alpha1/container_types.go</a></div>
+      <pre data-start="28" data-line="33"><code class="language-go">
+// AnnotationAction requests a one-shot action on a container. The reconciler
+// performs the action, records the outcome in status.lastAction, and removes
+// the annotation. Setting a new value replaces any pending action — there is
+// no queue.
+var AnnotationAction = SchemeGroupVersion.Group + &quot;/action&quot;
+
+// +kubebuilder:validation:Enum=start;stop;pause;unpause;restart
+
+// ContainerAction is the name of an action that can be requested on a
+// container via the AnnotationAction annotation.</code></pre>
+    <p><code>SchemeGroupVersion.Group</code> is a struct field, so this expression cannot be a Go <code>const</code>. Any package can reassign <code>containersv1alpha1.AnnotationAction</code> at runtime. Kubernetes uses <code>const</code> for similar annotation keys and spells the group out literally (<code>kubectl.kubernetes.io/last-applied-configuration</code>). Matching that idiom trades one line of duplicated group name for compile-time immutability.</p>
+    <p>Fix:</p>
+      <pre><code class="language-diff">-var AnnotationAction = SchemeGroupVersion.Group + &quot;/action&quot;
++const AnnotationAction = &quot;containers.rancherdesktop.io/action&quot;</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> Two <code>rdd ctl get</code> calls per <code>assert_last_action</code> <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/bats/tests/32-app-controllers/engine-docker.bats#L261-L279">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="261" data-line="266-274"><code class="language-bash">    rdd ctl annotate container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; --overwrite \
+        &quot;containers.rancherdesktop.io/action=${action}&quot;
+    try --max 30 --delay 1 -- assert_action_consumed &quot;${cid}&quot;
+}
+
+assert_last_action() {
+    local cid=$1 action=$2 state=$3
+    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+        -o jsonpath=&#39;{.status.lastAction.action}&#39;
+    assert_output &quot;${action}&quot;
+    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+        -o jsonpath=&#39;{.status.lastAction.state}&#39;
+    assert_output &quot;${state}&quot;
+}
+
+@test &quot;stop action stops a running container&quot; {
+    run_e -0 docker run -d --name test-state busybox sleep inf
+    cid=${output}
+</code></pre>
+    <p>Two roundtrips and two snapshots of the object. In practice the tests don&#39;t race their own assertions, but combining both reads into one jsonpath halves the API traffic and asserts both fields against the same object version:</p>
+      <pre><code class="language-diff"> assert_last_action() {
+     local cid=$1 action=$2 state=$3
+     run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+-        -o jsonpath=&#39;{.status.lastAction.action}&#39;
+-    assert_output &quot;${action}&quot;
+-    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+-        -o jsonpath=&#39;{.status.lastAction.state}&#39;
+-    assert_output &quot;${state}&quot;
++        -o jsonpath=&#39;{.status.lastAction.action}={.status.lastAction.state}&#39;
++    assert_output &quot;${action}=${state}&quot;
+ }</code></pre>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Implicit &quot;in-progress&quot; via annotation presence (in-scope)</strong> <span class="pill pill-gemini">Gemini</span> — Using the presence of the annotation as the implied &quot;in-progress&quot; indicator avoids a third, latency-inducing API write (e.g., <code>state=InProgress</code>) before dispatching the Docker call. Clean signal for the GUI.</li>
+      <li><strong>Concurrent-rewrite safety via value-match (in-scope)</strong> <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span> — <code>removeActionAnnotation</code>&#39;s <code>current != observed</code> check correctly preserves a concurrent rewrite to a different action (e.g., a user switching <code>pause</code> to <code>stop</code> mid-flight). This is a small amount of code doing a lot of work.</li>
+      <li><strong>SSA simplification follows naturally (in-scope)</strong> <span class="pill pill-codex">Codex</span> <span class="pill pill-claude">Claude</span> — Collapsing the two SSA field managers (<code>engine-controller</code> and <code>engine-controller-finalizer</code>) into one is a direct consequence of spec becoming empty. The old dance existed only because <code>engine-controller</code> owned <code>spec.state</code>. Nothing to own, nothing to dance around.</li>
+      <li><strong>Asymmetric pre-check is correct (in-scope)</strong> <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span> — Pre-checking Docker state for <code>pause</code>/<code>unpause</code> but not <code>start</code>/<code>stop</code> is intentionally asymmetric. Docker returns 304 on redundant start/stop but silently succeeds on unpause against a non-paused container; the pre-check turns that silent success into a documented failure. The explanatory comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L383-L390"><code>docker_watcher.go:383-390</code></a> makes the asymmetry legible.</li>
+      <li><strong>Status-only mirror is the right abstraction (in-scope)</strong> <span class="pill pill-codex">Codex</span> — Abandoning the level-triggered <code>spec.state</code> in favor of a status-only mirror with edge-triggered intent is a better fit for a resource whose authoritative state lives outside K8s.</li>
+    </ul>
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Reconciler full-lists the container list on every tick (future)</strong> <span class="pill pill-claude">Claude</span> — <code>reconcileContainerActions</code> Lists all containers in the namespace on every reconcile, and every Container/Image/Volume watch event triggers a reconcile. With N containers and M events/second, cost is O(N·M). The comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/engine_reconciler.go#L186-L195"><code>engine_reconciler.go:186-195</code></a> already captures this as the long-term plan (per-resource reconcilers with watch predicates); this PR&#39;s new flow doubles the per-reconcile list count (<code>reconcileContainerActions</code> + <code>processFinalizers</code>). Noted but explicitly deferred.</li>
+      <li><strong>One-shot annotation drops same-value re-requests (future)</strong> <span class="pill pill-codex">Codex</span> <span class="pill pill-claude">Claude</span> — See S1 for the same observation framed as a documentation suggestion. For idempotent actions this is fine; for <code>restart</code> it means a deliberate re-trigger is silently collapsed. Design is intentional (&quot;latest wins, no queue&quot;); a doc note would close the loop.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The five new action tests (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/bats/tests/32-app-controllers/engine-docker.bats#L276-L408"><code>engine-docker.bats:276-408</code></a>) cover happy paths (start, stop, pause+unpause toggle, restart) plus two failure paths (pause-on-stopped, unpause-on-stopped) and webhook-reject for invalid action values. The pre-check logic on pause/unpause is exercised. Gaps, ranked by risk:</p>
+    <ol>
+      <li><em></em><code>!action.IsValid()</code> reconciler fallback<em></em> (S3). No way to hit it via BATS unless the webhook is disabled. A unit test against a fake client would close this.</li>
+      <li><strong>Webhook rejection on Create</strong> (conditional on I1 being applied).</li>
+      <li><strong>Concurrent rewrite during dispatch</strong>. A BATS test that annotates <code>action=stop</code>, waits briefly, annotates <code>action=start</code>, and asserts the final state is <code>running</code> would exercise the <code>observed != current</code> skip path.</li>
+      <li><strong>Action while mirror is mid-deletion</strong>. Exercises the <code>DeletionTimestamp != nil</code> skip in <code>reconcileContainerActions:367</code> and the <code>NotFound</code> handling I2 targets.</li>
+      <li><strong>Status-patch-then-annotation-patch race (I3)</strong>. Hard to trigger deterministically in BATS; a unit test with a lagging fake client could force the stale-cache window.</li>
+    </ol>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p><code>docs/design/api_containers.md</code> is rewritten cleanly around the action model with both Succeeded and Failed <code>lastAction</code> examples. Specific gaps:</p>
+    <ul>
+      <li>The doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L155-L159"><code>api_containers.md:155-159</code></a> shows a <code>Succeeded</code> <code>lastAction</code> without an <code>error</code> field; the Failed example at 255-262 shows one. A one-liner — &quot;<code>error</code> is set only when <code>state: Failed</code>&quot; — would remove the ambiguity for skimmers.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L246-L248"><code>api_containers.md:246-248</code></a> &quot;harmless double-restart&quot; wording is addressed by S4.</li>
+      <li>Missing note on <code>lastAction</code> persistence semantics: it survives observable state changes (<code>docker restart</code> of the underlying container, <code>docker stop</code>/<code>start</code>, etc.) because sync doesn&#39;t declare ownership of <code>lastAction</code>. Worth one sentence so GUI implementers don&#39;t assume <code>lastAction</code> is cleared on state transitions.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>One commit, <code>6251b90 engine: replace Container.spec.state with action annotations</code>. The message accurately describes the change, motivates it, and covers the edge cases (crash recovery, duplicate-dispatch pre-check, webhook-offline drop). Scope is a single conceptual unit — API type change, reconciler change, webhook change, CRD regeneration, design doc, tests. Stacked on <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/309" class="gh-ref" data-title="engine: mirror Docker container engine state into Kubernetes" data-state="open" data-type="pr">#309</a> and a prerequisite for <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/315" class="gh-ref" data-title="app: aggregate Ready and Settled conditions, wait for Settled in `rdd set`" data-state="open" data-type="pr">#315</a> per the PR description.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><strong>One-annotation, no queue</strong> — PR description and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L237-L240"><code>api_containers.md:237-240</code></a>. A new write replaces the pending action; same-value re-requests collapse. This is intentional and is the reason S1 asks for a doc note rather than code changes.</li>
+      <li><strong>Restart double-execution on crash</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/docker_watcher.go#L333-L335"><code>docker_watcher.go:333-335</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L246-L248"><code>api_containers.md:246-248</code></a>. Addressed by S4 (wording) rather than code (pre-check with StartedAt/CompletedAt window added complexity for a rare scenario).</li>
+      <li><strong>Per-reconcile list cost</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/pkg/controllers/app/engine/controllers/engine_reconciler.go#L186-L195"><code>engine_reconciler.go:186-195</code></a>. Long-term plan is per-resource reconcilers with watch predicates; this PR keeps the same tradeoff.</li>
+      <li><strong>No CLI support for actions</strong> — author comment on the PR. The action API is GUI-facing by design; CLI users are directed to <code>docker</code>/<code>nerdctl</code> directly. Documented in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/6251b9070e9b6e738aff04ed0bb8c94eaad55d3d/docs/design/api_containers.md#L264-L266"><code>api_containers.md:264-266</code></a>.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Caught both I1 (webhook on Create) and I2 (NotFound propagation) plus a dense suggestion list focused on polish (naming, const vs var, test-helper consolidation, doc wording). The I2 analysis is Claude-only: the other two agents looked at the same helpers but did not notice the <code>NotFound</code> path. S4&#39;s &quot;restart double-execution is more disruptive than harmless&quot; is also uniquely Claude&#39;s — it pushed back on the author&#39;s own phrasing. Balanced output: nothing felt inflated, and the suggestions are all actionable.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Converged with Claude on I1 — same root cause (validator registered for Update only), different framing. Codex additionally raised S1 (same-value rewrites collapse), which Claude surfaced as a design concern rather than a numbered finding; framing as a numbered suggestion makes it easier to act on. Coverage was clean, and the pass had no false positives. Shorter output than Claude, but what&#39;s there is correct.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Initial launch hit a <code>429 MODEL_CAPACITY_EXHAUSTED</code> retry loop for ~10 minutes on the preview model; killed and relaunched after the user updated <code>gemini-cli</code>. The second run produced a single, sharp finding: I3 (status-patch-then-annotation-patch cache race). This was missed by both Claude and Codex despite them both reading the same helpers. The fix Gemini proposed — thread the fresh object through — is the right shape, though it needs a small refinement to preserve the concurrent-rewrite guard on the <code>current != observed</code> path. Gemini marked <code>container_webhooks.go</code> as &quot;Reviewed, no issues&quot;, missing I1; a coverage gap.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.6</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>13m 58s</td><td>5m 06s</td><td>6m 52s</td></tr>
+        <tr><td>Findings</td><td>2I 5S</td><td>1I 1S</td><td>1I</td></tr>
+        <tr><td>Tool calls</td><td>49 (Grep 21, Read 14, Bash 9)</td><td>43 (shell 42, stdin 1)</td><td>28 (run<em>shell</em>command 16, grep<em>search 6, write</em>file 4)</td></tr>
+        <tr><td>Design observations</td><td>6</td><td>2</td><td>3</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>3</td><td>1</td><td>1</td></tr>
+        <tr><td>Files reviewed</td><td>15</td><td>15</td><td>15</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>1</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>2I 5S</strong></td><td><strong>1I 1S</strong></td><td><strong>1I</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>Overall, each agent contributed exactly one independent finding that the others missed (Claude: I2; Codex: S1; Gemini: I3). Claude was the highest-volume and most polished; Codex was the most concise with the cleanest coverage; Gemini&#39;s single catch (I3) was the subtlest of the three and would likely have been missed entirely without it.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>None for this review. The existing prompts did their job; the findings that emerged were all naturally derived from the stated dimensions (admission symmetry, subresource-patch races, error propagation, naming). No skill-level generalisation suggests itself without stretching into specifics of this PR, and <code>deep-review-context.md</code> was not contradicted by anything under review.</p>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
