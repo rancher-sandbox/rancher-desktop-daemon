@@ -192,7 +192,7 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
       <div class="finding-title" id="I1">
         <span class="finding-num">I1.</span> Webhook safeguard enforced only on create, not on update <span class="pill pill-codex">Codex</span><a href="#I1" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/pkg/controllers/containers/container/container_webhooks.go#L22-L53">pkg/controllers/containers/container/container_webhooks.go</a></div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/pkg/controllers/containers/container/container_webhooks.go#L22-L57">pkg/controllers/containers/container/container_webhooks.go</a></div>
       <pre data-start="22" data-line="27-52"><code class="language-go">
 // ValidateCreate implements [ctrlwebhookadmission.Validator].
 // The engine watcher creates Container mirrors and never sets the action
@@ -214,6 +214,13 @@ func (c *immutableValidator) ValidateDelete(context.Context, *v1alpha1.Container
 // The whole Container spec is immutable on update: actions are requested via
 // the AnnotationAction annotation on metadata, not via a level-triggered
 // desired-state field.
+//
+// Provenance of the annotation is not checked. ValidateCreate rejects
+// creates that carry the action annotation, but a caller can create an
+// empty Container and then PATCH the annotation in. Closing that bypass
+// would require a managedFields check, which is more cost than benefit on
+// a single-user desktop where the principal already has Docker socket
+// access.
 func (c *immutableValidator) ValidateUpdate(_ context.Context, oldContainer, newContainer *v1alpha1.Container) (warnings ctrlwebhookadmission.Warnings, err error) {
 	if !equality.Semantic.DeepEqual(oldContainer.Spec, newContainer.Spec) {
 		return nil, fmt.Errorf(&quot;spec is immutable: old: %v, new: %v&quot;, oldContainer.Spec, newContainer.Spec)
@@ -221,10 +228,7 @@ func (c *immutableValidator) ValidateUpdate(_ context.Context, oldContainer, new
 	if raw, ok := newContainer.Annotations[v1alpha1.AnnotationAction]; ok {
 		if !v1alpha1.ContainerAction(raw).IsValid() {
 			return nil, fmt.Errorf(&quot;invalid %s annotation %q&quot;, v1alpha1.AnnotationAction, raw)
-		}
-	}
-	return nil, nil
-}</code></pre>
+		}</code></pre>
     <p>The comment on <code>ValidateCreate</code> (lines 24–26) states the intent explicitly: &quot;The engine watcher creates Container mirrors and never sets the action annotation; reject any create that carries one so a hand-written Container cannot drive a Docker action against its metadata.name.&quot; <code>ValidateUpdate</code> does not enforce that invariant — it only rejects invalid action values. A two-step bypass defeats the guard:</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/pkg/controllers/containers/container/container_webhooks.go#L19-L31">pkg/controllers/containers/container/container_webhooks.go</a></div>
       <pre data-start="19" data-line="24-26"><code class="language-go">type immutableValidator struct {
@@ -351,8 +355,8 @@ func (w *dockerWatcher) processContainerAction(ctx context.Context, c *container
 		return ctrl.Result{}, err
 	}
 
-	// Two passes run per Reconcile: reconcileContainerSpecs drives
-	// Docker start/stop from Container.spec.state, and
+	// Two passes run per Reconcile: reconcileContainerActions drives
+	// Docker actions from the action annotation, and
 	// processFinalizers forwards K8s-side deletes to Docker for any
 	// mirror still carrying the mirror finalizer.
 	//
@@ -367,15 +371,15 @@ func (w *dockerWatcher) processContainerAction(ctx context.Context, c *container
 	}).SetupWithManager(mgr)
 }
 
-// set up the container controller with a webhook which prevents all modification.
+// setupWebhookWithRuntimeConfig registers a webhook that enforces an immutable
+// spec, rejects action annotations on create, and validates action annotations
+// on update.
 func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	mgr.GetLogger().Info(&quot;Setting up container webhook&quot;)
-	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{
-		Name:        &quot;container-mutating&quot;,
-		WebhookName: &quot;container-mutating.containers.rancherdesktop.io&quot;,</code></pre>
+	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{</code></pre>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/pkg/controllers/app/engine/controllers/engine_reconciler.go#L183-L204">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="183" data-line="188-199"><code class="language-go">	// Two passes run per Reconcile: reconcileContainerSpecs drives
-	// Docker start/stop from Container.spec.state, and
+      <pre data-start="183" data-line="188-199"><code class="language-go">	// Two passes run per Reconcile: reconcileContainerActions drives
+	// Docker actions from the action annotation, and
 	// processFinalizers forwards K8s-side deletes to Docker for any
 	// mirror still carrying the mirror finalizer.
 	//
@@ -409,13 +413,13 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
         <span class="finding-num">S2.</span> <code>ContainerSpec</code> Godoc first line contradicts the rest of the comment <span class="pill pill-claude">Claude</span><a href="#S2" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/pkg/apis/containers/v1alpha1/container_types.go#L119-L134">pkg/apis/containers/v1alpha1/container_types.go</a></div>
-      <pre data-start="119" data-line="124-129"><code class="language-go">	//
+      <pre data-start="119" data-line="124-129"><code class="language-go">	// IPv4 and IPv6 bindings.
+	//
 	// +required
 	Bindings []ContainerPortBinding `json:&quot;bindings&quot;`
 }
 
-// ContainerSpec defines the configuration the container was created with.
-// Container spec is empty today: actions are requested via the AnnotationAction
+// ContainerSpec is currently empty. Actions are requested via the AnnotationAction
 // annotation, not a level-triggered desired-state field. Docker&#39;s restart
 // policy and out-of-band `docker start/stop` are competing writers, so a
 // level-triggered desired state would fight them.
@@ -445,12 +449,12 @@ type ContainerStatus struct {
 	}).SetupWithManager(mgr)
 }
 
-// set up the container controller with a webhook which prevents all modification.
+// setupWebhookWithRuntimeConfig registers a webhook that enforces an immutable
+// spec, rejects action annotations on create, and validates action annotations
+// on update.
 func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	mgr.GetLogger().Info(&quot;Setting up container webhook&quot;)
-	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{
-		Name:        &quot;container-mutating&quot;,
-		WebhookName: &quot;container-mutating.containers.rancherdesktop.io&quot;,</code></pre>
+	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{</code></pre>
     <p>After this PR, <code>ValidateCreate</code> allows creates without the action annotation, and <code>ValidateUpdate</code> allows updates that add or change a valid action annotation. The webhook no longer &quot;prevents all modification&quot; — it enforces a spec-immutability rule and a valid-action rule. Rewrite the comment to describe what the webhook actually does.</p>
     </div>
     <div class="card card-suggestion">
@@ -484,16 +488,16 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	//
 	// +optional
 	Error string `json:&quot;error,omitempty&quot;`
-	// ObservedAt is when the reconciler observed the action annotation.
-	// Backlog may delay this relative to the user&#39;s write time.
+	// ObservedAt is when the reconciler began processing the action annotation.
+	// Backlog may delay this relative to the user&#39;s write time, and dispatch
+	// (especially restart&#39;s grace period) extends the gap to CompletedAt.
 	//
 	// +optional
 	ObservedAt metav1.Time `json:&quot;observedAt,omitempty,omitzero&quot;`
 	// CompletedAt is when the action completed, regardless of outcome.
 	//
 	// +optional
-	CompletedAt metav1.Time `json:&quot;completedAt,omitempty,omitzero&quot;`
-}</code></pre>
+	CompletedAt metav1.Time `json:&quot;completedAt,omitempty,omitzero&quot;`</code></pre>
     <p>In <code>processContainerAction</code>, <code>observedAt := metav1.Now()</code> is captured after the annotation has already been seen via <code>List</code>, just before the <code>IsValid</code> check and dispatch. <code>CompletedAt</code> is captured after <code>dispatchContainerAction</code> returns. If a caller computes <code>CompletedAt - ObservedAt</code> to measure user-visible latency, it will get the dispatch duration (which includes a multi-second grace period on restart or stop), not the observe-to-process backlog. Either rename the field to <code>StartedAt</code>/<code>ProcessingStartedAt</code>, or clarify the Godoc to &quot;when the reconciler began processing the annotation.&quot; Keep the design doc text (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/docs/design/api_containers.md#L160-L161"><code>docs/design/api_containers.md:160-161</code></a>) in sync.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/397d40a0f7d851024dd0f251586c5a085bbd8674/docs/design/api_containers.md#L155-L166">docs/design/api_containers.md</a></div>
       <pre data-start="155" data-line="160-161"><code class="language-plaintext">  # direct `docker stop`) in between. The `error` field is set only
@@ -523,10 +527,10 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 // its value still matches the action just processed. A concurrent writer
 // may replace the annotation with a different action between dispatch
 // and cleanup; that new value must survive so the next reconcile picks
-// it up. The caller passes a fresh Container from patchContainerLastAction
-// so the first Patch attempt bypasses the informer cache, which has not
-// yet seen the preceding status write. On conflict, the retry re-reads;
-// by then the cache has usually caught up.
+// it up. Callers pass either a fresh Container from patchContainerLastAction
+// (which bypasses the informer cache, not yet showing the preceding status
+// write) or a cached one (which may 409 on the first Patch). On conflict,
+// the retry re-reads from the cache; by then it has usually caught up.
 func (w *dockerWatcher) removeActionAnnotation(ctx context.Context, latest *containersv1alpha1.Container, observed string) error {
 	firstAttempt := true
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -674,6 +678,37 @@ func (w *dockerWatcher) removeActionAnnotation(ctx context.Context, latest *cont
     <ul>
       <li><em></em>[repo] Rule: admission webhooks that claim a safeguard must enforce it on both <code>Create</code> and <code>Update</code>.<em></em> When a webhook comment or method doc asserts that &quot;hand-written objects cannot drive a side effect,&quot; verify the invariant holds across the object&#39;s lifecycle: <code>ValidateCreate</code> rejecting the bad shape is insufficient if <code>ValidateUpdate</code> permits the same shape via a two-step create-then-patch. Flag any webhook whose stated intent is enforced only on one admission path. Add this check to <code>deep-review-context.md</code> so future reviewers apply it automatically when reading CRD webhooks in this repo.</li>
     </ul>
+    </div>
+    <hr>
+    <h2 id="resolution">Resolution <a href="#resolution" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <table>
+      <thead><tr><th></th><th></th></tr></thead>
+      <tbody>
+        <tr><td><strong>Addressed</strong></td><td>2026-04-16</td></tr>
+        <tr><td><strong>Commit</strong></td><td><code>31bc715 engine: replace Container.spec.state with action annotations</code> (amended into the original)</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <thead><tr><th>#</th><th>Finding</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Important #1: Webhook safeguard enforced only on create, not on update</td><td>Commented</td></tr>
+        <tr><td>2</td><td>Suggestion #1: Stale comment references removed <code>reconcileContainerSpecs</code> / <code>spec.state</code></td><td>Fixed</td></tr>
+        <tr><td>3</td><td>Suggestion #2: <code>ContainerSpec</code> Godoc opener contradicts the rest</td><td>Fixed</td></tr>
+        <tr><td>4</td><td>Suggestion #3: &quot;Prevents all modification&quot; webhook comment no longer accurate</td><td>Fixed</td></tr>
+        <tr><td>5</td><td>Suggestion #4: Invalid-action fallback is silent to the caller</td><td>Skipped</td></tr>
+        <tr><td>6</td><td>Suggestion #5: <code>ObservedAt</code> semantics ambiguous in godoc</td><td>Fixed (sharpened godoc, regenerated CRD/apply config)</td></tr>
+        <tr><td>7</td><td>Suggestion #6: <code>removeActionAnnotation</code> comment vs invalid-action branch</td><td>Fixed (softened comment)</td></tr>
+        <tr><td>8</td><td>Suggestion #7: No unit test for <code>dispatchContainerAction</code> default branch</td><td>Skipped</td></tr>
+        <tr><td>9</td><td>Testing Gap #1: No test for create-then-update bypass</td><td>Skipped (consistent with I1 commented, not fixed)</td></tr>
+        <tr><td>10</td><td>Testing Gap #2: No test for <code>!action.IsValid()</code> fallback</td><td>Skipped</td></tr>
+        <tr><td>11</td><td>Testing Gap #3: No test that <code>lastAction</code> persists across direct <code>docker stop</code></td><td>Test written</td></tr>
+        <tr><td>12</td><td>Testing Gap #4: No test for concurrent annotation overwrite during dispatch</td><td>Skipped</td></tr>
+        <tr><td>13</td><td>Testing Gap #5: <code>lastAction</code> timestamps and overwrite behavior not asserted</td><td>Test written</td></tr>
+        <tr><td>14</td><td>Testing Gap #6: Restart double-dispatch race has no coverage</td><td>Skipped (acknowledged limitation)</td></tr>
+      </tbody>
+    </table>
     </div>
   </main>
   <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
