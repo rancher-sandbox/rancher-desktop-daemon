@@ -161,7 +161,7 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
       <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
       <tr><td>Round</td><td>2 (of target)</td></tr>
       <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
-      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/315" class="gh-ref" data-title="app: aggregate Ready and Settled conditions, wait for Settled in `rdd set`" data-state="open" data-type="pr">#315</a> — app: aggregate Ready and Settled conditions, wait for Settled in <code>rdd set</code></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/315" class="gh-ref" data-title="app: aggregate Settled conditions, wait for Settled in `rdd set`" data-state="open" data-type="pr">#315</a> — app: aggregate Ready and Settled conditions, wait for Settled in <code>rdd set</code></td></tr>
       <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/27d7dd3"><code>27d7dd3</code></a> app: add Settled condition, wait for it in <code>rdd set</code></td></tr>
       <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.4 (effort: high), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
       <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; replace the now-stale &quot;Ready/Settled&quot; mentions with &quot;Settled&quot; only (PR title, body, and code comment), and decide whether to address or accept the documented template-CM race that can let <code>rdd set containerEngine.name=…</code> return before the VM has restarted.</td></tr>
@@ -192,50 +192,50 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
         <span class="finding-num">I1.</span> Template-CM update race lets <code>rdd set containerEngine.name=…</code> return before the VM restarts <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> <span class="pill pill-claude">Claude</span><a href="#I1" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L277-L307">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="277" data-line="282-302"><code class="language-go">		} else {
+      <pre data-start="277" data-line="282-302"><code class="language-go">		log.Info(&quot;Deleted input ConfigMap after LimaVM created its own copy&quot;)
+		// ConfigMaps are not watched (no Owns(&amp;corev1.ConfigMap{})), so deleting
+		// one produces no watch event. Requeue explicitly to guarantee the next
+		// reconcile runs rather than relying on implicit LimaVM status activity.
+		return ctrl.Result{Requeue: true}, nil
+	} else if !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, fmt.Errorf(&quot;failed to fetch input ConfigMap: %w&quot;, err)
+	}
+
+	if limaVM.Spec.Running &amp;&amp; !app.Spec.Running {
+		limaVM.Spec.Running = false
+		if err := r.Update(ctx, limaVM); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to propagate running state to LimaVM: %w&quot;, err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Propagate app spec.containerEngine and spec.kubernetes into the LimaVM&#39;s
+	// template ConfigMap.
+	if limaVM.Status.TemplateConfigMap != &quot;&quot; {
+		templateCM := &amp;corev1.ConfigMap{}
+		if err := r.Get(ctx, client.ObjectKey{Name: limaVM.Status.TemplateConfigMap, Namespace: namespace}, templateCM); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, fmt.Errorf(&quot;failed to fetch LimaVM template ConfigMap: %w&quot;, err)
+			}
+		} else {
 			desired, err := applySpecToTemplate(r.LimaTemplateData, app.Spec)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf(&quot;failed to apply spec to template: %w&quot;, err)
 			}
-			if templateCM.Data[limav1alpha1.TemplateConfigMapKey] != desired {
-				patch := client.MergeFrom(templateCM.DeepCopy())
-				if templateCM.Data == nil {
-					templateCM.Data = make(map[string]string)
-				}
-				templateCM.Data[limav1alpha1.TemplateConfigMapKey] = desired
-				if err := r.Patch(ctx, templateCM, patch); err != nil {
-					return ctrl.Result{}, fmt.Errorf(&quot;failed to update template ConfigMap: %w&quot;, err)
-				}
-				log.Info(&quot;Updated template ConfigMap&quot;,
-					&quot;containerEngine&quot;, app.Spec.ContainerEngine.Name,
-					&quot;kubernetesEnabled&quot;, app.Spec.Kubernetes.Enabled,
-					&quot;kubernetesVersion&quot;, app.Spec.Kubernetes.Version)
-				// ConfigMaps are not watched, so requeue to let the
-				// reconciler evaluate remaining spec fields (e.g. running).
-				// A racing `rdd set` may see Settled=True at the new
-				// generation before LimaVM observes the ConfigMap change.
-				// LimaVM then sets restartNeeded on its next reconcile,
-				// flipping Settled back to False.
-				return ctrl.Result{Requeue: true}, nil
-			}
-		}
-	}
-
-	if !limaVM.Spec.Running &amp;&amp; app.Spec.Running {
-		limaVM.Spec.Running = true</code></pre>
+			if templateCM.Data[limav1alpha1.TemplateConfigMapKey] != desired {</code></pre>
     <p>The PR&#39;s stated motivation is <code>rdd set containerEngine.name=containerd</code> waiting for the VM restart. After the App reconciler patches the template ConfigMap and requeues, the next pass copies LimaVM&#39;s still-<code>Running=Started</code> condition into the App and re-stamps it with the new <code>App.Generation</code> at line 334. <code>computeSettledCondition</code> then sees a current-generation <code>Running=Started</code> and, on engine-disabled paths (Windows, <code>--controllers=-engine</code>) immediately returns <code>Settled=True</code>. On engine-enabled paths the engine condition&#39;s <code>ObservedGeneration</code> is also stale, which holds Settled at <code>False</code> via the <code>EngineStale</code> branch — but that masking depends on the engine controller running in the same process, not on a real Lima convergence signal.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L329-L339">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="329" data-line="334"><code class="language-go">			changed = apimeta.SetStatusCondition(&amp;latest.Status.Conditions, metav1.Condition{
-				Type:               cond.Type,
-				Status:             cond.Status,
-				Reason:             cond.Reason,
-				Message:            msg,
-				ObservedGeneration: latest.Generation,
-				LastTransitionTime: cond.LastTransitionTime,
-			}) || changed
+      <pre data-start="329" data-line="334"><code class="language-go">	}
+
+	if !limaVM.Spec.Running &amp;&amp; app.Spec.Running {
+		limaVM.Spec.Running = true
+		if err := r.Update(ctx, limaVM); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to propagate running state to LimaVM: %w&quot;, err)
 		}
-		settled := computeSettledCondition(latest, r.EngineEnabled)
-		changed = apimeta.SetStatusCondition(&amp;latest.Status.Conditions, settled) || changed</code></pre>
+		return ctrl.Result{}, nil
+	}
+
+	// Mirror LimaVM status conditions and compute Settled. The engine</code></pre>
     <p>The new comment at lines 297-300 acknowledges the race as a brief blip, but <code>rdd set</code>&#39;s <code>waitForDesiredState</code> returns the moment it sees <code>Settled=True</code> at the new generation. There is no minimum dwell, no integration test exercising the running-VM backend swap (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/bats/tests/32-app-controllers/engine-docker.bats#L534-L559"><code>engine-docker.bats:534-559</code></a> starts from a stopped VM), and no Lima-side condition the App can synchronise on. The result is exactly the early-return behaviour the PR removes for <code>running=true/false</code> but reintroduces for backend / kubernetes spec changes on a running VM.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/bats/tests/32-app-controllers/engine-docker.bats#L529-L559">bats/tests/32-app-controllers/engine-docker.bats</a></div>
       <pre data-start="529" data-line="534-559"><code class="language-plaintext">    refute_output
@@ -276,25 +276,27 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
         <span class="finding-num">I2.</span> <code>EngineEnabled</code> captured from process-local registry at startup ignores cluster-wide topology <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#I2" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controller.go#L144-L159">pkg/controllers/app/app/controller.go</a></div>
-      <pre data-start="144" data-line="149-154"><code class="language-go">	}
+      <pre data-start="144" data-line="149-154"><code class="language-go">	if err := v1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
+		return err
+	}
 	if err := limav1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 		return err
+	}
+
+	discovery, err := servicecontrollers.NewControllerManagerDiscovery(mgr.GetConfig())
+	if err != nil {
+		return fmt.Errorf(&quot;failed to create controller-manager discovery: %w&quot;, err)
 	}
 
 	if err := (&amp;controllers.AppReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
-		LimaTemplateData: limaTemplateData(),
-		EngineEnabled:    base.IsControllerEnabled(&quot;engine&quot;),
-	}).SetupWithManager(mgr); err != nil {
-		return err
-	}
-
-	return c.setupWebhook(mgr)
-}</code></pre>
+		LimaTemplateData: limaTemplateData(),</code></pre>
     <p><code>base.IsControllerEnabled</code> is documented as &quot;started in this OS process&quot; (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controller.go#L122-L157"><code>controller.go:122-157</code></a>), populated only from each manager&#39;s local set in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/cmd/rdd/service.go#L761-L772"><code>service.go:761-772</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/external/main.go#L86-L92"><code>external/main.go:86-92</code></a>. The repo ships separate <code>cmd/app-controller</code> and <code>cmd/containers-controller</code> standalone binaries; <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/docs/design/discovery.md#L56-L64"><code>docs/design/discovery.md:56-64</code></a> allows external controllers to attach later. Whenever the engine controller runs in a different manager from the App controller — including the future where engine ships in <code>cmd/containers-controller</code> — <code>EngineEnabled</code> stays <code>false</code>, <code>computeSettledCondition</code> skips the <code>ContainerEngineReady</code> gate at lines 393-405, and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/cmd/rdd/set.go#L477-L486"><code>cmd/rdd/set.go:477-486</code></a> returns before the engine has connected. This regresses the prior CLI-side behaviour, which queried the discovery ConfigMap to decide whether to wait on the engine condition.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controller.go#L117-L159">pkg/controllers/app/app/controller.go</a></div>
-      <pre data-start="117" data-line="122-157"><code class="language-go">		return err
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controller.go#L117-L162">pkg/controllers/app/app/controller.go</a></div>
+      <pre data-start="117" data-line="122-157"><code class="language-go">	validator, err := controllers.NewAppValidator(k3sVersionsData)
+	if err != nil {
+		return err
 	}
 	validatingConfig := base.WebhookConfig[*v1alpha1.App]{
 		Name:        appValidatorConfigName,
@@ -326,17 +328,18 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	discovery, err := servicecontrollers.NewControllerManagerDiscovery(mgr.GetConfig())
+	if err != nil {
+		return fmt.Errorf(&quot;failed to create controller-manager discovery: %w&quot;, err)
+	}
+
 	if err := (&amp;controllers.AppReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		LimaTemplateData: limaTemplateData(),
-		EngineEnabled:    base.IsControllerEnabled(&quot;engine&quot;),
+		Discovery:        discovery,
 	}).SetupWithManager(mgr); err != nil {
-		return err
-	}
-
-	return c.setupWebhook(mgr)
-}</code></pre>
+		return err</code></pre>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/external/main.go#L81-L97">pkg/external/main.go</a></div>
       <pre data-start="81" data-line="86-92"><code class="language-go">	if len(controllersToStart) == 0 {
 		setupLog.Info(&quot;All controllers are already running in RDD controller manager, exiting&quot;)
@@ -349,7 +352,7 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 	for _, controller := range controllersToStart {
 		enabledNames = append(enabledNames, controller.GetName())
 	}
-	base.SetEnabledControllers(enabledNames)
+	base.SetInProcessControllers(enabledNames)
 
 	// Create a cancellable context for control plane monitoring
 	monitorCtx, cancelMonitor := context.WithCancel(ctx)
@@ -401,42 +404,42 @@ func waitForDesiredState(ctx context.Context, config *rest.Config, timeout time.
         <span class="finding-num">I3.</span> PR title, body, and a new in-code comment claim a <code>Ready</code> condition that does not exist <span class="pill pill-claude">Claude</span><a href="#I3" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L309-L319">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="309" data-line="314"><code class="language-go">			return ctrl.Result{}, fmt.Errorf(&quot;failed to propagate running state to LimaVM: %w&quot;, err)
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// Mirror LimaVM status conditions and aggregate Ready/Settled. The
-	// engine reconciler writes ContainerEngineReady on the same object,
-	// so app&#39;s resourceVersion from the initial Get can be stale.
-	// retry.RetryOnConflict + re-Get matches
-	// EngineReconciler.setEngineCondition; without it, concurrent
-	// writers 409-loop through controller-runtime requeues.</code></pre>
+      <pre data-start="309" data-line="314"><code class="language-go">				if templateCM.Data == nil {
+					templateCM.Data = make(map[string]string)
+				}
+				templateCM.Data[limav1alpha1.TemplateConfigMapKey] = desired
+				if err := r.Patch(ctx, templateCM, patch); err != nil {
+					return ctrl.Result{}, fmt.Errorf(&quot;failed to update template ConfigMap: %w&quot;, err)
+				}
+				log.Info(&quot;Updated template ConfigMap&quot;,
+					&quot;containerEngine&quot;, app.Spec.ContainerEngine.Name,
+					&quot;kubernetesEnabled&quot;, app.Spec.Kubernetes.Enabled,
+					&quot;kubernetesVersion&quot;, app.Spec.Kubernetes.Version)</code></pre>
     <p>The PR title is &quot;app: aggregate Ready and Settled conditions, wait for Settled in <code>rdd set</code>&quot; and the body has a two-paragraph &quot;Ready&quot; section explaining the contract. But <code>app_types.go</code> defines only <code>AppConditionSettled</code> (line 38); there is no <code>AppConditionReady</code>, nothing in <code>computeSettledCondition</code> produces a Ready entry, and the unit tests only assert the Settled path. The stale comment on <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L314"><code>app_controller.go:314</code></a> was introduced by this commit and will mislead readers into looking for a Ready aggregator.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L309-L319">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="309" data-line="314"><code class="language-go">			return ctrl.Result{}, fmt.Errorf(&quot;failed to propagate running state to LimaVM: %w&quot;, err)
-		}
-		return ctrl.Result{}, nil
-	}
-
-	// Mirror LimaVM status conditions and aggregate Ready/Settled. The
-	// engine reconciler writes ContainerEngineReady on the same object,
-	// so app&#39;s resourceVersion from the initial Get can be stale.
-	// retry.RetryOnConflict + re-Get matches
-	// EngineReconciler.setEngineCondition; without it, concurrent
-	// writers 409-loop through controller-runtime requeues.</code></pre>
+      <pre data-start="309" data-line="314"><code class="language-go">				if templateCM.Data == nil {
+					templateCM.Data = make(map[string]string)
+				}
+				templateCM.Data[limav1alpha1.TemplateConfigMapKey] = desired
+				if err := r.Patch(ctx, templateCM, patch); err != nil {
+					return ctrl.Result{}, fmt.Errorf(&quot;failed to update template ConfigMap: %w&quot;, err)
+				}
+				log.Info(&quot;Updated template ConfigMap&quot;,
+					&quot;containerEngine&quot;, app.Spec.ContainerEngine.Name,
+					&quot;kubernetesEnabled&quot;, app.Spec.Kubernetes.Enabled,
+					&quot;kubernetesVersion&quot;, app.Spec.Kubernetes.Version)</code></pre>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L33-L43">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="33" data-line="38"><code class="language-go">
-const (
-	appName                        = &quot;app&quot;
-	limaVMName, inputConfigMapName = &quot;rd&quot;, &quot;rd&quot;
+      <pre data-start="33" data-line="38"><code class="language-go">)
 
-	// requeueAfterDeletion is how long to wait between checks while the LimaVM
-	// controller is running its teardown (stopping the VM, removing disk files).
-	requeueAfterDeletion = 2 * time.Second
-)
-
-// AppReconciler reconciles the singleton App resource and manages its LimaVM lifecycle.</code></pre>
+// ControllerDiscovery enumerates controllers enabled across all controller
+// managers in this control plane. AppReconciler queries it during
+// reconciliation to decide whether Settled must wait for
+// ContainerEngineReady. The interface mirrors a small subset of
+// pkg/service/controllers.ControllerManagerDiscovery so tests can substitute
+// a fake without taking on the full dependency.
+type ControllerDiscovery interface {
+	GetEnabledControllers(ctx context.Context) ([]string, error)
+}</code></pre>
     <p>This matters for the review itself: a reviewer cannot tell from the PR whether <code>Ready</code> was an intentional scope reduction or an implementation oversight — Gemini&#39;s executive summary in this round explicitly described the PR as &quot;introduces the <code>Ready</code> and <code>Settled</code> conditions&quot;, taking the PR description at face value.</p>
     <p>Fix: decide whether <code>Ready</code> is in scope. If not, drop &quot;Ready&quot; from the PR title and body, and correct the comment:</p>
       <pre><code class="language-diff">-	// Mirror LimaVM status conditions and aggregate Ready/Settled. The
@@ -453,42 +456,42 @@ const (
         <span class="finding-num">S1.</span> Hardcoded <code>&quot;engine&quot;</code> controller name creates silent coupling <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controller.go#L148-L158">pkg/controllers/app/app/controller.go</a></div>
-      <pre data-start="148" data-line="153"><code class="language-go">
-	if err := (&amp;controllers.AppReconciler{
-		Client:           mgr.GetClient(),
-		Scheme:           mgr.GetScheme(),
-		LimaTemplateData: limaTemplateData(),
-		EngineEnabled:    base.IsControllerEnabled(&quot;engine&quot;),
-	}).SetupWithManager(mgr); err != nil {
-		return err
+      <pre data-start="148" data-line="153"><code class="language-go">		return err
 	}
 
-	return c.setupWebhook(mgr)</code></pre>
+	discovery, err := servicecontrollers.NewControllerManagerDiscovery(mgr.GetConfig())
+	if err != nil {
+		return fmt.Errorf(&quot;failed to create controller-manager discovery: %w&quot;, err)
+	}
+
+	if err := (&amp;controllers.AppReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),</code></pre>
     <p>The App controller queries the engine controller by literal name. Engine&#39;s own name constant — <code>controllerName</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/engine/controller.go#L33"><code>pkg/controllers/app/engine/controller.go:33</code></a> — is unexported, so a rename on the engine side would silently turn <code>EngineEnabled</code> into a permanent <code>false</code>, regressing <code>Settled</code> to the pre-engine path with no build or test failure. The literal is repeated in the doc comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L53"><code>app_controller.go:53</code></a> and in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/cmd/rdd/service.go#L771"><code>service.go:771</code></a>.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/engine/controller.go#L28-L38">pkg/controllers/app/engine/controller.go</a></div>
       <pre data-start="28" data-line="33"><code class="language-go">	}
 	base.RegisterController(newController())
 }
 
-const (
-	controllerName = &quot;engine&quot;
-	// apiGroup is &quot;containers&quot; because the reconciler watches
-	// Container, Image, and Volume from that group and needs
-	// their CRDs at startup. Grouping engine with its dependencies
-	// keeps --controllers selections from splitting the two apart.
-	apiGroup = &quot;containers&quot;</code></pre>
+// apiGroup is &quot;containers&quot; because the reconciler watches
+// Container, Image, and Volume from that group and needs
+// their CRDs at startup. Grouping engine with its dependencies
+// keeps --controllers selections from splitting the two apart.
+const apiGroup = &quot;containers&quot;
+
+type controller struct{}</code></pre>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L48-L58">pkg/controllers/app/app/controllers/app_controller.go</a></div>
       <pre data-start="48" data-line="53"><code class="language-go">
-	// EngineEnabled indicates whether the engine controller runs in
-	// this process. When true, Settled waits for ContainerEngineReady
-	// before reporting True for a running app. When false, nothing
-	// writes ContainerEngineReady — for example on Windows, where
-	// engine init() skips registration, or when --controllers
-	// excludes engine at startup — so Settled ignores it.
-	EngineEnabled bool
-}
+	// requeueAfterDeletion is how long to wait between checks while the LimaVM
+	// controller is running its teardown (stopping the VM, removing disk files).
+	requeueAfterDeletion = 2 * time.Second
+)
 
-func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, error) {</code></pre>
+// AppReconciler reconciles the singleton App resource and manages its LimaVM lifecycle.
+type AppReconciler struct {
+	client.Client
+	Scheme           *runtime.Scheme
+	LimaTemplateData string</code></pre>
     <p>Fix: define <code>EngineControllerName = &quot;engine&quot;</code> in <code>pkg/apis/app/v1alpha1/app_types.go</code> (alongside <code>AppConditionContainerEngineReady</code>) and reference it from both sides. Importing <code>pkg/controllers/app/engine</code> directly from <code>pkg/controllers/app/app</code> is undesirable because it would trigger engine&#39;s <code>init()</code> registration in the app-controller binary, which targets a different API group.</p>
     </div>
     <div class="card card-suggestion">
@@ -501,12 +504,12 @@ func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, er
   | `ContainerEngineReady` | `False`   | `ConnectFailed`  | Engine controller failed to connect to Docker                     |
   | `ContainerEngineReady` | `False`   | `Stopped`        | The VM is stopped; the engine watcher is not running              |
   | `Settled`              | `True`    | `Settled`        | Reconcile chain has caught up with the current spec               |
-  | `Settled`              | `False`   | *(varies)*       | Reconciliation in progress; reason mirrors the blocking condition |
+  | `Settled`              | `False`   | `WaitingForLimaVM` | LimaVM has not yet reported a `Running` condition               |
+  | `Settled`              | `False`   | `WaitingForEngine` | Engine controller has not yet written `ContainerEngineReady`    |
+  | `Settled`              | `False`   | `EngineStale`    | Engine controller has not yet observed the current generation     |
+  | `Settled`              | `False`   | *(forwarded)*    | Forwarded from the blocking `Running` or `ContainerEngineReady` reason |
 
-  `Running=True` means the Lima guest has finished booting and SSH is reachable. It says nothing about the container engine socket; consumers that depend on the engine (container/image/volume mirrors, `docker` against the forwarded socket) must also check `ContainerEngineReady`, which flips to `True` only after the engine controller has connected to the socket and completed its initial full sync.
-
-  `Created` and `Running` are mirrored from LimaVM, so their `lastTransitionTime` reflects the LimaVM transition rather than the copy — the timestamp is meaningful for staleness checks. `ContainerEngineReady.observedGeneration` is stamped with the App&#39;s generation when the engine controller writes the condition. `Settled` is computed by the App controller from the mirrored `Running` and the engine-written `ContainerEngineReady`, and carries the App&#39;s current `observedGeneration`. `rdd set` waits for `Settled=True` with `observedGeneration &gt;= post-patch generation` so stale snapshots cannot prematurely satisfy the wait.
-</code></pre>
+  `Running=True` means the Lima guest has finished booting and SSH is reachable. It says nothing about the container engine socket; consumers that depend on the engine (container/image/volume mirrors, `docker` against the forwarded socket) must also check `ContainerEngineReady`, which flips to `True` only after the engine controller has connected to the socket and completed its initial full sync.</code></pre>
     <p><code>computeSettledCondition</code> emits an enumerable set of fixed reasons: <code>WaitingForLimaVM</code>, <code>WaitingForEngine</code>, <code>EngineStale</code>, plus the forwarded LimaVM <code>Running</code> reason or the engine <code>ContainerEngineReady</code> reason. Documenting them lets consumers (GUI, tests, other controllers) branch on specific values without reading the source.</p>
     <p>Fix: expand the row into explicit rows for <code>WaitingForLimaVM</code>, <code>WaitingForEngine</code>, <code>EngineStale</code>, and a catch-all &quot;forwarded from Running/ContainerEngineReady&quot; row.</p>
     </div>
@@ -515,22 +518,22 @@ func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, er
         <span class="finding-num">S3.</span> <code>runningLimaVMMessage</code> uses string-suffix matching for failure detection <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/27d7dd39b13bbbeaa047de09bdd29e9b95eadbbf/pkg/controllers/app/app/controllers/app_controller.go#L425-L440">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="425" data-line="430-435"><code class="language-go">
-// runningLimaVMMessage builds the Settled message when LimaVM&#39;s
-// Running reason does not match the desired state. Failure reasons
-// (ending in &quot;Failed&quot;) propagate LimaVM&#39;s diagnostic message; other
-// reasons get a concise &quot;has not yet reached &lt;desired&gt;&quot; text.
-func runningLimaVMMessage(runningCond *metav1.Condition, desired string) string {
-	if strings.HasSuffix(runningCond.Reason, &quot;Failed&quot;) &amp;&amp; runningCond.Message != &quot;&quot; {
-		return runningCond.Message
-	}
-	return &quot;LimaVM has not yet reached &quot; + desired
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&amp;v1alpha1.App{}).</code></pre>
+      <pre data-start="425" data-line="430-435"><code class="language-go">		// While desiredRunning is false, ContainerEngineReady may be
+		// absent or stale: the engine controller writes it once per
+		// run and stops writing it once the watcher has been torn
+		// down. A stopped VM is settled regardless of what
+		// ContainerEngineReady currently says.
+		settled.Status = metav1.ConditionTrue
+		settled.Reason = &quot;Settled&quot;
+		settled.Message = &quot;App has reached the desired state&quot;
+	case engineCond == nil:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = &quot;WaitingForEngine&quot;
+		settled.Message = &quot;Waiting for container engine condition&quot;
+	case engineCond.ObservedGeneration &lt; app.Generation:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = &quot;EngineStale&quot;
+		settled.Message = &quot;Container engine needs to be synchronized&quot;</code></pre>
     <p>The heuristic couples Settled&#39;s behaviour to a LimaVM naming convention. A new failure reason that doesn&#39;t end in <code>Failed</code> would silently lose its diagnostic message; a non-failure reason ending in <code>Failed</code> (none today, but nothing prevents one) would leak a confusing operational message into Settled.</p>
     <p>Fix: switch on the known failure reasons, or check <code>runningCond.Status == metav1.ConditionFalse &amp;&amp; runningCond.Message != &quot;&quot;</code>. The LimaVM reason constants would need to be exported or mirrored; a unit test pinning the App-side strings to the LimaVM values keeps drift visible.</p>
     </div>
