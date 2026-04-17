@@ -94,58 +94,29 @@ func (w *dockerWatcher) syncContainer(ctx context.Context, id string) error {
 }
 
 // applyContainer creates or updates a Container mirror from a Docker
-// InspectResponse. Spec is written exactly once, on creation;
-// subsequent syncs touch only the status subresource so user-initiated
-// spec.state changes are preserved.
-//
-// Pure SSA is not enough: applying WithSpec(unknown) on every sync
-// would make the engine-controller field owner keep reasserting
-// spec.state=unknown and clobber any user patch to running/created.
-// Gating the WithSpec call on a Get-NotFound keeps the "subsequent
-// syncs never touch spec" invariant without a second field owner.
+// InspectResponse. The mirror is status-only from the engine's side:
+// Container has no desired-state spec fields, and actions are requested
+// via the AnnotationAction annotation (handled separately).
 func (w *dockerWatcher) applyContainer(ctx context.Context, inspect mobycontainer.InspectResponse) error {
 	namespace, name := parseContainerName(inspect.Name)
 
-	// Create the Container mirror with spec.state=unknown: the engine
-	// mirrors Docker state without expressing intent. The user sets
-	// state to "running" or "created" to control the container;
-	// "unknown" is a no-op for the reconciler.
-	//
-	// Omit ForceOwnership on the create apply: if a user patch to
-	// spec.state landed between the Get above and this Apply,
-	// ForceOwnership would silently clobber it. Without the flag, the
-	// Apply succeeds on a fresh resource and fails loudly on a
-	// concurrent conflict.
+	// Re-assert the mirror finalizer on every sync so a user who
+	// `kubectl edit`s it away cannot bypass the engine-side Docker
+	// cleanup on a later delete. Skip re-assertion once the mirror is
+	// Terminating: adding a finalizer to a deleting object is rejected,
+	// and processContainerFinalizers is about to strip the finalizer
+	// anyway.
 	var existing containersv1alpha1.Container
 	err := w.k8s.Get(ctx, client.ObjectKey{Name: inspect.ID, Namespace: w.apiNamespace}, &existing)
-	if apierrors.IsNotFound(err) {
-		applyConfig := containersv1alpha1apply.Container(inspect.ID, w.apiNamespace).
-			WithFinalizers(mirrorFinalizer).
-			WithSpec(containersv1alpha1apply.ContainerSpec().WithState(containersv1alpha1.ContainerStatusUnknown))
-		if err := w.k8s.Apply(ctx, applyConfig, client.FieldOwner(controllerName)); err != nil {
-			return fmt.Errorf("failed to create container %s: %w", inspect.ID, err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("failed to get container %s: %w", inspect.ID, err)
-	} else if existing.DeletionTimestamp == nil {
-		// Re-assert the mirror finalizer on every sync so a user who
-		// `kubectl edit`s it away cannot bypass the engine-side Docker
-		// cleanup on a later delete. Skip re-assertion once the mirror
-		// is Terminating: adding a finalizer to a deleting object is
-		// rejected, and processContainerFinalizers is about to strip
-		// the finalizer anyway.
-		//
-		// Use finalizerFieldOwner, not controllerName. SSA treats
-		// fields absent from an apply config as released by that
-		// manager; releasing spec from controllerName would prune
-		// spec (no other manager owns it) and fail the CRD's
-		// required-field validation.
+	if apierrors.IsNotFound(err) || (err == nil && existing.DeletionTimestamp == nil) {
 		finalizerOnly := containersv1alpha1apply.Container(inspect.ID, w.apiNamespace).
 			WithFinalizers(mirrorFinalizer)
 		if err := w.k8s.Apply(ctx, finalizerOnly,
-			client.ForceOwnership, client.FieldOwner(finalizerFieldOwner)); err != nil {
-			return fmt.Errorf("failed to reassert container finalizer %s: %w", inspect.ID, err)
+			client.ForceOwnership, client.FieldOwner(controllerName)); err != nil {
+			return fmt.Errorf("failed to apply container finalizer %s: %w", inspect.ID, err)
 		}
+	} else if err != nil {
+		return fmt.Errorf("failed to get container %s: %w", inspect.ID, err)
 	}
 
 	// Config is typed as a pointer and may be nil for a malformed

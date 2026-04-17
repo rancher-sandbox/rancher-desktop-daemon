@@ -13,10 +13,12 @@ import (
 	"time"
 
 	cerrdefs "github.com/containerd/errdefs"
+	"github.com/go-logr/logr"
 	"github.com/moby/moby/api/types/events"
 	dockerclient "github.com/moby/moby/client"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -340,65 +342,197 @@ func (w *dockerWatcher) removeMirrorResource(ctx context.Context, obj client.Obj
 	return client.IgnoreNotFound(w.k8s.Delete(ctx, latest))
 }
 
-// reconcileContainerState dispatches the Docker action that bridges
-// the Container's spec.state and its observed status. spec.state of
-// "unknown" is a no-op.
-func (w *dockerWatcher) reconcileContainerState(ctx context.Context, c *containersv1alpha1.Container) error {
-	// State matrix (rows=desired, columns=actual). The webhook
-	// restricts desired to {unknown, created, running}; actual can
-	// be any CRD enum value.
-	//
-	//	desired \ actual  | running | paused   | created | exited | dead | pausing/restarting | removing | unknown
-	//	------------------+---------+----------+---------+--------+------+--------------------+----------+--------
-	//	running           | nil     | unpause  | start   | start  | start| start              | start    | start
-	//	created           | stop    | stop     | nil     | nil    | nil  | stop               | stop     | stop
-	desired := c.Spec.State
-	if desired == containersv1alpha1.ContainerStatusUnknown {
+// processContainerAction handles a container carrying the AnnotationAction
+// annotation. It dispatches the Docker call, records the outcome in
+// status.lastAction, and then removes the annotation.
+//
+// The Docker call runs before the status and metadata patches so that a
+// crash mid-flight leaves the annotation in place and the next reconcile
+// replays the action. Start, stop, pause, and unpause are idempotent
+// against a container already in the target state, so replay is safe.
+// Restart has no target state to match: a replay sends SIGTERM and waits
+// the grace period a second time, which the controller cannot distinguish
+// from a deliberate re-request.
+func (w *dockerWatcher) processContainerAction(ctx context.Context, c *containersv1alpha1.Container) error {
+	raw, ok := c.Annotations[containersv1alpha1.AnnotationAction]
+	if !ok {
 		return nil
 	}
 
-	actual := c.Status.Status
 	log := logf.FromContext(ctx).WithName("docker-watcher")
+	action := containersv1alpha1.ContainerAction(raw)
+	observedAt := metav1.Now()
 
-	switch desired {
-	case containersv1alpha1.ContainerStatusRunning:
-		if actual == containersv1alpha1.ContainerStatusRunning {
-			return nil
-		}
-		if actual == containersv1alpha1.ContainerStatusPaused {
-			// Docker rejects ContainerStart on a paused container,
-			// so unpause explicitly.
-			log.Info("Unpausing container", "id", c.Name)
-			_, err := w.cli.ContainerUnpause(ctx, c.Name, dockerclient.ContainerUnpauseOptions{})
-			return err
-		}
-		log.Info("Starting container", "id", c.Name)
-		_, err := w.cli.ContainerStart(ctx, c.Name, dockerclient.ContainerStartOptions{})
-		return err
-	case containersv1alpha1.ContainerStatusCreated:
-		if isStopped(actual) {
-			return nil
-		}
-		// ContainerStop handles paused and restarting containers
-		// natively, so one call covers any non-stopped state.
-		log.Info("Stopping container", "id", c.Name)
-		_, err := w.cli.ContainerStop(ctx, c.Name, dockerclient.ContainerStopOptions{})
-		return err
+	// The webhook rejects invalid action values, but one written while the
+	// webhook is offline can still reach storage. Drop such values here;
+	// otherwise the CRD enum rejects the status.lastAction write, the
+	// annotation stays in place, and every reconcile retries forever.
+	if !action.IsValid() {
+		log.Info("Dropping invalid container action annotation", "id", c.Name, "action", raw)
+		return w.removeActionAnnotation(ctx, c, raw)
+	}
+
+	dockerErr := w.dispatchContainerAction(ctx, log, c.Name, action)
+
+	lastAction := &containersv1alpha1.ContainerLastAction{
+		Action:      action,
+		ObservedAt:  observedAt,
+		CompletedAt: metav1.Now(),
+	}
+	if dockerErr == nil {
+		lastAction.State = containersv1alpha1.ContainerActionSucceeded
+	} else {
+		lastAction.State = containersv1alpha1.ContainerActionFailed
+		lastAction.Error = dockerErr.Error()
+		log.Info("Container action failed", "id", c.Name, "action", action, "error", dockerErr)
+	}
+
+	latest, err := w.patchContainerLastAction(ctx, c.Name, lastAction)
+	if err != nil {
+		return fmt.Errorf("failed to patch lastAction for %s: %w", c.Name, err)
+	}
+	if latest == nil {
+		// Mirror was deleted between dispatch and the status patch; nothing
+		// left to clean up.
+		return nil
+	}
+	if err := w.removeActionAnnotation(ctx, latest, raw); err != nil {
+		return fmt.Errorf("failed to remove action annotation for %s: %w", c.Name, err)
 	}
 	return nil
 }
 
-// isStopped reports whether a container status is a terminal
-// non-running state that satisfies a desired state of "created".
-// Redispatching ContainerStop against any of these is wasted work.
-func isStopped(s containersv1alpha1.ContainerStatusValue) bool {
-	switch s {
-	case containersv1alpha1.ContainerStatusCreated,
-		containersv1alpha1.ContainerStatusExited,
-		containersv1alpha1.ContainerStatusDead:
-		return true
+// dispatchContainerAction executes the Docker call for a single action. The
+// caller pre-validates the action name; the default branch triggers only
+// when a new ContainerAction value is added to the type but not to the switch.
+//
+// Pause and unpause pre-check the current Docker state and return nil when
+// the container is already in the target state. Two reconcile ticks can read
+// the same action annotation through the informer cache before the cache
+// sees the removal that follows the first dispatch — the pre-check keeps
+// the second dispatch from flipping lastAction to Failed. Start, stop, and
+// restart need no pre-check: Docker itself returns 304 Not Modified for
+// start/stop on a container already in the target state, and a duplicate
+// restart is a harmless double-restart.
+func (w *dockerWatcher) dispatchContainerAction(ctx context.Context, log logr.Logger, id string, action containersv1alpha1.ContainerAction) error {
+	switch action {
+	case containersv1alpha1.ContainerActionStart:
+		log.Info("Starting container", "id", id)
+		_, err := w.cli.ContainerStart(ctx, id, dockerclient.ContainerStartOptions{})
+		return err
+	case containersv1alpha1.ContainerActionStop:
+		log.Info("Stopping container", "id", id)
+		_, err := w.cli.ContainerStop(ctx, id, dockerclient.ContainerStopOptions{})
+		return err
+	case containersv1alpha1.ContainerActionPause:
+		_, paused, err := w.containerRunState(ctx, id)
+		if err != nil {
+			return err
+		}
+		if paused {
+			return nil
+		}
+		log.Info("Pausing container", "id", id)
+		_, err = w.cli.ContainerPause(ctx, id, dockerclient.ContainerPauseOptions{})
+		return err
+	case containersv1alpha1.ContainerActionUnpause:
+		running, paused, err := w.containerRunState(ctx, id)
+		if err != nil {
+			return err
+		}
+		if !running {
+			return fmt.Errorf("cannot unpause container %s: not running", id)
+		}
+		if !paused {
+			return nil
+		}
+		log.Info("Unpausing container", "id", id)
+		_, err = w.cli.ContainerUnpause(ctx, id, dockerclient.ContainerUnpauseOptions{})
+		return err
+	case containersv1alpha1.ContainerActionRestart:
+		log.Info("Restarting container", "id", id)
+		_, err := w.cli.ContainerRestart(ctx, id, dockerclient.ContainerRestartOptions{})
+		return err
 	}
-	return false
+	return fmt.Errorf("unknown container action %q", action)
+}
+
+// containerRunState reports whether Docker currently shows the container as
+// running and as paused. Pause uses paused to skip a no-op dispatch; unpause
+// also checks running so that unpause on a stopped container reports a
+// failure instead of a silent success.
+func (w *dockerWatcher) containerRunState(ctx context.Context, id string) (running, paused bool, err error) {
+	inspect, err := w.cli.ContainerInspect(ctx, id, dockerclient.ContainerInspectOptions{})
+	if err != nil {
+		return false, false, err
+	}
+	return inspect.Container.State.Running, inspect.Container.State.Paused, nil
+}
+
+// patchContainerLastAction writes status.lastAction with retry-on-conflict
+// and returns the updated Container. The main engine sync writes the
+// status subresource on every reconcile, so this write races against it.
+// If the mirror is deleted concurrently, any step may return NotFound;
+// the caller treats a nil Container as "nothing left to do".
+func (w *dockerWatcher) patchContainerLastAction(ctx context.Context, id string, lastAction *containersv1alpha1.ContainerLastAction) (*containersv1alpha1.Container, error) {
+	key := client.ObjectKey{Name: id, Namespace: w.apiNamespace}
+	var result *containersv1alpha1.Container
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var latest containersv1alpha1.Container
+		if err := w.k8s.Get(ctx, key, &latest); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		patch := client.MergeFromWithOptions(latest.DeepCopy(), client.MergeFromWithOptimisticLock{})
+		latest.Status.LastAction = lastAction
+		if err := w.k8s.Status().Patch(ctx, &latest, patch); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		result = &latest
+		return nil
+	})
+	return result, err
+}
+
+// removeActionAnnotation clears the AnnotationAction annotation only if
+// its value still matches the action just processed. A concurrent writer
+// may replace the annotation with a different action between dispatch
+// and cleanup; that new value must survive so the next reconcile picks
+// it up. Callers pass either a fresh Container from patchContainerLastAction
+// (which bypasses the informer cache, not yet showing the preceding status
+// write) or a cached one (which may 409 on the first Patch). On conflict,
+// the retry re-reads from the cache; by then it has usually caught up.
+func (w *dockerWatcher) removeActionAnnotation(ctx context.Context, latest *containersv1alpha1.Container, observed string) error {
+	firstAttempt := true
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if !firstAttempt {
+			if err := w.k8s.Get(ctx, client.ObjectKeyFromObject(latest), latest); err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil
+				}
+				return err
+			}
+		}
+		firstAttempt = false
+		current, present := latest.Annotations[containersv1alpha1.AnnotationAction]
+		if !present || current != observed {
+			return nil
+		}
+		patch := client.MergeFromWithOptions(latest.DeepCopy(), client.MergeFromWithOptimisticLock{})
+		delete(latest.Annotations, containersv1alpha1.AnnotationAction)
+		if err := w.k8s.Patch(ctx, latest, patch); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		return nil
+	})
 }
 
 // deleteContainer removes a container from Docker. NotFound is treated

@@ -102,7 +102,9 @@ metadata:
 
 ## Containers
 
-`Container` objects reflect the running containers.
+`Container` objects reflect the running containers. The spec is empty:
+the engine owns the observed state in `status`, and the user drives the
+container through the action annotation described below.
 
 ```yaml
 apiVersion: containers.rancherdesktop.io/v1alpha1
@@ -110,8 +112,10 @@ kind: Container
 metadata:
   name: 8eb6f2cf72b6616aa743cf9187f350af84c9749dab65474db2530f26745d2ef3 # container ID
   namespace: rancher-desktop
-spec:
-  state: unknown # Desired state (see below)
+  annotations:
+    # Request a one-shot action. See "Container actions" below.
+    containers.rancherdesktop.io/action: pause
+spec: {}
 status:
   name: magical_gates
   namespace: k8s.io # Refers to a `ContainerNamespace` object
@@ -146,23 +150,29 @@ status:
     status: False
   - type: Dead
     status: False
+  # Outcome of the most recent action. Persists until the next action
+  # overwrites it, regardless of any observable state changes (e.g. a
+  # direct `docker stop`) in between. The `error` field is set only
+  # when `state` is `Failed`.
+  lastAction:
+    action: pause
+    state: Succeeded
+    observedAt: "2026-04-15T10:30:00Z"
+    completedAt: "2026-04-15T10:30:00Z"
 ```
 
-### Container state transitions
+### Container state
 
-The engine controller creates every `Container` with
-`spec.state: unknown`: the engine mirrors Docker state without
-expressing intent, and the controller takes no start/stop action.
+`status.status` always reflects the actual Docker state. The engine
+writes status on every sync and never writes the container's spec, so
+Docker's restart policy, out-of-band `docker start`, and explicit
+actions all converge through the same observed path.
 
-To drive a container from the K8s API, set `spec.state` to `running`
-or `created`. The engine controller starts or stops the underlying
-container accordingly. `status.status` always reflects the actual
-Docker state.
-
-Valid values for `spec.state`:
-- `unknown` — engine-managed; no action taken (default)
-- `running` — container should be running
-- `created` — container should be stopped
+The Container API is deliberately status-only. Early designs used a
+level-triggered `spec.state` field, but Docker's restart policy and
+direct CLI writes are concurrent writers, and a level-trigger fought
+them both. Actions are now expressed as one-shot annotations (see
+below).
 
 ### Container actions
 
@@ -210,8 +220,44 @@ An admission controller will ensure that we cannot have multiple
 `name`/`namespace` pair.
 
 #### Change container state
-Set `.spec.state` to `running` or `created`; the engine controller starts or
-stops the container.
+
+Set the `containers.rancherdesktop.io/action` annotation on the
+`Container` to request a one-shot action. The engine reconciler reads
+the annotation, dispatches the matching Docker call, records the
+outcome in `status.lastAction`, and removes the annotation.
+
+Valid values: `start`, `stop`, `pause`, `unpause`, `restart`.
+
+A single annotation holds at most one pending action. Writing a new
+value replaces the old, so a user who requests `pause` and then
+`unpause` before the reconciler has run will see only the unpause. No
+queue, no accumulating history.
+
+The engine calls Docker before patching `status.lastAction` and
+removing the annotation, so a crash mid-flight leaves the annotation
+in place and the next reconcile replays the action. Start, stop,
+pause, and unpause are idempotent against a container already in the
+target state, so replay is safe. Restart has no target state to match:
+a replay sends SIGTERM and waits the grace period a second time, which
+the controller cannot distinguish from a deliberate re-request.
+
+If the Docker call fails (for example, `pause` on a container that is
+not running), the reconciler still removes the annotation and records
+the failure in `status.lastAction`:
+
+```yaml
+status:
+  lastAction:
+    action: pause
+    state: Failed
+    error: "Error response from daemon: Container 8eb6f2 is not running"
+    observedAt: "2026-04-15T10:30:00Z"
+    completedAt: "2026-04-15T10:30:00Z"
+```
+
+The GUI is the intended caller for these actions. CLI users should
+reach for `docker start`, `docker stop`, etc. instead: the engine
+mirrors Docker state back into `status.status` either way.
 
 #### Fetch container logs
 An endpoint at `/passthrough/containers/logs` will speak WebSocket; messages are

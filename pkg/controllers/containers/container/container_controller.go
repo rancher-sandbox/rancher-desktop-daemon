@@ -78,7 +78,9 @@ func (c *controller) setupReconciler(mgr ctrl.Manager) error {
 	}).SetupWithManager(mgr)
 }
 
-// set up the container controller with a webhook which prevents all modification.
+// setupWebhookWithRuntimeConfig registers a webhook that enforces an immutable
+// spec, rejects action annotations on create, and validates action annotations
+// on update.
 func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 	mgr.GetLogger().Info("Setting up container webhook")
 	mutatingConfig := base.WebhookConfig[*v1alpha1.Container]{
@@ -86,6 +88,7 @@ func (c *controller) setupWebhookWithRuntimeConfig(mgr ctrl.Manager) error {
 		WebhookName: "container-mutating.containers.rancherdesktop.io",
 		WebhookPort: c.webhookPort,
 		Operations: []admissionregistrationv1.OperationType{
+			admissionregistrationv1.Create,
 			admissionregistrationv1.Update,
 		},
 		Validator: &immutableValidator{},

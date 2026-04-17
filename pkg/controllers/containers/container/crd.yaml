@@ -268,39 +268,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: Spec defines the desired state of Container
-            properties:
-              state:
-                allOf:
-                - enum:
-                  - created
-                  - running
-                  - pausing
-                  - paused
-                  - restarting
-                  - removing
-                  - exited
-                  - dead
-                  - unknown
-                - enum:
-                  - created
-                  - running
-                  - unknown
-                default: unknown
-                description: |-
-                  State is the desired state of the container. Valid values are
-                  "unknown", "created", and "running".
-
-                  The engine controller creates mirrors with state=unknown, which
-                  means "mirror Docker status but take no action". Setting the
-                  field to "running" or "created" expresses user intent: the
-                  reconciler dispatches ContainerStart, ContainerUnpause, or
-                  ContainerStop until the container reaches the desired state.
-                  "created" is satisfied by any non-running state (created,
-                  exited, dead).
-                type: string
-            required:
-            - state
+            description: |-
+              Spec is reserved for future use. The Container API has no
+              desired-state fields today: actions are requested via the
+              AnnotationAction annotation on metadata instead.
             type: object
           status:
             description: Status defines the observed state of Container
@@ -407,6 +378,46 @@ spec:
                   type: string
                 description: Labels are the container labels.
                 type: object
+              lastAction:
+                description: |-
+                  LastAction records the most recent action requested via the
+                  AnnotationAction annotation and its outcome. Persists after the
+                  action completes until overwritten by the next action.
+                properties:
+                  action:
+                    description: Action is the action that was requested.
+                    enum:
+                    - start
+                    - stop
+                    - pause
+                    - unpause
+                    - restart
+                    type: string
+                  completedAt:
+                    description: CompletedAt is when the action completed, regardless
+                      of outcome.
+                    format: date-time
+                    type: string
+                  error:
+                    description: Error is the error message if the action failed.
+                    type: string
+                  observedAt:
+                    description: |-
+                      ObservedAt is when the reconciler began processing the action annotation.
+                      Backlog may delay this relative to the user's write time, and dispatch
+                      (especially restart's grace period) extends the gap to CompletedAt.
+                    format: date-time
+                    type: string
+                  state:
+                    description: State is the outcome of the action.
+                    enum:
+                    - Succeeded
+                    - Failed
+                    type: string
+                required:
+                - action
+                - state
+                type: object
               name:
                 description: Name of the container; this is distinct from the container
                   ID.
@@ -488,8 +499,6 @@ spec:
             - path
             - status
             type: object
-        required:
-        - spec
         type: object
     selectableFields:
     - jsonPath: .status.namespace

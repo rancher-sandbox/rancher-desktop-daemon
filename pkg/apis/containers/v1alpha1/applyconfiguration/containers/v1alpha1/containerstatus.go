@@ -55,6 +55,10 @@ type ContainerStatusApplyConfiguration struct {
 	//
 	// The status of each condition is one of True, False, or Unknown.
 	Conditions []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
+	// LastAction records the most recent action requested via the
+	// AnnotationAction annotation and its outcome. Persists after the
+	// action completes until overwritten by the next action.
+	LastAction *ContainerLastActionApplyConfiguration `json:"lastAction,omitempty"`
 }
 
 // ContainerStatusApplyConfiguration constructs a declarative configuration of the ContainerStatus type for use with
@@ -198,5 +202,13 @@ func (b *ContainerStatusApplyConfiguration) WithConditions(values ...*metav1.Con
 		}
 		b.Conditions = append(b.Conditions, *values[i])
 	}
+	return b
+}
+
+// WithLastAction sets the LastAction field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the LastAction field is set to the value of the last call.
+func (b *ContainerStatusApplyConfiguration) WithLastAction(value *ContainerLastActionApplyConfiguration) *ContainerStatusApplyConfiguration {
+	b.LastAction = value
 	return b
 }

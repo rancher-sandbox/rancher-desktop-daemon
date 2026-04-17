@@ -74,13 +74,8 @@ func (r *containerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if namespace == "" {
 			namespace = containerNamespace
 		}
-		state := containersv1alpha1.ContainerStatusCreated
-		if inspect.State.Running {
-			state = containersv1alpha1.ContainerStatusRunning
-		}
 		applyConfig := containersv1alpha1apply.Container(inspect.ID, apiNamespace).
-			WithOwnerReferences(ownerReference).
-			WithSpec(containersv1alpha1apply.ContainerSpec().WithState(state))
+			WithOwnerReferences(ownerReference)
 
 		err := r.Client.Apply(ctx, applyConfig, client.ForceOwnership, client.FieldOwner(controllerLongName))
 		if err != nil {

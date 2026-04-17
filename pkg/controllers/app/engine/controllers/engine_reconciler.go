@@ -41,13 +41,6 @@ const (
 	// controllerName is the SSA field owner for engine-controller applies.
 	controllerName = "engine-controller"
 
-	// finalizerFieldOwner is a separate SSA field manager for
-	// finalizer-only applies. Keeping it distinct from controllerName
-	// prevents a finalizer-only apply from releasing controllerName's
-	// ownership of spec — which would prune spec and fail the CRD's
-	// required-field validation.
-	finalizerFieldOwner = controllerName + "-finalizer"
-
 	// mirrorFinalizer is added to mirror resources so user deletions
 	// are forwarded to the container engine before the resource is removed.
 	mirrorFinalizer = "engine.rancherdesktop.io/mirror"
@@ -92,7 +85,7 @@ type EngineReconciler struct {
 }
 
 // Reconcile handles App condition changes, Docker watcher lifecycle,
-// Container spec.state transitions, and finalizer processing for mirror
+// Container action annotations, and finalizer processing for mirror
 // resources.
 func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
 	log := logf.FromContext(ctx)
@@ -187,8 +180,8 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// Two passes run per Reconcile: reconcileContainerSpecs drives
-	// Docker start/stop from Container.spec.state, and
+	// Two passes run per Reconcile: reconcileContainerActions drives
+	// Docker actions from the action annotation, and
 	// processFinalizers forwards K8s-side deletes to Docker for any
 	// mirror still carrying the mirror finalizer.
 	//
@@ -196,20 +189,20 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
 	// Container/Image/Volume watch event triggers a reconcile — so
 	// cost is O(N) per child event. The long-term fix is to split
 	// these into per-resource reconcilers with watch predicates
-	// (deletionTimestamp set, spec.state changed).
+	// (deletionTimestamp set, action annotation present).
 	//
 	// Run both passes unconditionally and join their errors. Early
-	// return on specsErr would stall every mirror's finalizer behind
-	// a single stuck spec.state actuation: the next reconcile would
-	// hit the same broken container first and skip finalizers again.
-	var specsErr, finErr error
-	if err := r.reconcileContainerSpecs(ctx); err != nil {
-		specsErr = fmt.Errorf("failed to reconcile container specs: %w", err)
+	// return on actionsErr would stall every mirror's finalizer behind
+	// a single stuck container action: the next reconcile would hit
+	// the same broken container first and skip finalizers again.
+	var actionsErr, finErr error
+	if err := r.reconcileContainerActions(ctx); err != nil {
+		actionsErr = fmt.Errorf("failed to reconcile container actions: %w", err)
 	}
 	if err := r.processFinalizers(ctx); err != nil {
 		finErr = fmt.Errorf("failed to process finalizers: %w", err)
 	}
-	return ctrl.Result{}, errors.Join(specsErr, finErr)
+	return ctrl.Result{}, errors.Join(actionsErr, finErr)
 }
 
 // startWatcherAndSync creates a Docker watcher and blocks until its
@@ -358,12 +351,11 @@ func (r *EngineReconciler) deleteAllOfType(ctx context.Context, list client.Obje
 	return errors.Join(errs...)
 }
 
-// reconcileContainerSpecs handles Container spec.state changes by
-// calling Docker start/stop. Per-container errors are joined and
-// returned so controller-runtime requeues with backoff; without the
-// return, a failed start/stop would get exactly one attempt and then
-// sit forever.
-func (r *EngineReconciler) reconcileContainerSpecs(ctx context.Context) error {
+// reconcileContainerActions processes the AnnotationAction annotation on
+// every container that carries one. Per-container errors are joined and
+// returned; a patch failure requeues the reconcile so the caller retries.
+// Containers without the annotation are skipped.
+func (r *EngineReconciler) reconcileContainerActions(ctx context.Context) error {
 	r.watcherMu.Lock()
 	w := r.watcher
 	r.watcherMu.Unlock()
@@ -382,7 +374,10 @@ func (r *EngineReconciler) reconcileContainerSpecs(ctx context.Context) error {
 		if c.DeletionTimestamp != nil {
 			continue
 		}
-		if err := w.reconcileContainerState(ctx, c); err != nil {
+		if _, ok := c.Annotations[containersv1alpha1.AnnotationAction]; !ok {
+			continue
+		}
+		if err := w.processContainerAction(ctx, c); err != nil {
 			errs = append(errs, fmt.Errorf("container %s: %w", c.Name, err))
 		}
 	}
