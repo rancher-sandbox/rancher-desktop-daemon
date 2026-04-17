@@ -161,7 +161,7 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
       <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
       <tr><td>Round</td><td>1</td></tr>
       <tr><td>Author</td><td>@jandubois</td></tr>
-      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/315" class="gh-ref" data-title="app: aggregate Ready and Settled conditions, wait for Settled in `rdd set`" data-state="open" data-type="pr">#315</a> — app: aggregate Ready and Settled conditions, wait for Settled in <code>rdd set</code></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/315">#315</a> — app: aggregate Ready and Settled conditions, wait for Settled in <code>rdd set</code></td></tr>
       <tr><td>Branch</td><td><code>container-actions</code></td></tr>
       <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/52c05a7"><code>52c05a7</code></a> app: aggregate Ready and Settled conditions, wait for Settled in <code>rdd set</code></td></tr>
       <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.6, <span class="pill pill-codex">Codex</span> GPT 5.4, <span class="pill pill-gemini">Gemini</span> 3.1 Pro</td></tr>
@@ -198,12 +198,12 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		LimaTemplateData: limaTemplateData(),
+		EngineEnabled:    base.IsControllerEnabled(&quot;engine&quot;),
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}
 
-	return c.setupWebhook(mgr)
-}</code></pre>
+	return c.setupWebhook(mgr)</code></pre>
       <pre><code class="language-go">func hasRegisteredController(name string) bool {
 	for _, c := range base.GetAllControllers() {
 		if c.GetName() == name {
@@ -213,6 +213,16 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
 	return false
 }</code></pre>
     <p><code>base.GetAllControllers()</code> returns every controller whose <code>init()</code> called <code>RegisterController</code>, regardless of whether <code>--controllers</code> subsequently excluded it. The engine controller registers on all non-Windows platforms, so <code>EngineEnabled</code> is always <code>true</code> on macOS and Linux. When the service starts with <code>--controllers=app,lima</code> (or <code>*,-engine</code>), no one writes <code>ContainerEngineReady</code>. The Settled switch falls through to <code>engineCond == nil</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/pkg/controllers/app/app/controllers/app_controller.go#L440"><code>app_controller.go:440</code></a> and stays <code>False/WaitingForEngine</code> permanently.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/pkg/controllers/app/app/controllers/app_controller.go#L435-L443">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="435" data-line="440"><code class="language-go">}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&amp;v1alpha1.App{}).
+		Owns(&amp;limav1alpha1.LimaVM{}).
+		Complete(r)
+}</code></pre>
     <p>The prior code avoided this: <code>isEngineControllerEnabled</code> (removed from <code>set.go</code> in this commit) queried the discovery ConfigMap, which reflects actually-running controllers. This change regresses that capability.</p>
     <p>Fix: plumb the actual enabled-controller set from the shared controller manager startup (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/cmd/rdd/service.go#L757-L764"><code>service.go:757-764</code></a>) into <code>RegisterWithManager</code>, or query the discovery ConfigMap from the reconciler.</p>
     </div>
@@ -224,21 +234,21 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
         <span class="finding-num">S1.</span> Stale help text in <code>rdd set</code> cobra command <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#S1" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/cmd/rdd/set.go#L65-L79">cmd/rdd/set.go</a></div>
-      <pre data-start="65" data-line="70-74"><code class="language-go">	command := &amp;cobra.Command{
-		Use:   &quot;set PROPERTY=VALUE [PROPERTY=VALUE ...]&quot;,
-		Short: &quot;Set App configuration properties&quot;,
-		Long: help.Doc(`
-			Set one or more properties on the App singleton resource.
-
-			Properties are specified as PROPERTY=VALUE pairs. Property names use
-			dot notation for nested fields (e.g., containerEngine.name).
-
+      <pre data-start="65" data-line="70-74"><code class="language-go">
 			Valid property names and types are derived from the App CRD at
 			runtime. If the App resource does not exist, it is created with
 			default settings before applying the specified values.
 
-			By default, rdd set waits for the desired state: when running=true
-			is set, it waits for the container engine to be ready; when</code></pre>
+			By default, rdd set waits for the App&#39;s Settled condition
+			to reach True at the new generation. The wait covers every
+			property change and returns only after the full reconcile
+			chain catches up. Pass --wait=false to return as soon as
+			the patch is accepted, or --timeout=0 to wait indefinitely.
+
+			Examples:
+			  rdd set running=true
+			  rdd set running=true containerEngine.name=containerd
+			  rdd set kubernetes.enabled=true kubernetes.version=1.32.2</code></pre>
     <p>This help text describes the old per-property wait behavior. The implementation now waits for <code>Settled=True</code> unconditionally, and the design docs (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/docs/design/cmd_app.md#L13"><code>docs/design/cmd_app.md:13</code></a>) reflect the new behavior. The cobra help was not updated.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/docs/design/cmd_app.md#L8-L18">docs/design/cmd_app.md</a></div>
       <pre data-start="8" data-line="13"><code class="language-plaintext">
@@ -246,12 +256,12 @@ Valid property names and types are derived from the App CRD&#39;s OpenAPI schema
 
 If the App resource does not exist, it is created with default settings before the specified values are applied.
 
-By default, `rdd set` waits for the desired state before returning. The
-property-to-condition mapping is hardcoded; it is not read from the CRD
-schema:
+By default, `rdd set` waits for the reconcile chain to settle before returning. Every property change — `running`, `containerEngine.name`, `kubernetes.enabled`, or any combination — waits for the App&#39;s `Settled` condition to reach `True` with `ObservedGeneration` matching the post-patch generation.
 
-- `running=true` waits for `ContainerEngineReady=True` — the engine watcher has connected to Docker on the `moby` backend, or the condition reports `NotApplicable` on `containerd`. If the controller set excludes engine (for example, `--controllers=-engine`, or on Windows where the engine controller does not register yet because the Docker socket transport is not wired up for WSL2), the wait falls back to `Running=True`.
-- `running=false` waits for the App&#39;s `Running` condition to leave `True`, meaning the VM has actually stopped. This is stricter than &quot;container engine disconnected&quot;.</code></pre>
+`Settled` goes `False` whenever the App controller sees a generation it has not yet caught up with, and back to `True` once the LimaVM has reached a terminal phase (Started or Stopped) and the engine controller has processed the current generation.
+
+The `ObservedGeneration` filter prevents a stale `Settled=True` from a previous reconcile from prematurely satisfying the wait.
+</code></pre>
     <p>Fix: update the Long help to describe the Settled-based wait.</p>
     </div>
     <div class="card card-suggestion">
@@ -267,27 +277,25 @@ schema:
       <div class="finding-title" id="S3">
         <span class="finding-num">S3.</span> Settled message misleading for terminal error states <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/pkg/controllers/app/app/controllers/app_controller.go#L1-L20">pkg/controllers/app/app/controllers/app_controller.go</a></div>
-      <pre data-start="1" data-line="419-426"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
-// SPDX-FileCopyrightText: SUSE LLC
-// SPDX-FileCopyrightText: The Rancher Desktop Authors
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/52c05a7b6a06abff4937e9f44eae841950b100b4/pkg/controllers/app/app/controllers/app_controller.go#L414-L431">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="414" data-line="419-426"><code class="language-go">	case engineCond.Status != metav1.ConditionTrue:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = engineCond.Reason
+		settled.Message = engineCond.Message
+	default:
+		settled.Status = metav1.ConditionTrue
+		settled.Reason = &quot;Settled&quot;
+		settled.Message = &quot;App has reached the desired state&quot;
+	}
+	return settled
+}
 
-// Package controllers implements the App reconciler, which propagates the
-// desired running state to the owned LimaVM and mirrors its conditions back to
-// App status.
-package controllers
-
-import (
-	&quot;context&quot;
-	&quot;fmt&quot;
-	&quot;os&quot;
-	goruntime &quot;runtime&quot;
-	&quot;strings&quot;
-	&quot;time&quot;
-
-	corev1 &quot;k8s.io/api/core/v1&quot;
-	apierrors &quot;k8s.io/apimachinery/pkg/api/errors&quot;
-	apimeta &quot;k8s.io/apimachinery/pkg/api/meta&quot;</code></pre>
+// runningLimaVMMessage builds the Settled message when LimaVM&#39;s
+// Running reason does not match the desired state. Failure reasons
+// (ending in &quot;Failed&quot;) propagate LimaVM&#39;s diagnostic message; other
+// reasons get a concise &quot;has not yet reached &lt;desired&gt;&quot; text.
+func runningLimaVMMessage(runningCond *metav1.Condition, desired string) string {
+	if strings.HasSuffix(runningCond.Reason, &quot;Failed&quot;) &amp;&amp; runningCond.Message != &quot;&quot; {</code></pre>
     <p>When the reason is a terminal failure like <code>StartFailed</code>, the message &quot;has not yet reached Started&quot; implies progress that will not happen. The <code>Reason</code> field carries the correct signal, but <code>rdd set</code> users see only the timeout error and need to inspect the condition separately.</p>
     <p>Fix: propagate the upstream message for failure reasons:</p>
       <pre><code class="language-diff">-		settled.Message = &quot;LimaVM has not yet reached Started&quot;
