@@ -5,6 +5,8 @@
 package controllers
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -13,6 +15,16 @@ import (
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
 )
+
+// fakeDiscovery satisfies ControllerDiscovery for unit tests.
+type fakeDiscovery struct {
+	enabled []string
+	err     error
+}
+
+func (f fakeDiscovery) GetEnabledControllers(_ context.Context) ([]string, error) {
+	return f.enabled, f.err
+}
 
 func Test_computeSettledCondition(t *testing.T) {
 	t.Parallel()
@@ -123,7 +135,7 @@ func Test_computeSettledCondition(t *testing.T) {
 			engineEnabled: true,
 			wantStatus:    metav1.ConditionFalse,
 			wantReason:    "EngineStale",
-			wantMessage:   "Container engine has not yet observed this generation",
+			wantMessage:   "Container engine needs to be synchronized",
 		},
 		{
 			name: "engine not ready surfaces its reason and message",
@@ -178,6 +190,46 @@ func Test_computeSettledCondition(t *testing.T) {
 			assert.Equal(t, got.Reason, tt.wantReason)
 			assert.Equal(t, got.Message, tt.wantMessage)
 			assert.Equal(t, got.ObservedGeneration, tt.app.Generation)
+		})
+	}
+}
+
+func Test_engineEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		discovery ControllerDiscovery
+		want      bool
+	}{
+		{
+			name:      "nil discovery returns false",
+			discovery: nil,
+			want:      false,
+		},
+		{
+			name:      "engine present in discovery returns true",
+			discovery: fakeDiscovery{enabled: []string{"app", "lima", "engine"}},
+			want:      true,
+		},
+		{
+			name:      "engine absent from discovery returns false",
+			discovery: fakeDiscovery{enabled: []string{"app", "lima"}},
+			want:      false,
+		},
+		{
+			name:      "discovery error defaults to true so the wait does not return prematurely",
+			discovery: fakeDiscovery{err: errors.New("kube-apiserver unreachable")},
+			want:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := &AppReconciler{Discovery: tt.discovery}
+			assert.Equal(t, r.engineEnabled(t.Context()), tt.want)
 		})
 	}
 }

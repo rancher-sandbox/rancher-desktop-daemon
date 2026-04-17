@@ -89,7 +89,7 @@ func RunControllers(apiGroupName string) int {
 	for _, controller := range controllersToStart {
 		enabledNames = append(enabledNames, controller.GetName())
 	}
-	base.SetEnabledControllers(enabledNames)
+	base.SetInProcessControllers(enabledNames)
 
 	// Create a cancellable context for control plane monitoring
 	monitorCtx, cancelMonitor := context.WithCancel(ctx)

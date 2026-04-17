@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	goruntime "runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,6 +32,16 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
+// ControllerDiscovery enumerates controllers enabled across all controller
+// managers in this control plane. AppReconciler queries it during
+// reconciliation to decide whether Settled must wait for
+// ContainerEngineReady. The interface mirrors a small subset of
+// pkg/service/controllers.ControllerManagerDiscovery so tests can substitute
+// a fake without taking on the full dependency.
+type ControllerDiscovery interface {
+	GetEnabledControllers(ctx context.Context) ([]string, error)
+}
+
 const (
 	appName                        = "app"
 	limaVMName, inputConfigMapName = "rd", "rd"
@@ -46,13 +57,27 @@ type AppReconciler struct {
 	Scheme           *runtime.Scheme
 	LimaTemplateData string
 
-	// EngineEnabled indicates whether the engine controller runs in
-	// this process. When true, Settled waits for ContainerEngineReady
-	// before reporting True for a running app. When false, nothing
-	// writes ContainerEngineReady — for example on Windows, where
-	// engine init() skips registration, or when --controllers
-	// excludes engine at startup — so Settled ignores it.
-	EngineEnabled bool
+	// Discovery is consulted on each reconcile to determine whether the
+	// engine controller is enabled in any controller manager. When it
+	// is, Settled gates on ContainerEngineReady; when it is not, the
+	// engine condition is ignored. nil disables the engine gate, which
+	// is appropriate for unit tests that do not exercise the engine.
+	Discovery ControllerDiscovery
+}
+
+// engineEnabled reports whether ContainerEngineReady should gate Settled.
+// On discovery errors it defaults to true so the wait does not return
+// prematurely while discovery is transiently unavailable.
+func (r *AppReconciler) engineEnabled(ctx context.Context) bool {
+	if r.Discovery == nil {
+		return false
+	}
+	enabled, err := r.Discovery.GetEnabledControllers(ctx)
+	if err != nil {
+		logf.FromContext(ctx).Error(err, "Failed to query controller-manager discovery; assuming engine is enabled")
+		return true
+	}
+	return slices.Contains(enabled, v1alpha1.EngineControllerName)
 }
 
 func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, error) {
@@ -311,12 +336,13 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, nil
 	}
 
-	// Mirror LimaVM status conditions and aggregate Ready/Settled. The
-	// engine reconciler writes ContainerEngineReady on the same object,
-	// so app's resourceVersion from the initial Get can be stale.
+	// Mirror LimaVM status conditions and compute Settled. The engine
+	// reconciler writes ContainerEngineReady on the same object, so
+	// app's resourceVersion from the initial Get can be stale.
 	// retry.RetryOnConflict + re-Get matches
 	// EngineReconciler.setEngineCondition; without it, concurrent
 	// writers 409-loop through controller-runtime requeues.
+	engineEnabled := r.engineEnabled(ctx)
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		latest := &v1alpha1.App{}
 		if err := r.Get(ctx, client.ObjectKeyFromObject(&app), latest); err != nil {
@@ -335,7 +361,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 				LastTransitionTime: cond.LastTransitionTime,
 			}) || changed
 		}
-		settled := computeSettledCondition(latest, r.EngineEnabled)
+		settled := computeSettledCondition(latest, engineEnabled)
 		changed = apimeta.SetStatusCondition(&latest.Status.Conditions, settled) || changed
 		if !changed {
 			return nil
@@ -365,8 +391,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 // return before the chain stabilises.
 //
 // engineEnabled is false when no controller in this process writes
-// ContainerEngineReady (Windows, or `--controllers` excluding engine);
-// in that case the engine condition is ignored.
+// ContainerEngineReady; in that case the engine condition is ignored.
 func computeSettledCondition(app *v1alpha1.App, engineEnabled bool) metav1.Condition {
 	runningCond := apimeta.FindStatusCondition(app.Status.Conditions, v1alpha1.AppConditionRunning)
 	engineCond := apimeta.FindStatusCondition(app.Status.Conditions, v1alpha1.AppConditionContainerEngineReady)
@@ -382,10 +407,12 @@ func computeSettledCondition(app *v1alpha1.App, engineEnabled bool) metav1.Condi
 		settled.Status = metav1.ConditionFalse
 		settled.Reason = "WaitingForLimaVM"
 		settled.Message = "Waiting for LimaVM to report its state"
-	case desiredRunning && runningCond.Reason != "Started":
+	case desiredRunning && runningCond.Status != metav1.ConditionTrue:
 		settled.Status = metav1.ConditionFalse
 		settled.Reason = runningCond.Reason
 		settled.Message = runningLimaVMMessage(runningCond, "Started")
+	// Status=False covers Stopped as well as the transient Starting/Stopping
+	// reasons, so we must match the terminal Stopped reason explicitly.
 	case !desiredRunning && runningCond.Reason != "Stopped":
 		settled.Status = metav1.ConditionFalse
 		settled.Reason = runningCond.Reason
@@ -410,7 +437,7 @@ func computeSettledCondition(app *v1alpha1.App, engineEnabled bool) metav1.Condi
 	case engineCond.ObservedGeneration < app.Generation:
 		settled.Status = metav1.ConditionFalse
 		settled.Reason = "EngineStale"
-		settled.Message = "Container engine has not yet observed this generation"
+		settled.Message = "Container engine needs to be synchronized"
 	case engineCond.Status != metav1.ConditionTrue:
 		settled.Status = metav1.ConditionFalse
 		settled.Reason = engineCond.Reason

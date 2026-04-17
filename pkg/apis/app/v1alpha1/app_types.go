@@ -11,6 +11,11 @@ import (
 // AppKind is the Kind string for App resources.
 const AppKind = "App"
 
+// EngineControllerName is the registry name of the engine controller.
+// Both the engine controller's own registration and the App reconciler's
+// discovery query reference this constant so they cannot drift.
+const EngineControllerName = "engine"
+
 // App condition types.
 const (
 	// AppConditionRunning mirrors the LimaVM Running condition: True

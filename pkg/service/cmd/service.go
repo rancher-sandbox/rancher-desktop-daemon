@@ -765,11 +765,11 @@ func Run(ctx context.Context, opts options.CompletedOptions) error {
 			enabledNames = append(enabledNames, controller.GetName())
 		}
 	}
-	// Expose the enabled set to reconcilers that need to know which
-	// siblings share this process (for example, the App controller's
-	// Settled logic waits for ContainerEngineReady only when the
-	// engine controller runs here).
-	base.SetEnabledControllers(enabledNames)
+	// Expose the in-process set to reconcilers that need to know which
+	// siblings share this process. Reconcilers that need cluster-wide
+	// visibility (any controller manager, in any process) should use
+	// ControllerManagerDiscovery instead.
+	base.SetInProcessControllers(enabledNames)
 
 	// Start shared controller manager if any controllers are enabled.
 	// The WaitGroup ensures the controller manager completes shutdown

@@ -119,13 +119,15 @@ func GetAllControllers() []Controller {
 	return defaultRegistry.GetAllControllers()
 }
 
-// SetEnabledControllers records which controllers started in this
+// SetInProcessControllers records which controllers started in this
 // process after --controllers filtering. The controller-manager entry
 // point calls it once before any controller begins reconciling.
 // Reconcilers that need to know whether a sibling runs in the same
-// process should query IsControllerEnabled instead of GetAllControllers,
-// which reflects only the compile-time registry.
-func (r *Registry) SetEnabledControllers(names []string) {
+// process should query IsControllerInProcess instead of GetAllControllers,
+// which reflects only the compile-time registry. Reconcilers that need
+// cluster-wide visibility (any controller manager, in any process)
+// should consult ControllerManagerDiscovery instead.
+func (r *Registry) SetInProcessControllers(names []string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -135,16 +137,16 @@ func (r *Registry) SetEnabledControllers(names []string) {
 	}
 }
 
-// SetEnabledControllers records the enabled controllers on the global registry.
-func SetEnabledControllers(names []string) {
-	defaultRegistry.SetEnabledControllers(names)
+// SetInProcessControllers records the in-process controllers on the global registry.
+func SetInProcessControllers(names []string) {
+	defaultRegistry.SetInProcessControllers(names)
 }
 
-// IsControllerEnabled reports whether a controller with the given name
-// is running in this process. Returns false if SetEnabledControllers
+// IsControllerInProcess reports whether a controller with the given name
+// is running in this process. Returns false if SetInProcessControllers
 // has not been called, so external consumers in tests that skip
-// controller startup see a consistent "nothing enabled" view.
-func (r *Registry) IsControllerEnabled(name string) bool {
+// controller startup see a consistent "nothing in process" view.
+func (r *Registry) IsControllerInProcess(name string) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -152,9 +154,9 @@ func (r *Registry) IsControllerEnabled(name string) bool {
 	return ok
 }
 
-// IsControllerEnabled reports whether a controller is enabled in this process.
-func IsControllerEnabled(name string) bool {
-	return defaultRegistry.IsControllerEnabled(name)
+// IsControllerInProcess reports whether a controller is running in this process.
+func IsControllerInProcess(name string) bool {
+	return defaultRegistry.IsControllerInProcess(name)
 }
 
 // GetKubeConfigFromRDD returns the Kubernetes configuration by running `rdd svc config`.

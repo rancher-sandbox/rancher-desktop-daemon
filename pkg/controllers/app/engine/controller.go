@@ -29,14 +29,11 @@ func init() {
 	base.RegisterController(newController())
 }
 
-const (
-	controllerName = "engine"
-	// apiGroup is "containers" because the reconciler watches
-	// Container, Image, and Volume from that group and needs
-	// their CRDs at startup. Grouping engine with its dependencies
-	// keeps --controllers selections from splitting the two apart.
-	apiGroup = "containers"
-)
+// apiGroup is "containers" because the reconciler watches
+// Container, Image, and Volume from that group and needs
+// their CRDs at startup. Grouping engine with its dependencies
+// keeps --controllers selections from splitting the two apart.
+const apiGroup = "containers"
 
 type controller struct{}
 
@@ -47,7 +44,7 @@ func newController() base.Controller {
 var _ base.Controller = &controller{}
 
 func (c *controller) GetName() string {
-	return controllerName
+	return appv1alpha1.EngineControllerName
 }
 
 func (c *controller) GetAPIGroup() string {
