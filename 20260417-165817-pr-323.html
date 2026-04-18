@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260417-165817-pr-323</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260417-165817-pr-323</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-17 16:58</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1 (of PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/323" class="gh-ref" data-title="implement log passthrough" data-state="open" data-type="pr">#323</a>)</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/mook-as">@mook-as</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/323" class="gh-ref" data-title="implement log passthrough" data-state="open" data-type="pr">#323</a> — implement log passthrough</td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/f1e7da8"><code>f1e7da8</code></a> implement log passthrough</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.4 (effort: high), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Rework</span> &mdash; handler panics when the Docker watcher is absent (any non-moby or non-running state) and buffers the whole log session into a single WebSocket message, so live tailing does not work and the new endpoint crashes the daemon under normal lifecycle transitions.</td></tr>
+      <tr><td>Wall-clock time</td><td><code>30 min 23 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/323" class="gh-ref" data-title="implement log passthrough" data-state="open" data-type="pr">#323</a> adds a <code>PassthroughController</code> implementation on the engine controller that streams Docker container logs over a WebSocket at <code>/passthrough/engine/logs/{id}</code>. The structural scaffolding — <code>GetPassthroughEndpoints</code>, <code>GetPassthroughHandler</code>, the controller.go wiring — matches the existing mock controller, but the runtime behaviour in <code>HandleLogs</code> has two independent blockers: it dereferences <code>r.watcher</code> without taking <code>watcherMu</code> or checking for nil, so any request outside a steady &quot;running on moby&quot; window panics the daemon; and it opens a single <code>NextWriter(TextMessage)</code> and copies the entire <code>Follow</code> stream into that one message, so clients see nothing until the container exits. The underlying <code>io.ReadCloser</code> is also never closed, so every request leaks a Docker HTTP connection after the handler returns. Error-path logging is pinned at <code>V(5)</code>, which silences all diagnostics at the default verbosity. The PR is scoped to Docker only (&quot;TODO: Figure out containerd&quot;) and ships no tests for the new endpoint.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+      <div class="finding-title" id="C1">
+        <span class="finding-num">C1.</span> <code>HandleLogs</code> nil-dereferences and races on <code>r.watcher</code> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#C1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L31-L41">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="31" data-line="36"><code class="language-go">		http.Error(w, &quot;Invalid container ID&quot;, http.StatusBadRequest)
+		return
+	}
+
+	// TODO: Figure out containerd
+	reader, err := r.watcher.cli.ContainerLogs(
+		req.Context(),
+		containerID,
+		client.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,</code></pre>
+    <p><code>EngineReconciler</code> documents <code>watcherMu</code> explicitly for external readers (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/engine_reconciler.go#L78-L81"><code>engine_reconciler.go:78-81</code></a>), and every other access to <code>r.watcher</code> — <code>startWatcherAndSync</code>, <code>stopWatcher</code>, the dead-watcher sweep in <code>Reconcile</code> — takes the lock. <code>HandleLogs</code> reads <code>r.watcher</code> without the lock and without a nil check, so two independent problems follow.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/engine_reconciler.go#L73-L86">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="73" data-line="78-81"><code class="language-go">	// the lock has no other role.
+	watcherMu sync.Mutex
+	watcher   *dockerWatcher
+
+	// watcherCtx is the parent context for every Docker watcher the
+	// reconciler starts. A manager.RunnableFunc cancels it on
+	// shutdown, so the watcher outlives individual Reconcile calls
+	// but not the manager. Deriving from Reconcile&#39;s ctx would leak
+	// the Docker client: once the manager context cancels, Reconcile
+	// no longer runs, and stopWatcher is unreachable from that path.
+	watcherCtx    context.Context
+	watcherCancel context.CancelFunc
+}
+</code></pre>
+    <p>First, the nil dereference. <code>r.watcher</code> is nil at startup, whenever <code>App.status.Running != True</code>, whenever <code>App.spec.containerEngine.name != &quot;moby&quot;</code> (the reconciler&#39;s own <code>wantWatcher = running &amp;&amp; engineIsDocker</code> gate at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/engine_reconciler.go#L136"><code>engine_reconciler.go:136</code></a>), and after any Docker disconnect (line 121 clears it). Discovery advertises the passthrough endpoint unconditionally, and the guard in <code>GetPassthroughHandler</code> only covers the window before <code>c.reconciler</code> is installed. A request that arrives in any of those normal states panics the HTTP goroutine. <code>http.Server</code> recovers the panic for that one request, but the same panic path is reachable from RDD&#39;s own UI and from local CLI callers — a trivial crash trigger for any endpoint consumer.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/engine_reconciler.go#L131-L141">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="131" data-line="136"><code class="language-go">		if watcherRunning {
+			log.Info(&quot;Stopping Docker watcher&quot;,
+				&quot;running&quot;, running, &quot;engine&quot;, app.Spec.ContainerEngine.Name)
+			r.stopWatcher()
+		}
+		terminalReason := &quot;Stopped&quot;
+		terminalStatus := metav1.ConditionFalse
+		terminalMessage := &quot;Container engine stopped&quot;
+		if running &amp;&amp; !engineIsDocker {
+			// Report NotApplicable as Status=True so `rdd set
+			// running=true containerEngine.name=containerd` stops</code></pre>
+    <p>Second, the data race. Even when <code>r.watcher</code> is non-nil at the moment of the read, <code>HandleLogs</code> races with <code>Reconcile</code>/<code>stopWatcher</code> writing <code>r.watcher</code>. <code>go test -race</code> will flag this immediately. Under the Go memory model the read is undefined behaviour: the handler may observe a torn pointer, or use a watcher whose <code>cli</code> was already closed by <code>run</code>&#39;s deferred <code>w.cli.Close()</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/docker_watcher.go#L158"><code>docker_watcher.go:158</code></a>).</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/docker_watcher.go#L153-L163">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="153" data-line="158"><code class="language-go">	//
+	// The order matters: if enqueueReconcile ran before w.done closed,
+	// the reconciler could wake, see alive()==true on the about-to-exit
+	// goroutine, and skip the restart. Closing cli between done and
+	// enqueue means the reconciler observes the dead watcher only
+	// after its client has been released.
+	defer w.enqueueReconcile()
+	defer w.cli.Close()
+	defer close(w.done)
+	// Keep a bad event shape from crashing the whole app-controller.
+	defer func() {</code></pre>
+    <p>Fix: snapshot the watcher under the mutex and return 503 when it is absent.</p>
+      <pre><code class="language-go">r.watcherMu.Lock()
+watcher := r.watcher
+r.watcherMu.Unlock()
+if watcher == nil {
+    http.Error(w, &quot;Container engine not ready&quot;, http.StatusServiceUnavailable)
+    return
+}
+reader, err := watcher.cli.ContainerLogs(...)</code></pre>
+    <p>A <code>withClient(func(*client.Client) error)</code> helper on <code>EngineReconciler</code> would lock, nil-check, and invoke the closure in one place — keeping the invariant enforced where the rest of the file already enforces it, and preventing the next passthrough endpoint (exec, stats, non-follow logs) from re-introducing the same bug.</p>
+    </div>
+    <div class="card card-critical">
+      <div class="finding-title" id="C2">
+        <span class="finding-num">C2.</span> Single WebSocket message prevents live log streaming <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#C2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L70-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="70" data-line="75-82"><code class="language-go">		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	writer, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer writer.Close()
+
+	_, err = stdcopy.StdCopy(writer, writer, reader)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
+		// At this point we already sent the data, so we can&#39;t send HTTP status.
+	}
+}</code></pre>
+    <p><code>conn.NextWriter</code> returns an <code>io.WriteCloser</code> that represents a <em>single</em> WebSocket message. <code>StdCopy</code> loops over the <code>Follow: true</code> Docker log stream, writing to that one writer for the entire session. Gorilla&#39;s internal frame buffer flushes when it fills (default 4 KiB), but the message&#39;s FIN bit is not set until <code>writer.Close()</code> runs — which does not happen until <code>StdCopy</code> returns, i.e. until the container exits. A strict WebSocket client (browser <code>WebSocket</code> API, anything that reassembles a complete message before delivery) will see nothing until then; a low-volume log trickles out in partial-frame bursts of up to 4 KiB, none of them terminated.</p>
+    <p>This also breaks the contract documented in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/docs/design/api_containers.md#L217-L218"><code>docs/design/api_containers.md:217-218</code></a> (&quot;messages are one way, text only, with each line being one message&quot;) and diverges from the mock at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/mock/logs_passthrough.go#L65-L67"><code>pkg/controllers/mock/logs_passthrough.go:65-67</code></a>, which sends one <code>WriteMessage</code> per line — so the mock-backed BATS coverage passes while the real implementation does not stream.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/docs/design/api_containers.md#L212-L223">docs/design/api_containers.md</a></div>
+      <pre data-start="212" data-line="217-218"><code class="language-plaintext">    status: False
+```
+
+If `.spec.namespace` / `.spec.name` duplicates an existing container, a
+`CreateFailed` status is set with some details.
+
+An admission controller will ensure that we cannot have multiple
+`ContainerRequest` objects at the same time for the same containerd
+`name`/`namespace` pair.
+
+#### Change container state
+</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/mock/logs_passthrough.go#L60-L72">pkg/controllers/mock/logs_passthrough.go</a></div>
+      <pre data-start="60" data-line="65-67"><code class="language-go">		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	// Write a message per line to simulate the real logs better.
+	write := func(line string) error {
+		err := conn.WriteMessage(websocket.TextMessage, []byte(line))
+		if err != nil {
+			log.V(5).Info(&quot;Failed to write WebSocket message&quot;, &quot;error&quot;, err)
+		}
+		return err
+	}</code></pre>
+    <p>A secondary problem compounds it: <code>TextMessage</code> requires valid UTF-8, but Docker container stdout is routinely non-UTF-8 (binary output, <code>ls --color=always</code>, NUL bytes, non-UTF-8 locales). A strict client errors on the first non-UTF-8 payload.</p>
+    <p>Fix: emit each chunk as a discrete <code>BinaryMessage</code> instead of reusing one <code>NextWriter</code>.</p>
+      <pre><code class="language-go">type wsWriter struct{ conn *websocket.Conn }
+
+func (w *wsWriter) Write(p []byte) (int, error) {
+    if err := w.conn.WriteMessage(websocket.BinaryMessage, p); err != nil {
+        return 0, err
+    }
+    return len(p), nil
+}
+
+_, err = stdcopy.StdCopy(&amp;wsWriter{conn}, &amp;wsWriter{conn}, reader)</code></pre>
+    <p>A line-buffering variant keeps the <code>TextMessage</code>+one-line-per-message shape the docs describe; the important property is one message per chunk, not per entire session.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Docker log reader and WebSocket goroutine leak on client disconnect <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L31-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="31" data-line="36-86"><code class="language-go">		http.Error(w, &quot;Invalid container ID&quot;, http.StatusBadRequest)
+		return
+	}
+
+	// TODO: Figure out containerd
+	reader, err := r.watcher.cli.ContainerLogs(
+		req.Context(),
+		containerID,
+		client.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+		},
+	)
+	if err != nil {
+		switch {
+		case errdefs.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
+			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)
+		case errdefs.IsInvalidArgument(err):
+			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
+		default:
+			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to upgrade to WebSocket&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer conn.Close()
+	defer func() {
+		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	writer, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer writer.Close()
+
+	_, err = stdcopy.StdCopy(writer, writer, reader)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
+		// At this point we already sent the data, so we can&#39;t send HTTP status.
+	}
+}</code></pre>
+    <p>The moby client&#39;s <code>ContainerLogs</code> contract states the caller must close the returned <code>io.ReadCloser</code>, but <code>HandleLogs</code> never calls <code>reader.Close()</code> — not on the Upgrade-failure path (lines 61-64) and not on the normal-return path. Once <code>upgrader.Upgrade</code> hijacks the connection, <code>http.Server</code> no longer cancels <code>req.Context()</code> when the remote TCP connection drops, so a client that drops the socket does not cancel the Docker request either, and the response body stays open until the Docker daemon evicts it.</p>
+    <p>Gorilla WebSocket additionally requires the server to run a concurrent <code>conn.ReadMessage()</code> loop to observe client-sent close frames. <code>HandleLogs</code> only writes, so on a clean client close frame <code>StdCopy</code> blocks forever on <code>reader.Read</code> for an idle container — a permanent goroutine + Docker-connection leak per request.</p>
+    <p>Fix: derive a cancellable context, defer <code>reader.Close()</code> right after the error check, and run a reader goroutine to convert WebSocket closure into context cancellation.</p>
+      <pre><code class="language-go">ctx, cancel := context.WithCancel(req.Context())
+defer cancel()
+
+reader, err := watcher.cli.ContainerLogs(ctx, ...)
+if err != nil { ... return }
+defer reader.Close()
+
+conn, err := upgrader.Upgrade(w, req, nil)
+if err != nil { ... return }
+defer conn.Close()
+
+go func() {
+    defer cancel()
+    for {
+        if _, _, err := conn.ReadMessage(); err != nil {
+            return
+        }
+    }
+}()</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> <code>log.V(5)</code> silences every error diagnostic <span class="pill pill-claude">Claude</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L43-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="43" data-line="48-85"><code class="language-go">		},
+	)
+	if err != nil {
+		switch {
+		case errdefs.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
+			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)
+		case errdefs.IsInvalidArgument(err):
+			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
+		default:
+			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to upgrade to WebSocket&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer conn.Close()
+	defer func() {
+		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	writer, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer writer.Close()
+
+	_, err = stdcopy.StdCopy(writer, writer, reader)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
+		// At this point we already sent the data, so we can&#39;t send HTTP status.
+	}
+}</code></pre>
+    <p>Every error branch logs at <code>V(5)</code>, which requires <code>-v=5</code>/<code>RDD_LOG_LEVEL=trace</code> to surface. RDD runs at <code>v=0</code> by default, so &quot;container not found&quot;, Docker 5xx passthrough, WebSocket upgrade failures, and the post-upgrade copy failure are all invisible in <code>rdd.stderr.log</code>. The post-upgrade paths are the only channels where the client does not already see an HTTP body (once the connection is hijacked, <code>http.Error</code> cannot run), so a &quot;logs stopped streaming&quot; report has no server-side breadcrumb to investigate.</p>
+    <p>Keep <code>V(5)</code> for client-input validation (&quot;Invalid container ID&quot;), but raise the rest to <code>log.Error</code> / <code>log.Info</code>:</p>
+      <pre><code class="language-go">log.Error(err, &quot;Failed to get container logs&quot;, &quot;container&quot;, containerID)
+http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)</code></pre>
+    <p>The mock controller uses the same <code>V(5)</code> pattern, but it exists to not spam the test fixture; the real engine path deserves diagnosable failures.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I3">
+        <span class="finding-num">I3.</span> <code>GetPassthroughEndpoints</code> returns map keys in random order <span class="pill pill-gemini">Gemini</span><a href="#I3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controller.go#L1-L20">pkg/controllers/app/engine/controller.go</a></div>
+      <pre data-start="1" data-line="76-78"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: SUSE LLC
+// SPDX-FileCopyrightText: The Rancher Desktop Authors
+
+// Package engine registers the engine controller. The engine controller
+// mirrors Docker container engine state (containers, images, volumes)
+// into `Container`, `Image`, and `Volume` resources in the
+// containers.rancherdesktop.io API group, and forwards user-initiated
+// deletions back to the Docker engine.
+package engine
+
+import (
+	&quot;runtime&quot;
+
+	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
+
+	appv1alpha1 &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1&quot;
+	containersv1alpha1 &quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1&quot;
+	&quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/engine/controllers&quot;
+	&quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base&quot;</code></pre>
+    <p>Go randomises map iteration, and <code>slices.Collect</code> preserves that order. The result feeds <code>EnabledPassthroughs</code> in the discovery ConfigMap (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/service/controllers/manager.go#L331-L337"><code>manager.go:331-337</code></a>, <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/service/controllers/manager.go#L346"><code>manager.go:346</code></a>). Today the map has one key so the order is stable by accident; as soon as a second endpoint (exec, stats) is added, the serialised JSON will shuffle on every restart and produce spurious SSA updates on the discovery ConfigMap, which in turn wakes every watcher downstream. This is a latent, one-line fix now; after the second endpoint it becomes a noisy observable.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/service/controllers/manager.go#L326-L351">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="326" data-line="331-346"><code class="language-go">// registerDiscovery registers the controller manager information in the cluster.
+func (scm *SharedControllerManager) registerDiscovery(ctx context.Context) error {
+	// Get controller names, filtering out builtin controllers.
+	// Builtin controllers are internal system controllers and should not be registered in discovery.
+	var controllerNames []string
+	passthroughEndpoints := make(map[string][]string)
+	for _, registration := range scm.registrations {
+		if registration.GetAPIGroup() != &quot;builtin&quot; {
+			controllerNames = append(controllerNames, registration.GetName())
+		}
+		if httpController, ok := registration.(base.PassthroughController); ok {
+			passthroughEndpoints[registration.GetName()] = httpController.GetPassthroughEndpoints()
+		}
+	}
+
+	return scm.discovery.RegisterControllerManager(ctx, ControllerManagerInput{
+		HealthPort:          scm.healthPort,
+		MetricsPort:         scm.metricsPort,
+		PassthroughPort:     scm.passthroughPort,
+		EnabledControllers:  controllerNames,
+		EnabledPassthroughs: passthroughEndpoints,
+	})
+}
+
+// installControllerCRDs installs all controller CRDs in parallel for better performance.
+func (scm *SharedControllerManager) installControllerCRDs(ctx context.Context) error {</code></pre>
+      <pre><code class="language-go">func (c *controller) GetPassthroughEndpoints() []string {
+    keys := slices.Collect(maps.Keys(c.passthroughs))
+    slices.Sort(keys)
+    return keys
+}</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I4">
+        <span class="finding-num">I4.</span> Design doc advertises the wrong URL and the wrong message shape <span class="pill pill-codex">Codex</span><a href="#I4" class="pilcrow">&#182;</a>
+      </div>
+    <p>The design doc says:</p>
+    <p>&gt; An endpoint at <code>/passthrough/containers/logs</code> will speak WebSocket; messages are one way, text only, with each line being one message.</p>
+    <p>Two mismatches with the PR: (a) the controller registers under its name <code>engine</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/app/controller.go#L64-L65"><code>controller.go:64-65</code></a>), and the passthrough server mounts each endpoint at <code>/{controller}/{endpoint}</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/service/controllers/manager.go#L475-L478"><code>manager.go:475-478</code></a>), so the actual route is <code>/passthrough/engine/logs</code>, not <code>/passthrough/containers/logs</code>. Any consumer built from the doc will hit 404. (b) &quot;one message per line&quot; is the behaviour of the mock, not of the new Docker implementation (see C2). Once C2 is fixed, the message-shape sentence will be accurate again for <code>TextMessage</code>; the URL line needs updating regardless.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/app/controller.go#L59-L70">pkg/controllers/app/app/controller.go</a></div>
+      <pre data-start="59" data-line="64-65"><code class="language-go">//go:embed crd.yaml
+var appCRD string
+
+const (
+	// appValidatorWebhookName is the name used for the App validating webhook.
+	appValidatorWebhookName = &quot;app-validator.app.rancherdesktop.io&quot;
+	// appValidatorConfigName is the name of the App ValidatingWebhookConfiguration.
+	appValidatorConfigName = &quot;app-validator&quot;
+)
+
+// controller implements the base.Controller interface for app.
+type controller struct {</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/service/controllers/manager.go#L470-L483">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="470" data-line="475-478"><code class="language-go">	for _, registration := range scm.registrations {
+		if httpController, ok := registration.(base.PassthroughController); ok {
+			hasPassthroughServers = true
+			for _, endpoint := range httpController.GetPassthroughEndpoints() {
+				handler := httpController.GetPassthroughHandler(endpoint)
+				prefix := fmt.Sprintf(&quot;/%s/%s&quot;, registration.GetName(), endpoint)
+				log.V(2).Info(&quot;Registering passthrough endpoint&quot;,
+					&quot;controller&quot;, registration.GetName(), &quot;endpoint&quot;, prefix)
+				mux.Handle(prefix+&quot;/&quot;, http.StripPrefix(prefix, handler))
+			}
+		}
+	}
+
+	if !hasPassthroughServers {</code></pre>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> Use <code>BinaryMessage</code> for Docker log frames <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L70-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="70" data-line="75-82"><code class="language-go">		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	writer, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer writer.Close()
+
+	_, err = stdcopy.StdCopy(writer, writer, reader)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
+		// At this point we already sent the data, so we can&#39;t send HTTP status.
+	}
+}</code></pre>
+    <p><code>stdcopy.StdCopy</code> forwards the raw stdout/stderr bytes verbatim. Container stdout is frequently non-UTF-8 (binary output, <code>ls --color=always</code>, NUL bytes). The WebSocket spec requires <code>TextMessage</code> frames to be valid UTF-8, so a strict client will fail on the first non-UTF-8 payload. Covered implicitly by C2&#39;s proposed fix, but callable as a standalone fix if C2&#39;s framing is deferred.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> <code>stdcopy.StdCopy(writer, writer, reader)</code> merges stdout and stderr <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+    <p>Passing the same writer for stdout and stderr strips the one structural signal Docker&#39;s multiplexed stream carries. Clients that colour stderr or tag it in the UI lose that affordance. Cheaper alternatives: forward the raw multiplexed reader to the client as <code>BinaryMessage</code> and let the client demux with <code>stdcopy</code>; or wrap each message in a small envelope (<code>{&quot;stream&quot;:&quot;stdout&quot;,&quot;data&quot;:&quot;...&quot;}</code> or a leading <code>STREAM_TYPE</code> byte). Worth deciding before a consumer depends on the merged shape.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> Duplicate container-ID regex and path parser with the mock controller <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L16-L26">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="16" data-line="21"><code class="language-go">	&quot;github.com/moby/moby/client&quot;
+
+	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
+)
+
+var containerIDValidator = regexp.MustCompile(`^[0-9a-fA-F]+$`)
+
+// HandleLogs implements the log endpoint to pass through container logs.
+func (r *EngineReconciler) HandleLogs(w http.ResponseWriter, req *http.Request) {
+	log := ctrl.LoggerFrom(req.Context())
+	containerID, _, _ := strings.Cut(strings.TrimLeft(req.URL.Path, &quot;/&quot;), &quot;/&quot;)</code></pre>
+    <p><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/mock/logs_passthrough.go#L24"><code>pkg/controllers/mock/logs_passthrough.go:24</code></a> declares the identical regex, and both handlers use the same <code>strings.Cut(strings.TrimLeft(req.URL.Path, &quot;/&quot;), &quot;/&quot;)</code> to extract the ID. A small helper in <code>pkg/controllers/base</code> (or a new <code>pkg/controllers/passthrough</code>) centralises the rule — important the first time we decide, e.g., to allow truncated IDs or names, so the decision is one edit.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/mock/logs_passthrough.go#L19-L29">pkg/controllers/mock/logs_passthrough.go</a></div>
+      <pre data-start="19" data-line="24"><code class="language-go">	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
+
+	&quot;github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/containers/v1alpha1&quot;
+)
+
+var containerIDValidator = regexp.MustCompile(`^[0-9a-fA-F]+$`)
+
+// handleLogs is the handler for the `/passthrough/mock/logs/{container}`
+// endpoint.  It exists for providing fake logs for testing and screenshots.
+func (c *controller) handleLogs(w http.ResponseWriter, r *http.Request) {
+	log := ctrl.LoggerFrom(r.Context())</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> No tests for the new endpoint <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+    <p>No unit or BATS coverage lands with this PR. Minimum set:</p>
+    <ol>
+      <li>Unit test against a bare <code>EngineReconciler{}</code> (watcher nil) asserting 503 once C1 is fixed — pins the nil-watcher contract.</li>
+      <li>Unit test with an invalid container ID asserting 400 without touching the watcher — pins the regex.</li>
+      <li>BATS integration in <code>bats/tests/32-app/</code> that boots a container, opens the endpoint, and asserts expected log bytes arrive on the WebSocket. This is the only coverage that catches C2 (session-buffering), I1 (goroutine growth under repeated open/close), and the mock/real divergence in frame shape.</li>
+    </ol>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>ContainerLogsOptions.Tail</code> unset replays full history on every open <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L34-L48">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="34" data-line="39-43"><code class="language-go">
+	// TODO: Figure out containerd
+	reader, err := r.watcher.cli.ContainerLogs(
+		req.Context(),
+		containerID,
+		client.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+		},
+	)
+	if err != nil {
+		switch {
+		case errdefs.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)</code></pre>
+    <p><code>Tail</code> defaulting to &quot;all&quot; means a container with a gigabyte of history dumps the whole log over the WebSocket before catching up. Accepting <code>tail</code>/<code>since</code>/<code>timestamps</code> from the query string with sensible defaults (e.g. <code>tail=1000</code>) matches Docker CLI conventions and costs ~15 lines. Fine to defer, but a TODO comment next to <code>// TODO: Figure out containerd</code> would pin it.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> <code>HandleLogs</code> docstring omits the path shape and framing <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L18-L28">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="18" data-line="23"><code class="language-go">	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
+)
+
+var containerIDValidator = regexp.MustCompile(`^[0-9a-fA-F]+$`)
+
+// HandleLogs implements the log endpoint to pass through container logs.
+func (r *EngineReconciler) HandleLogs(w http.ResponseWriter, req *http.Request) {
+	log := ctrl.LoggerFrom(req.Context())
+	containerID, _, _ := strings.Cut(strings.TrimLeft(req.URL.Path, &quot;/&quot;), &quot;/&quot;)
+	log.Info(&quot;Handling logs for container&quot;, &quot;containerID&quot;, containerID)
+</code></pre>
+    <p>The mock&#39;s handler docstring names the path shape (<code>/passthrough/mock/logs/{container}</code>) — the production handler should be at least as explicit about URL shape, expected container-ID form (hex only, names rejected), WebSocket upgrade, and the frame type clients must accept.</p>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Docker client ownership is shared but only the watcher&#39;s lifetime rules are documented</strong> <em>(in-scope)</em> <span class="pill pill-claude">Claude</span>. <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/docker_watcher.go#L141-L156"><code>docker_watcher.go:141-156</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/engine_reconciler.go#L83-L92"><code>engine_reconciler.go:83-92</code></a> are explicit that the watcher&#39;s <code>run</code> goroutine closes <code>cli</code> in its own deferred cleanup, and that <code>stopWatcher</code> relies on that. Adding a second consumer (<code>HandleLogs</code>) that does not go through <code>watcherMu</code> silently breaks the invariant &quot;once a caller observes <code>alive()==false</code>, the client is released.&quot; The next passthrough endpoint (exec, stats, non-follow logs) will re-introduce the same hazard unless the contract is held in one place — a <code>withClient(func(*client.Client) error)</code> method on <code>EngineReconciler</code> would lock, nil-check, and invoke in one spot.</li>
+      <li><strong>Stream-type information is discarded</strong> <em>(in-scope)</em> <span class="pill pill-gemini">Gemini</span>. Using the same writer for <code>stdcopy.StdCopy</code>&#39;s stdout/stderr outputs merges the streams. If a future UI wants to colour stderr or tag log lines, the demux signal is already gone. See S2 for concrete options.</li>
+      <li><strong>Every passthrough controller repeats boilerplate</strong> <em>(future)</em> <span class="pill pill-claude">Claude</span>. <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controller.go#L44-L87"><code>engine/controller.go:44-87</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/mock/mock_controller.go#L43-L86"><code>mock/mock_controller.go:43-86</code></a> declare the same <code>passthroughs map[string]http.Handler</code>, the same <code>slices.Collect(maps.Keys(...))</code>, the same trivial <code>Get*</code> accessors, and the same &quot;controller not ready&quot; guard. A helper in <code>pkg/controllers/base</code> that takes a <code>map[string]http.Handler</code> and returns a <code>PassthroughController</code> would collapse both implementations to one call and centralise the readiness check (and fix I3 in one place).</li>
+    </ul>
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Apigroup grouping preserved</strong> <span class="pill pill-claude">Claude</span>. Keeping <code>apiGroup = &quot;containers&quot;</code> (per the existing comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/app/controller.go#L37-L41"><code>controller.go:37-41</code></a>) correctly extends the discovery grouping to the new endpoint so <code>--controllers</code> selections still pull the CRDs and the passthrough together.</li>
+      <li><strong>503 guard before reconciler install</strong> <span class="pill pill-claude">Claude</span>. <code>GetPassthroughHandler</code> returning a 503 when <code>c.reconciler == nil</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/app/controller.go#L81-L85"><code>controller.go:81-85</code></a>) is a nice belt-and-braces against a caller that obtained a handler before <code>RegisterWithManager</code> ran. It does not cover C1, but it is the right shape for the watcher-level guard too.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>No unit or BATS tests are added. All three agents flagged this. Ranked by risk:</p>
+    <ol>
+      <li><strong>Nil-watcher path (C1)</strong> — a unit test on <code>EngineReconciler{}</code> asserting 503 pins the contract and blocks the regression from returning.</li>
+      <li><strong>WebSocket happy path (C2, I1, S1)</strong> — a BATS integration that opens the endpoint against a real container is the only way to catch session-buffering, text/binary framing, and per-request goroutine leaks.</li>
+      <li><strong>Error branches</strong> — recorder-backed fake asserting 400 on <code>InvalidArgument</code> and 404 on <code>NotFound</code>, and checking that nothing is logged at <code>v=0</code> today (i.e. the I2 regression guard once I2 is fixed).</li>
+    </ol>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><strong>URL path wrong in design doc</strong> (I4) — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/docs/design/api_containers.md#L217-L218"><code>docs/design/api_containers.md:217-218</code></a> still says <code>/passthrough/containers/logs</code>. Actual path is <code>/passthrough/engine/logs</code>.</li>
+      <li><strong>Package doc stale</strong> <span class="pill pill-claude">Claude</span> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controller.go#L5-L9"><code>pkg/controllers/app/engine/controller.go:5-9</code></a> still describes the engine package as mirroring engine state and forwarding deletions; it does not mention the new passthrough responsibility. One sentence (&quot;…and serves <code>/passthrough/engine/logs</code> for tailing container logs&quot;) keeps it honest.</li>
+      <li><em></em><code>HandleLogs</code> docstring<em></em> (S6) — one-liner, no path shape, no framing, no auth scope.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Single commit, single concept, message matches intent. No issues.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><strong>Containerd not handled</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L35"><code>container_passthrough.go:35</code></a> &quot;// TODO: Figure out containerd&quot;. The PR description scopes the work to Docker only. All three agents noted this is expected and does not affect the severity of the other findings.</li>
+      <li><strong>Post-upgrade error path cannot respond</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/f1e7da8f936be2fcbbf30ed8419a77818720f7ef/pkg/controllers/app/engine/controllers/container_passthrough.go#L85"><code>container_passthrough.go:85</code></a> &quot;// At this point we already sent the data, so we can&#39;t send HTTP status.&quot; Correctly acknowledges the hijacked-connection constraint; relevant to I2&#39;s fix (must log, because the client cannot see the error in HTTP).</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>None. No PR review comments on round 1.</p>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Delivered the most complete single review: caught C1 with the sharpest framing (both nil panic <em>and</em> data race, with specific reference sites), owned I1 (reader leak), and was the only agent to flag I2 (<code>V(5)</code> silences diagnostics) — a finding that requires domain knowledge of RDD&#39;s default logger verbosity. Produced six suggestions spanning framing, duplication, ergonomics, history replay, and documentation. Missed C2 as a top-line critical; did note the <code>TextMessage</code> UTF-8 issue as S1 but did not identify the single-message buffering problem behind it, which is the dominant bug in the streaming path.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Tight, verdict-focused review with only the two highest-impact findings. Landed C2 with the clearest mechanism (NextWriter&#39;s FIN bit, contract mismatch with the design doc and the mock implementation) and independently confirmed I1&#39;s nil-watcher hazard by tracing every site that clears <code>r.watcher</code>. Uniquely caught the design-doc URL mismatch (I4), which neither of the other agents surfaced. Rated the nil-watcher issue Important where Claude and Gemini rated it Critical — the consolidation keeps the higher severity because a panic on any non-moby or stopped state is a shipped crash path, not a theoretical race.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Three criticals, one important. Got C1 and C2 directly, and was the only agent to surface I3 (map-iteration-randomised passthrough list) — a latent one-line fix that would otherwise land as a flaky CI symptom after a second endpoint arrives. Its C3 (goroutine leak / missing <code>ReadMessage</code> loop) strengthened Claude&#39;s narrower reader-close finding; consolidated as I1 with Gemini&#39;s concurrent-reader framing. Fewest suggestions of the three; no S-level findings at all. Did not run <code>git blame</code> (per the known daily-quota gap), so pre-existing-vs-regression calls come from Claude and Codex.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.7</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>18m 27s</td><td>5m 52s</td><td>4m 07s</td></tr>
+        <tr><td>Findings</td><td>1C 2I 6S</td><td>2C 1I</td><td>2C 2I</td></tr>
+        <tr><td>Tool calls</td><td>22 (Read 11, Grep 6, Bash 5)</td><td>47 (shell 44, stdin 3)</td><td>26 (grep<em>search 10, read</em>file 7, run<em>shell</em>command 7)</td></tr>
+        <tr><td>Design observations</td><td>4</td><td>0</td><td>1</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>2</td><td>1</td><td>1</td></tr>
+        <tr><td>Files reviewed</td><td>2</td><td>2</td><td>2</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>1C 2I 6S</strong></td><td><strong>2C 1I</strong></td><td><strong>2C 2I</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>1 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Reconciliation.</strong> Codex P1 nil-watcher panic: important → <strong>critical</strong> (consolidated into C1; a production-path nil panic is a shipped crash, not a theoretical race). Gemini P1 goroutine leak on client disconnect: critical → <strong>important</strong> (consolidated into I1; reader-close is a clear leak, but the full hang only occurs on a clean client-close with an idle container — the more common torn-TCP case still unwinds via failed writes, so &quot;important&quot; fits the observed blast radius).</p>
+    <p>Overall, Codex and Gemini converged on the two blockers (C1, C2) with independent reasoning, which made the consolidated verdict easy to defend. Claude carried most of the long tail — the reader leak, the logging level, the streaming-style suggestions, the shared-pattern cleanup — and caught the most design observations. Each agent contributed at least one finding the others missed (Claude: I2; Codex: I4; Gemini: I3).</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="skill-improvements">Skill improvements <a href="#skill-improvements" class="pilcrow">&#182;</a></h3>
+    <p>None this round — every finding was within existing dimensions.</p>
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <p>None this round.</p>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
