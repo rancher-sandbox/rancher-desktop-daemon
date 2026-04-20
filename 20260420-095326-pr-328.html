@@ -208,30 +208,30 @@ func deleteDockerContext(name string) error {
 	if err != nil {
 		return err
 	}
-	if err := s.Remove(name); err != nil &amp;&amp; !errdefs.IsNotFound(err) {
-		return err
-	}
-	return nil
+	return s.Remove(name)
 }
 
 // getDockerContextHost returns the full Docker host URL (e.g. &quot;unix:///path/to/docker.sock&quot;
 // or &quot;tcp://192.168.1.1:2376&quot;) for the named context&#39;s docker endpoint.
 // Returns an empty string if the context does not exist or has no docker endpoint.
-func getDockerContextHost(name string) (string, error) {</code></pre>
+func getDockerContextHost(name string) (string, error) {
+	s, err := newContextStore()
+	if err != nil {
+		return &quot;&quot;, err</code></pre>
     <p><code>store.ContextStore.Remove</code> calls <code>metadataStore.remove</code> and <code>tlsStore.remove</code>; both wrap <code>os.RemoveAll</code>, which returns nil when the path is absent. The non-nil wrappers (<code>fmt.Errorf(&quot;failed to remove metadata: %w&quot;, err)</code> and <code>failed to remove TLS data</code>) carry no <code>notFound</code> interface, so <code>errdefs.IsNotFound</code> cannot match.</p>
     <p>I verified this against <code>cli@v29.2.0+incompatible/cli/context/store/{store.go:140-150,metadatastore.go:99-104,tlsstore.go:49-54}</code>. The &quot;second delete is a no-op&quot; assertion in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context_test.go#L68"><code>docker_context_test.go:68</code></a> passes because <code>Remove</code> returns nil unconditionally for a missing context, not because the guard fires.</p>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context_test.go#L63-L73">pkg/controllers/app/engine/controllers/docker_context_test.go</a></div>
-      <pre data-start="63" data-line="68"><code class="language-go">	host, err = getDockerContextHost(&quot;rancher-desktop-2&quot;)
+      <pre data-start="63" data-line="68"><code class="language-go">	override := t.TempDir()
+	t.Setenv(&quot;DOCKER_CONFIG&quot;, override)
+
+	dir, err := dockerConfigDir()
 	assert.NilError(t, err)
-	assert.Equal(t, host, &quot;&quot;)
+	assert.Equal(t, dir, override)
 
-	// Second delete is a no-op.
-	assert.NilError(t, deleteDockerContext(&quot;rancher-desktop-2&quot;))
-}
-
-func Test_currentDockerContext(t *testing.T) {
-	configFile := newDockerTestDir(t)
-</code></pre>
+	// Context files land under DOCKER_CONFIG, not HOME/.docker.
+	assert.NilError(t, createReplaceDockerContext(&quot;rancher-desktop-2&quot;, &quot;/tmp/docker.sock&quot;))
+	_, err = os.Stat(filepath.Join(override, &quot;contexts&quot;))
+	assert.NilError(t, err, &quot;contexts/ must exist under DOCKER_CONFIG&quot;)</code></pre>
     <p>Fix: drop the guard, or attach a one-line comment explaining the intent is defensive against a future upstream change.</p>
       <pre><code class="language-diff">-    if err := s.Remove(name); err != nil &amp;&amp; !errdefs.IsNotFound(err) {
 -        return err
@@ -283,14 +283,12 @@ func deleteDockerContext(name string) error {
         <span class="finding-num">S5.</span> <code>getDockerContextHost</code> comment narrower than the behavior <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
       </div>
       <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L93-L108">pkg/controllers/app/engine/controllers/docker_context.go</a></div>
-      <pre data-start="93" data-line="98-103"><code class="language-go">		if errdefs.IsNotFound(err) {
-			return &quot;&quot;, nil
-		}
-		return &quot;&quot;, err
+      <pre data-start="93" data-line="98-103"><code class="language-go">		return &quot;&quot;, err
 	}
 	ep, err := docker.EndpointFromContext(md)
 	if err != nil {
-		// No docker endpoint on this context — treat as empty, not an error.
+		// Missing or mistyped docker endpoint — treat as empty, not an error.
+		// The configured EndpointTypeGetter normally prevents the mistyped case.
 		return &quot;&quot;, nil
 	}
 	return ep.Host, nil
@@ -298,7 +296,9 @@ func deleteDockerContext(name string) error {
 
 // getCurrentDockerContext reads the currentContext field from ~/.docker/config.json.
 // Returns an empty string if the file does not exist or no context is set.
-func getCurrentDockerContext() (string, error) {</code></pre>
+// config.Load validates every &quot;auths&quot; entry; a malformed credential fails
+// this call (and set/clearCurrentDockerContext) until the user repairs
+// config.json.</code></pre>
     <p><code>docker.EndpointFromContext</code> (<code>cli@v29.2.0+incompatible/cli/context/docker/load.go:152-160</code>) returns an error in two cases: the endpoint is absent (<code>&quot;cannot find docker endpoint in context&quot;</code>) and the endpoint value has the wrong type (<code>&quot;endpoint %q is not of type EndpointMeta&quot;</code>). The comment only covers the first case. The configured <code>EndpointTypeGetter</code> should keep the type assertion succeeding, but a future reader who relies on the comment would be misled.</p>
     <p>Fix: broaden the comment.</p>
       <pre><code class="language-diff">-        // No docker endpoint on this context — treat as empty, not an error.
@@ -315,9 +315,9 @@ func getCurrentDockerContext() (string, error) {</code></pre>
 // socket when checking the user&#39;s current context is healthy.
 const dockerContextProbeTimeout = 3 * time.Second
 
-// dockerConfigDir returns ~/.docker. We compute this ourselves rather than
-// calling config.Dir() because that caches its result via sync.Once, which
-// defeats t.Setenv(&quot;HOME&quot;, …) in tests.
+// dockerConfigDir returns $DOCKER_CONFIG when it is set, otherwise ~/.docker.
+// We compute this ourselves rather than calling config.Dir() because that
+// caches its result via sync.Once, which defeats t.Setenv(&quot;HOME&quot;, …) in tests.
 func dockerConfigDir() (string, error) {
 	if dir := os.Getenv(&quot;DOCKER_CONFIG&quot;); dir != &quot;&quot; {
 		return dir, nil
