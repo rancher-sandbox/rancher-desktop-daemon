@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260420-095326-pr-328</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260420-095326-pr-328</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-20 10:02</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/328" class="gh-ref" data-title="engine: port docker_context to docker/cli ContextStore" data-state="open" data-type="pr">#328</a> — engine: port docker_context to docker/cli ContextStore</td></tr>
+      <tr><td>Branch</td><td><code>docker-cli-contextstore-eval</code></td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/a0a752f"><code>a0a752f</code></a> engine: port docker_context to docker/cli ContextStore</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.4 (effort: high), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge as-is</span> &mdash; no critical or important issues; suggestions are polish</td></tr>
+      <tr><td>Wall-clock time</td><td><code>12 min 3 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The PR replaces the hand-rolled <code>~/.docker/contexts</code> writer with <code>docker/cli</code>&#39;s <code>ContextStore</code> and <code>cli/config.ConfigFile</code>. The runtime path through <code>engine_reconciler.go</code> keeps its previous shape, the package tests pass, and the on-disk schema now tracks the upstream definitions. All three reviewers agreed: no critical or important findings, and the call to skip <code>cli/command</code> (and its OpenTelemetry chain) by passing a nil context-metadata <code>TypeGetter</code> is a notable design strength.</p>
+    <p>The remaining suggestions are documentation polish (one stale comment, two narrow comments, two unsurfaced behavior changes in the commit message) and one bit of dead defensive code (<code>errdefs.IsNotFound</code> guard that the upstream <code>Remove</code> path cannot satisfy).</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> <code>errdefs.IsNotFound</code> guard in <code>deleteDockerContext</code> is unreachable <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L67-L86">pkg/controllers/app/engine/controllers/docker_context.go</a></div>
+      <pre data-start="67" data-line="72-81"><code class="language-go">			docker.DockerEndpoint: docker.EndpointMeta{Host: &quot;unix://&quot; + socketPath},
+		},
+	})
+}
+
+func deleteDockerContext(name string) error {
+	s, err := newContextStore()
+	if err != nil {
+		return err
+	}
+	if err := s.Remove(name); err != nil &amp;&amp; !errdefs.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+// getDockerContextHost returns the full Docker host URL (e.g. &quot;unix:///path/to/docker.sock&quot;
+// or &quot;tcp://192.168.1.1:2376&quot;) for the named context&#39;s docker endpoint.
+// Returns an empty string if the context does not exist or has no docker endpoint.
+func getDockerContextHost(name string) (string, error) {</code></pre>
+    <p><code>store.ContextStore.Remove</code> calls <code>metadataStore.remove</code> and <code>tlsStore.remove</code>; both wrap <code>os.RemoveAll</code>, which returns nil when the path is absent. The non-nil wrappers (<code>fmt.Errorf(&quot;failed to remove metadata: %w&quot;, err)</code> and <code>failed to remove TLS data</code>) carry no <code>notFound</code> interface, so <code>errdefs.IsNotFound</code> cannot match.</p>
+    <p>I verified this against <code>cli@v29.2.0+incompatible/cli/context/store/{store.go:140-150,metadatastore.go:99-104,tlsstore.go:49-54}</code>. The &quot;second delete is a no-op&quot; assertion in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context_test.go#L68"><code>docker_context_test.go:68</code></a> passes because <code>Remove</code> returns nil unconditionally for a missing context, not because the guard fires.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context_test.go#L63-L73">pkg/controllers/app/engine/controllers/docker_context_test.go</a></div>
+      <pre data-start="63" data-line="68"><code class="language-go">	host, err = getDockerContextHost(&quot;rancher-desktop-2&quot;)
+	assert.NilError(t, err)
+	assert.Equal(t, host, &quot;&quot;)
+
+	// Second delete is a no-op.
+	assert.NilError(t, deleteDockerContext(&quot;rancher-desktop-2&quot;))
+}
+
+func Test_currentDockerContext(t *testing.T) {
+	configFile := newDockerTestDir(t)
+</code></pre>
+    <p>Fix: drop the guard, or attach a one-line comment explaining the intent is defensive against a future upstream change.</p>
+      <pre><code class="language-diff">-    if err := s.Remove(name); err != nil &amp;&amp; !errdefs.IsNotFound(err) {
+-        return err
+-    }
+-    return nil
++    return s.Remove(name)</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> <code>config.Load</code> now validates <code>auths</code> entries — corrupt config breaks reconcile <span class="pill pill-claude">Claude</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+    <p><code>configfile.LoadFromReader</code> decodes every <code>auths[*].auth</code> value with <code>decodeAuth</code>, which fails on invalid base64 or on a decoded payload missing <code>:</code> (<code>cli@v29.2.0+incompatible/cli/config/configfile/file.go:95-112,265-285</code>). The hand-rolled code only parsed <code>currentContext</code> and ignored the rest. A user with one corrupt auth entry will now hit an error inside <code>getCurrentDockerContext</code> / <code>setCurrentDockerContext</code> / <code>clearCurrentDockerContext</code> where the old code stayed quiet.</p>
+    <p>Impact is low and self-healing — one log line per reconcile until the user fixes their config — and the trade is reasonable for the smaller surface. Worth a sentence in the commit message and consider logging at info rather than error in <code>manageDockerContext</code> so a bad user-side config does not look like an <code>rdd</code> fault.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> <code>Description</code> metadata is a new user-visible field with no test pinning it <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L58-L74">pkg/controllers/app/engine/controllers/docker_context.go</a></div>
+      <pre data-start="58" data-line="63-69"><code class="language-go">func createReplaceDockerContext(name, socketPath string) error {
+	s, err := newContextStore()
+	if err != nil {
+		return err
+	}
+	return s.CreateOrUpdate(store.Metadata{
+		Name:     name,
+		Metadata: map[string]any{&quot;Description&quot;: &quot;Rancher Desktop &quot; + name},
+		Endpoints: map[string]any{
+			docker.DockerEndpoint: docker.EndpointMeta{Host: &quot;unix://&quot; + socketPath},
+		},
+	})
+}
+
+func deleteDockerContext(name string) error {
+	s, err := newContextStore()
+	if err != nil {</code></pre>
+    <p>The previous code passed <code>Metadata: map[string]any{}</code>. The new code injects a <code>Description</code>, which <code>docker context ls</code> surfaces as a column. Probably welcome, but the change is not mentioned in the commit message and no test reads it back, so a future refactor could drop it silently.</p>
+    <p>Fix: extend <code>Test_createReplaceDockerContext</code> to read the metadata back and assert the description round-trips, or note the intent in the commit message. The BATS test <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/bats/tests/32-app-controllers/engine-docker.bats#L576"><code>bats/tests/32-app-controllers/engine-docker.bats:576</code></a> (<code>moby engine creates Docker context for the instance</code>) is a natural place to assert the field on an integration run.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> Context metadata permissions loosened from <code>0o700/0o600</code> to <code>0o755/0o644</code> <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+    <p>The pre-PR <code>updateDockerConfig</code> (commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/d1c228f"><code>d1c228f</code></a> line 60/74) used <code>MkdirAll(..., 0o700)</code> and <code>WriteFile(..., 0o600)</code>. The new path delegates to <code>metadataStore.createOrUpdate</code>, which uses <code>MkdirAll(contextDir, 0o755)</code> and <code>atomicwriter.WriteFile(..., 0o644)</code> (<code>cli@v29.2.0+incompatible/cli/context/store/metadatastore.go:35,42</code>). The contents are only socket paths — not sensitive — and the new modes match Docker CLI&#39;s defaults, so this is almost certainly intentional interop. Worth calling out so a future security scan does not flag it as a regression and so the rationale lives somewhere outside reviewer memory.</p>
+    <p>Fix: a sentence in the commit message noting the permission alignment with docker CLI is enough.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>getDockerContextHost</code> comment narrower than the behavior <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L93-L108">pkg/controllers/app/engine/controllers/docker_context.go</a></div>
+      <pre data-start="93" data-line="98-103"><code class="language-go">		if errdefs.IsNotFound(err) {
+			return &quot;&quot;, nil
+		}
+		return &quot;&quot;, err
+	}
+	ep, err := docker.EndpointFromContext(md)
+	if err != nil {
+		// No docker endpoint on this context — treat as empty, not an error.
+		return &quot;&quot;, nil
+	}
+	return ep.Host, nil
+}
+
+// getCurrentDockerContext reads the currentContext field from ~/.docker/config.json.
+// Returns an empty string if the file does not exist or no context is set.
+func getCurrentDockerContext() (string, error) {</code></pre>
+    <p><code>docker.EndpointFromContext</code> (<code>cli@v29.2.0+incompatible/cli/context/docker/load.go:152-160</code>) returns an error in two cases: the endpoint is absent (<code>&quot;cannot find docker endpoint in context&quot;</code>) and the endpoint value has the wrong type (<code>&quot;endpoint %q is not of type EndpointMeta&quot;</code>). The comment only covers the first case. The configured <code>EndpointTypeGetter</code> should keep the type assertion succeeding, but a future reader who relies on the comment would be misled.</p>
+    <p>Fix: broaden the comment.</p>
+      <pre><code class="language-diff">-        // No docker endpoint on this context — treat as empty, not an error.
++        // Missing or mistyped docker endpoint — treat as empty, not an error.
++        // The configured EndpointTypeGetter normally prevents the mistyped case.</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> <code>dockerConfigDir</code> doc comment omits the <code>DOCKER_CONFIG</code> override <span class="pill pill-codex">Codex</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L19-L41">pkg/controllers/app/engine/controllers/docker_context.go</a></div>
+      <pre data-start="19" data-line="24-36"><code class="language-go">
+// dockerContextProbeTimeout is the maximum time allowed to ping a Docker
+// socket when checking the user&#39;s current context is healthy.
+const dockerContextProbeTimeout = 3 * time.Second
+
+// dockerConfigDir returns ~/.docker. We compute this ourselves rather than
+// calling config.Dir() because that caches its result via sync.Once, which
+// defeats t.Setenv(&quot;HOME&quot;, …) in tests.
+func dockerConfigDir() (string, error) {
+	if dir := os.Getenv(&quot;DOCKER_CONFIG&quot;); dir != &quot;&quot; {
+		return dir, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return &quot;&quot;, err
+	}
+	return filepath.Join(home, &quot;.docker&quot;), nil
+}
+
+// newContextStore builds a store.Store rooted at ~/.docker/contexts and
+// configured with Docker CLI&#39;s standard metadata + endpoint types, so the
+// files it writes are interoperable with the docker CLI.
+func newContextStore() (store.Store, error) {</code></pre>
+    <p>Every helper in this file routes through <code>dockerConfigDir</code>. The function honours <code>DOCKER_CONFIG</code> first, but the comment still says &quot;returns <code>~/.docker</code>&quot; with no mention of the env override.</p>
+    <p>Fix: state the precedence explicitly.</p>
+      <pre><code class="language-diff">-// dockerConfigDir returns ~/.docker. We compute this ourselves rather than
+-// calling config.Dir() because that caches its result via sync.Once, which
+-// defeats t.Setenv(&quot;HOME&quot;, …) in tests.
++// dockerConfigDir returns $DOCKER_CONFIG when it is set, otherwise ~/.docker.
++// We compute this ourselves rather than calling config.Dir() because that
++// caches its result via sync.Once, which defeats t.Setenv(&quot;HOME&quot;, …) in tests.</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S7">
+        <span class="finding-num">S7.</span> <code>set preserves other keys</code> test seeds a known field, not an unknown one <span class="pill pill-gemini">Gemini</span><a href="#S7" class="pilcrow">&#182;</a>
+      </div>
+    <p>The test&#39;s comment reads <code>// Seed a config with an unrelated field.</code>, but <code>auths</code> is a typed top-level field that <code>ConfigFile</code> knows about. The PR description acknowledges that unknown top-level keys are dropped on save. Seeding with a truly unknown field (e.g. <code>{&quot;myCustomField&quot;: &quot;value&quot;}</code>) would document that limitation directly; the current test only proves a known field round-trips. Comment vs. intent mismatch — no logic failure.</p>
+    <p>Fix: rename the seed to a known-irrelevant field (<code>{&quot;experimental&quot;:&quot;enabled&quot;}</code>) and update the comment, or add a second sub-test that asserts an unknown field is dropped.</p>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><em></em>Skipping <code>cli/command</code> via a nil context-metadata <code>TypeGetter</code> (in-scope)<em></em> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> — <code>store.NewConfig(nil, ...)</code> decodes <code>Metadata</code> as <code>map[string]any</code>, which is all the caller needs. It avoids importing <code>cli/command</code> and the entire <code>otel/sdk/metric</code>, <code>go-metrics</code>, <code>gorilla/mux</code>, <code>backoff/v5</code>, <code>morikuni/aec</code> chain. This is the design call that makes the port net-positive on binary size.</li>
+      <li><strong>Atomic write semantics inherited from upstream (in-scope)</strong> <span class="pill pill-gemini">Gemini</span> — the old hand-rolled writer used a bare <code>os.Rename</code> after a <code>Chmod</code>. The new path delegates to <code>moby/sys/atomicwriter</code>, which resolves symlinks and matches Docker CLI&#39;s behavior on Windows and Unix. Closes a few edge cases the old code did not handle.</li>
+      <li><em></em>Test isolation against <code>docker/cli</code>&#39;s env caching (in-scope)<em></em> <span class="pill pill-claude">Claude</span> <span class="pill pill-gemini">Gemini</span> — <code>newDockerTestDir</code> sets <code>HOME</code>, <code>USERPROFILE</code>, and clears <code>DOCKER_CONFIG</code> in one place. The <code>dockerConfigDir</code> shim that bypasses <code>config.Dir()</code>&#39;s <code>sync.Once</code> is a small but pragmatic workaround documented inline.</li>
+    </ul>
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <p>None raised by any reviewer.</p>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Unit coverage is adequate for the happy paths (create/replace, delete, missing-lookup, set/get/clear, key preservation on save). Gaps that survived consolidation:</p>
+    <ol>
+      <li><em></em>No assertion on the new <code>Description</code> metadata<em></em> — see S3. Easiest user-visible regression to introduce later.</li>
+      <li><em></em>No test for the <code>DOCKER_CONFIG</code> override branch<em></em> — <code>newDockerTestDir</code> clears that variable, so the new code path at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L28-L29"><code>docker_context.go:28-29</code></a> never executes in the unit suite.</li>
+      <li><em></em>No test for the short-circuit at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a0a752f744b668521f36495dce66556bf4e9ee61/pkg/controllers/app/engine/controllers/docker_context.go#L129-L131"><code>docker_context.go:129-131</code></a> / <code>145-147</code><em></em> — <code>setCurrentDockerContext</code> and <code>clearCurrentDockerContext</code> skip the save when the context already matches. A seeded file plus an mtime check would pin the behavior.</li>
+      <li><em></em>No test for malformed <code>auths</code> in <code>config.json</code><em></em> — see S2. A single seed-file test would document the new failure mode.</li>
+      <li><em></em>No test for <code>clearCurrentDockerContext</code> preserving other keys<em></em> — <code>Test_currentDockerContext</code> proves preservation for <code>setCurrentDockerContext</code> but not the clear path called at shutdown.</li>
+    </ol>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li>The exported (well, package-private) symbols touched all carry doc comments, and the new <code>dockerConfigDir</code> and <code>newContextStore</code> comments correctly explain <em>why</em> they deviate from upstream defaults — a pattern worth keeping.</li>
+      <li>Three doc comments drifted: see S5 (<code>getDockerContextHost</code>), S6 (<code>dockerConfigDir</code>).</li>
+      <li>The commit message accurately covers the dependency impact and the dropped-keys caveat. Consider extending it with the S2 (corrupt <code>auths</code>) and S4 (permission change) observations.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Single, self-contained commit with a descriptive subject. No concerns.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><strong>Commit message / PR description</strong>: &quot;Saving through docker/cli&#39;s typed <code>ConfigFile</code> drops unknown top-level keys from <code>config.json</code> and injects empty <code>auths</code> and <code>credsStore</code> fields. <code>docker context use</code> does the same today, so users of Docker CLI already see this behavior.&quot;</li>
+    </ul>
+    <ul>
+      <li>The &quot;drops unknown keys&quot; half is accurate — <code>ConfigFile</code> is a closed struct, so anything not in the Go definition is lost on save.</li>
+      <li>The &quot;injects <code>credsStore</code>&quot; half is slightly overstated. <code>ConfigFile.CredentialsStore</code> carries <code>json:&quot;credsStore,omitempty&quot;</code> (<code>cli/config/configfile/file.go:30</code>), so an empty value is omitted. Only <code>&quot;auths&quot;</code> (no <code>omitempty</code>) gets written when previously absent. Not a finding — just a small inaccuracy in the rationale.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Did the heavy upstream tracing — every substantive claim (S1–S5) cited the exact upstream file and line, and all four spot-checks against <code>docker/cli@v29.2.0+incompatible</code> matched what I verified independently. Caught the only finding any reviewer raised that was not pure documentation: the unreachable <code>errdefs.IsNotFound</code> guard. Also surfaced the permission change and the auth-validation regression that the other two reviewers missed.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Single suggestion (the <code>dockerConfigDir</code> doc drift) was real and clean, with a tight diff. Built <code>make build-rdd</code> and ran the package tests before reporting — the only reviewer to mention live verification. Coverage was correct but narrow: missed the upstream-behavior consequences (S1, S2, S4, S5) entirely, leaning on &quot;I traced the only caller&quot; as sufficient.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Produced no findings, only design observations and one comment-vs-intent quibble (S7). Did not perform <code>git blame</code> or upstream tracing (the known daily-quota gap), which is consistent with missing the unreachable guard and the permission/auth changes. The unknown-vs-known-field observation is a sharp framing point worth keeping even though it is not a bug.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.7</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>6m 06s</td><td>4m 45s</td><td>5m 17s</td></tr>
+        <tr><td>Findings</td><td>5S</td><td>1S</td><td>1S</td></tr>
+        <tr><td>Tool calls</td><td>27 (Bash 19, Read 5, Grep 3)</td><td>43 (shell 40, stdin 3)</td><td>40 (run<em>shell</em>command 30, grep<em>search 6, read</em>file 4)</td></tr>
+        <tr><td>Design observations</td><td>3</td><td>2</td><td>3</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>5</td><td>1</td><td>1</td></tr>
+        <tr><td>Files reviewed</td><td>4</td><td>4</td><td>4</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>5S</strong></td><td><strong>1S</strong></td><td><strong>1S</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>Claude carried this review. The other two were directionally correct (clean PR, no blockers) but only Claude&#39;s upstream tracing turned up actionable suggestions beyond comment polish.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="skill-improvements">Skill improvements <a href="#skill-improvements" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Flag dead defensive code that depends on upstream sentinel errors.</strong> When the reviewed code uses <code>errdefs.IsNotFound</code>, <code>errors.Is(err, os.ErrNotExist)</code>, or similar guards on errors returned from a third-party library, verify by reading the upstream that the guarded sentinel can actually surface from that call site. Wrappers like <code>fmt.Errorf(&quot;failed to ...: %w&quot;, err)</code> often hide the original interface, and <code>os.RemoveAll</code> on a missing path returns nil with no error at all. A guard that cannot fire is dead code; flag it as a suggestion with a citation to the upstream source.</li>
+      <li><strong>Verify file/dir permission changes when delegating writes to a library.</strong> When a hand-rolled writer using <code>MkdirAll(..., 0o7XX)</code> / <code>WriteFile(..., 0o6XX)</code> is replaced by a library call, the new mode is whatever the library uses. Diff the old constants against the library&#39;s defaults and surface any change. Even when the contents are not sensitive, an unexplained mode change in a security-relevant directory will trip future security scans and reviewer questions.</li>
+    </ul>
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <p>None. The existing context entries held up against this review.</p>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
