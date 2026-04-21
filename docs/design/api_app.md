@@ -77,6 +77,11 @@ status:
     message: Lima instance is running
     lastTransitionTime: "2024-01-01T00:00:05Z"
     observedGeneration: 1
+  - type: Settled
+    status: "True"
+    reason: Settled
+    message: App has reached the desired state
+    observedGeneration: 1
 ```
 
 - **spec.namespace**: The namespace where the owned `LimaVM` and its ConfigMaps are created. Defaults to `default`. **Immutable after creation** — changing it would orphan resources in the original namespace.
@@ -89,7 +94,7 @@ status:
 
 - **spec.kubernetes.version**: The Kubernetes version to use (e.g. `"1.30.2"`). Defaults to `"1.30.2"`. Propagated to the `KUBERNETES_VERSION` Lima template param.
 
-- **status.conditions**: Two controllers write here. The App controller mirrors `Created` and `Running` from the owned `LimaVM`, copying `type`, `status`, `reason`, `message`, and `lastTransitionTime` directly. The engine controller writes `ContainerEngineReady` after connecting to Docker and completing the initial sync (see `api_containers.md`). Both writers use `retry.RetryOnConflict` with a re-Get so concurrent status updates do not 409.
+- **status.conditions**: Multiple controllers write here. The App controller mirrors `Created` and `Running` from the owned `LimaVM`, computes `Settled`, and the engine controller writes `ContainerEngineReady`. All writers use `retry.RetryOnConflict` with a re-Get so concurrent status updates do not 409.
 
   | Type                   | Status    | Reason           | Description                                                       |
   |------------------------|-----------|------------------|-------------------------------------------------------------------|
@@ -106,10 +111,15 @@ status:
   | `ContainerEngineReady` | `True`    | `NotApplicable`  | Mirroring is not implemented for the current backend (e.g. `containerd`); forced `True` so `rdd set` can finish waiting |
   | `ContainerEngineReady` | `False`   | `ConnectFailed`  | Engine controller failed to connect to Docker                     |
   | `ContainerEngineReady` | `False`   | `Stopped`        | The VM is stopped; the engine watcher is not running              |
+  | `Settled`              | `True`    | `Settled`        | Reconcile chain has caught up with the current spec               |
+  | `Settled`              | `False`   | `WaitingForLimaVM` | The App has no `Running` condition yet (nothing mirrored from LimaVM) |
+  | `Settled`              | `False`   | `WaitingForEngine` | Engine controller has not yet written `ContainerEngineReady`    |
+  | `Settled`              | `False`   | `EngineStale`    | Engine controller has not yet observed the current generation     |
+  | `Settled`              | `False`   | *(forwarded)*    | Forwarded from the blocking `Running` or `ContainerEngineReady` reason |
 
   `Running=True` means the Lima guest has finished booting and SSH is reachable. It says nothing about the container engine socket; consumers that depend on the engine (container/image/volume mirrors, `docker` against the forwarded socket) must also check `ContainerEngineReady`, which flips to `True` only after the engine controller has connected to the socket and completed its initial full sync.
 
-  `Created` and `Running` are mirrored, so their `lastTransitionTime` reflects the LimaVM transition rather than the copy — the timestamp is meaningful for staleness checks. `ContainerEngineReady.observedGeneration` is stamped with the App's generation when the engine controller writes the condition, so `rdd set` can distinguish stale snapshots from fresh ones.
+  The `Created` and `Running` conditions are mirrored from LimaVM, so their `lastTransitionTime` reflects the LimaVM transition rather than the copy — the timestamp is meaningful for staleness checks. The engine reconciler stamps `ContainerEngineReady.observedGeneration` with the App's `metadata.generation` at the time it writes the condition; if the App's generation advances between the reconciler's read and write, the stamp reflects the write-time generation rather than the observed one. The App reconciler computes `Settled` from the mirrored `Running` and the engine-written `ContainerEngineReady`, and stamps its own `observedGeneration` with the `metadata.generation` observed when it computed the condition, not the generation at write time. The retry-on-conflict loop re-reads on 409, so a successful write always carries the current generation. `rdd set` waits for `Settled.status=True` with `observedGeneration >= post-patch metadata.generation`, so stale snapshots cannot prematurely satisfy the wait.
 
 Deleting the `App` resource triggers the finalizer to stop and delete the owned LimaVM (and wait for the LimaVM controller to complete its own cleanup before removing the App finalizer).
 

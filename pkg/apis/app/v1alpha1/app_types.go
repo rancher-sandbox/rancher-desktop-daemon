@@ -11,6 +11,11 @@ import (
 // AppKind is the Kind string for App resources.
 const AppKind = "App"
 
+// EngineControllerName is the registry name of the engine controller.
+// Both the engine controller's own registration and the App reconciler's
+// discovery query reference this constant so they cannot drift.
+const EngineControllerName = "engine"
+
 // App condition types.
 const (
 	// AppConditionRunning mirrors the LimaVM Running condition: True
@@ -27,6 +32,33 @@ const (
 	// ObservedGeneration, so `rdd set` can distinguish a stale True
 	// from a fresh one.
 	AppConditionContainerEngineReady = "ContainerEngineReady"
+
+	// AppConditionSettled reports whether the reconcile chain has
+	// fully caught up with the current spec: observed generations on
+	// the feeding conditions match the App's generation, and the VM
+	// and engine have reached a stable state for the desired config.
+	// A spec change forces Settled to False; once the chain quiesces,
+	// the App reconciler flips it back to True. `rdd set` waits on
+	// this condition.
+	AppConditionSettled = "Settled"
+)
+
+// Reasons for the Settled condition. Consumers branch on these
+// values; the App reconciler also forwards the Running condition's
+// reason when LimaVM has not yet reached the desired state (see
+// api_app.md).
+const (
+	// AppSettledReasonSettled means the App has reached the desired state.
+	AppSettledReasonSettled = "Settled"
+
+	// AppSettledReasonWaitingForLimaVM means LimaVM has not yet reported a Running condition.
+	AppSettledReasonWaitingForLimaVM = "WaitingForLimaVM"
+
+	// AppSettledReasonWaitingForEngine means the engine controller has not yet written ContainerEngineReady.
+	AppSettledReasonWaitingForEngine = "WaitingForEngine"
+
+	// AppSettledReasonEngineStale means the engine controller has not yet observed the current generation.
+	AppSettledReasonEngineStale = "EngineStale"
 )
 
 // ContainerEngineSpec defines the desired container engine configuration.

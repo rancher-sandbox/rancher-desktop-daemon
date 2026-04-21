@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	goruntime "runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -31,6 +32,16 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
+// ControllerDiscovery enumerates controllers enabled across all controller
+// managers in this control plane. AppReconciler queries it during
+// reconciliation to decide whether Settled must wait for
+// ContainerEngineReady. The interface mirrors a small subset of
+// pkg/service/controllers.ControllerManagerDiscovery so tests can substitute
+// a fake without taking on the full dependency.
+type ControllerDiscovery interface {
+	GetEnabledControllers(ctx context.Context) ([]string, error)
+}
+
 const (
 	appName                        = "app"
 	limaVMName, inputConfigMapName = "rd", "rd"
@@ -40,11 +51,43 @@ const (
 	requeueAfterDeletion = 2 * time.Second
 )
 
+// Messages for the Settled condition. Kept as constants so tests can
+// assert on them without duplicating string literals.
+const (
+	settledMessageSettled          = "App has reached the desired state"
+	settledMessageWaitingForLimaVM = "Waiting for LimaVM to report its state"
+	settledMessageWaitingForEngine = "Waiting for container engine condition"
+	settledMessageEngineStale      = "Container engine needs to be synchronized"
+	settledMessageLimaVMNotReached = "LimaVM has not yet reached "
+)
+
 // AppReconciler reconciles the singleton App resource and manages its LimaVM lifecycle.
 type AppReconciler struct {
 	client.Client
 	Scheme           *runtime.Scheme
 	LimaTemplateData string
+
+	// Discovery is consulted on each reconcile to determine whether the
+	// engine controller is enabled in any controller manager. When it
+	// is, Settled gates on ContainerEngineReady; when it is not, the
+	// engine condition is ignored. nil disables the engine gate, which
+	// is appropriate for unit tests that do not exercise the engine.
+	Discovery ControllerDiscovery
+}
+
+// engineEnabled reports whether ContainerEngineReady should gate Settled.
+// On discovery errors it defaults to true so the wait does not return
+// prematurely while discovery is transiently unavailable.
+func (r *AppReconciler) engineEnabled(ctx context.Context) bool {
+	if r.Discovery == nil {
+		return false
+	}
+	enabled, err := r.Discovery.GetEnabledControllers(ctx)
+	if err != nil {
+		logf.FromContext(ctx).Error(err, "Failed to query controller-manager discovery; assuming engine is enabled")
+		return true
+	}
+	return slices.Contains(enabled, v1alpha1.EngineControllerName)
 }
 
 func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, error) {
@@ -286,6 +329,10 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 					"kubernetesVersion", app.Spec.Kubernetes.Version)
 				// ConfigMaps are not watched, so requeue to let the
 				// reconciler evaluate remaining spec fields (e.g. running).
+				// A racing `rdd set` may see Settled=True at the new
+				// generation before LimaVM observes the ConfigMap change.
+				// LimaVM then sets restartNeeded on its next reconcile,
+				// flipping Settled back to False.
 				return ctrl.Result{Requeue: true}, nil
 			}
 		}
@@ -299,12 +346,13 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, nil
 	}
 
-	// Mirror LimaVM status conditions onto the App status. The engine
+	// Mirror LimaVM status conditions and compute Settled. The engine
 	// reconciler writes ContainerEngineReady on the same object, so
 	// app's resourceVersion from the initial Get can be stale.
 	// retry.RetryOnConflict + re-Get matches
 	// EngineReconciler.setEngineCondition; without it, concurrent
 	// writers 409-loop through controller-runtime requeues.
+	engineEnabled := r.engineEnabled(ctx)
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		latest := &v1alpha1.App{}
 		if err := r.Get(ctx, client.ObjectKeyFromObject(&app), latest); err != nil {
@@ -323,6 +371,8 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 				LastTransitionTime: cond.LastTransitionTime,
 			}) || changed
 		}
+		settled := computeSettledCondition(latest, engineEnabled)
+		changed = apimeta.SetStatusCondition(&latest.Status.Conditions, settled) || changed
 		if !changed {
 			return nil
 		}
@@ -333,6 +383,92 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// computeSettledCondition derives Settled from the feeding conditions
+// that live on app.Status.Conditions: the LimaVM Running condition
+// (mirrored just above) and ContainerEngineReady (written by the
+// engine controller). The output condition carries the App's current
+// generation, so waiters can filter out snapshots from earlier spec
+// versions.
+//
+// Settled answers "has the reconcile chain caught up with the current
+// spec?". It goes True when the VM has reached the desired running
+// state with a terminal reason (Started/Stopped) and the engine has
+// observed and processed the current generation. A transient phase
+// (Starting, Stopping, Reconciling, RestartNeeded) holds Settled at
+// False even if the VM is momentarily running, so `rdd set` does not
+// return before the chain stabilises.
+//
+// engineEnabled is false when no controller in this process writes
+// ContainerEngineReady; in that case the engine condition is ignored.
+func computeSettledCondition(app *v1alpha1.App, engineEnabled bool) metav1.Condition {
+	runningCond := apimeta.FindStatusCondition(app.Status.Conditions, v1alpha1.AppConditionRunning)
+	engineCond := apimeta.FindStatusCondition(app.Status.Conditions, v1alpha1.AppConditionContainerEngineReady)
+	desiredRunning := app.Spec.Running
+
+	settled := metav1.Condition{
+		Type:               v1alpha1.AppConditionSettled,
+		ObservedGeneration: app.Generation,
+	}
+
+	switch {
+	case runningCond == nil:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = v1alpha1.AppSettledReasonWaitingForLimaVM
+		settled.Message = settledMessageWaitingForLimaVM
+	case desiredRunning && runningCond.Status != metav1.ConditionTrue:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = runningCond.Reason
+		settled.Message = runningLimaVMMessage(runningCond, "Started")
+	// Status=False covers Stopped as well as the transient Starting/Stopping
+	// reasons, so we must match the terminal Stopped reason explicitly.
+	case !desiredRunning && runningCond.Reason != "Stopped":
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = runningCond.Reason
+		settled.Message = runningLimaVMMessage(runningCond, "Stopped")
+	case !engineEnabled:
+		settled.Status = metav1.ConditionTrue
+		settled.Reason = v1alpha1.AppSettledReasonSettled
+		settled.Message = settledMessageSettled
+	case !desiredRunning:
+		// While desiredRunning is false, ContainerEngineReady may be
+		// absent or stale: the engine controller writes it once per
+		// run and stops writing it once the watcher has been torn
+		// down. A stopped VM is settled regardless of what
+		// ContainerEngineReady currently says.
+		settled.Status = metav1.ConditionTrue
+		settled.Reason = v1alpha1.AppSettledReasonSettled
+		settled.Message = settledMessageSettled
+	case engineCond == nil:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = v1alpha1.AppSettledReasonWaitingForEngine
+		settled.Message = settledMessageWaitingForEngine
+	case engineCond.ObservedGeneration < app.Generation:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = v1alpha1.AppSettledReasonEngineStale
+		settled.Message = settledMessageEngineStale
+	case engineCond.Status != metav1.ConditionTrue:
+		settled.Status = metav1.ConditionFalse
+		settled.Reason = engineCond.Reason
+		settled.Message = engineCond.Message
+	default:
+		settled.Status = metav1.ConditionTrue
+		settled.Reason = v1alpha1.AppSettledReasonSettled
+		settled.Message = settledMessageSettled
+	}
+	return settled
+}
+
+// runningLimaVMMessage builds the Settled message when LimaVM's
+// Running reason does not match the desired state. Failure reasons
+// (ending in "Failed") propagate LimaVM's diagnostic message; other
+// reasons get a concise "has not yet reached <desired>" text.
+func runningLimaVMMessage(runningCond *metav1.Condition, desired string) string {
+	if strings.HasSuffix(runningCond.Reason, "Failed") && runningCond.Message != "" {
+		return runningCond.Message
+	}
+	return settledMessageLimaVMNotReached + desired
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -9,6 +9,7 @@ package app
 
 import (
 	_ "embed"
+	"fmt"
 	"runtime"
 
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -18,6 +19,7 @@ import (
 	limav1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/app/controllers"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+	servicecontrollers "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/service/controllers"
 )
 
 // Embedded Lima template split into platform-specific images and shared
@@ -146,10 +148,16 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
+	discovery, err := servicecontrollers.NewControllerManagerDiscovery(mgr.GetConfig())
+	if err != nil {
+		return fmt.Errorf("failed to create controller-manager discovery: %w", err)
+	}
+
 	if err := (&controllers.AppReconciler{
 		Client:           mgr.GetClient(),
 		Scheme:           mgr.GetScheme(),
 		LimaTemplateData: limaTemplateData(),
+		Discovery:        discovery,
 	}).SetupWithManager(mgr); err != nil {
 		return err
 	}
