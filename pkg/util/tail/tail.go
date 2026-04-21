@@ -7,8 +7,9 @@
 
 // Package tail provides a Go library that emulates the features of the BSD
 // `tail` program. It supports truncation/move detection and is designed to
-// work with log rotation tools. It also exposes a Stream helper for the
-// rdd CLI commands that print log files.
+// work with log rotation tools. A Stream helper wraps the Tail type in a
+// writer-oriented API for callers that just want "tail this file to an
+// io.Writer until the context is cancelled."
 //
 // This started as a vendored copy of github.com/nxadm/tail with the patches
 // from Pulumi (pulumi/pulumi#18044, fixing nxadm/tail#70 and #71 in upstream

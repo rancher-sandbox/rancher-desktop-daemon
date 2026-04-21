@@ -16,7 +16,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/go-logr/logr"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/tail"
 )
@@ -62,15 +64,19 @@ type Event struct {
 // not propagated; the upstream Lima signature had a propagateStderr
 // flag that rdd never set, so it is not reproduced here.
 //
+// Diagnostics go through log.FromContext(ctx) so the caller's
+// instance/component fields stay attached.
+//
 // Unlike Lima's events.Watch, this does NOT use the shared InotifyTracker
 // in github.com/nxadm/tail. It uses the rdd fork at pkg/util/tail, whose
 // tracker cannot deadlock when fsnotify reports an internal error.
 func Watch(ctx context.Context, haStdoutPath, haStderrPath string, begin time.Time, onEvent func(Event) bool) error {
+	logger := log.FromContext(ctx)
 	cfg := tail.Config{
 		Follow:    true,
 		ReOpen:    true,
 		MustExist: false,
-		Logger:    logrus.StandardLogger(),
+		Logger:    tailLogger{logger: logger},
 	}
 
 	haStdoutTail, err := tail.Open(haStdoutPath, cfg)
@@ -89,6 +95,8 @@ func Watch(ctx context.Context, haStdoutPath, haStderrPath string, begin time.Ti
 	}
 	defer func() {
 		_ = haStderrTail.Stop()
+		// Do NOT call Cleanup; it unregisters the tracker entry in a way
+		// that prevents the process from ever tailing the file again.
 	}()
 
 	for {
@@ -100,7 +108,7 @@ func Watch(ctx context.Context, haStdoutPath, haStderrPath string, begin time.Ti
 				return nil
 			}
 			if line.Err != nil {
-				logrus.WithError(line.Err).Error("hostagent stdout tail error")
+				logger.Error(line.Err, "Hostagent stdout tail error")
 				continue
 			}
 			if line.Text == "" {
@@ -108,9 +116,10 @@ func Watch(ctx context.Context, haStdoutPath, haStderrPath string, begin time.Ti
 			}
 			var ev Event
 			if err := json.Unmarshal([]byte(line.Text), &ev); err != nil {
-				return fmt.Errorf("failed to unmarshal %q as %T: %w", line.Text, ev, err)
+				logger.Error(err, "Ignoring unparseable hostagent stdout line", "line", line.Text)
+				continue
 			}
-			logrus.WithField("event", ev).Debug("received a hostagent event")
+			logger.V(1).Info("Received a hostagent event", "event", ev)
 			if !begin.IsZero() && ev.Time.Before(begin) {
 				continue
 			}
@@ -122,8 +131,26 @@ func Watch(ctx context.Context, haStdoutPath, haStderrPath string, begin time.Ti
 				return nil
 			}
 			if line.Err != nil {
-				logrus.WithError(line.Err).Error("hostagent stderr tail error")
+				logger.Error(line.Err, "Hostagent stderr tail error")
 			}
 		}
 	}
 }
+
+// tailLogger adapts a logr.Logger to the subset of the stdlib log.Logger
+// API that pkg/util/tail's Config.Logger accepts. In practice tail only
+// calls Printf; the other methods exist to satisfy the interface and
+// forward through Info so a stray call at least surfaces in the log.
+type tailLogger struct {
+	logger logr.Logger
+}
+
+func (t tailLogger) Fatal(v ...any)                 { t.logger.Info(fmt.Sprint(v...)) }
+func (t tailLogger) Fatalf(format string, v ...any) { t.logger.Info(fmt.Sprintf(format, v...)) }
+func (t tailLogger) Fatalln(v ...any)               { t.logger.Info(fmt.Sprintln(v...)) }
+func (t tailLogger) Panic(v ...any)                 { t.logger.Info(fmt.Sprint(v...)) }
+func (t tailLogger) Panicf(format string, v ...any) { t.logger.Info(fmt.Sprintf(format, v...)) }
+func (t tailLogger) Panicln(v ...any)               { t.logger.Info(fmt.Sprintln(v...)) }
+func (t tailLogger) Print(v ...any)                 { t.logger.Info(fmt.Sprint(v...)) }
+func (t tailLogger) Printf(format string, v ...any) { t.logger.Info(fmt.Sprintf(format, v...)) }
+func (t tailLogger) Println(v ...any)               { t.logger.Info(fmt.Sprintln(v...)) }

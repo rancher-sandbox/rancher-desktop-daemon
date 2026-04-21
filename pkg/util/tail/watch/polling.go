@@ -30,11 +30,9 @@ func NewPollingFileWatcher(filename string) *PollingFileWatcher {
 	return fw
 }
 
-// POLL_DURATION is the interval at which a PollingFileWatcher re-stats
+// pollDuration is the interval at which a PollingFileWatcher re-stats
 // the file it watches.
-//
-//nolint:revive,staticcheck // Keep the upstream name for API compatibility.
-var POLL_DURATION time.Duration
+const pollDuration = 250 * time.Millisecond
 
 // BlockUntilExists blocks until the file appears or the tomb is dying.
 func (fw *PollingFileWatcher) BlockUntilExists(t *tomb.Tomb) error {
@@ -45,7 +43,7 @@ func (fw *PollingFileWatcher) BlockUntilExists(t *tomb.Tomb) error {
 			return err
 		}
 		select {
-		case <-time.After(POLL_DURATION):
+		case <-time.After(pollDuration):
 			continue
 		case <-t.Dying():
 			return tomb.ErrDying
@@ -80,10 +78,9 @@ func (fw *PollingFileWatcher) ChangeEvents(t *tomb.Tomb, pos int64, wg *sync.Wai
 			select {
 			case <-t.Dying():
 				return
-			default:
+			case <-time.After(pollDuration):
 			}
 
-			time.Sleep(POLL_DURATION)
 			fi, err := os.Stat(fw.Filename)
 			if err != nil {
 				// Windows cannot delete a file if a handle is still open (tail keeps one open)
@@ -129,8 +126,4 @@ func (fw *PollingFileWatcher) ChangeEvents(t *tomb.Tomb, pos int64, wg *sync.Wai
 	}()
 
 	return changes, nil
-}
-
-func init() {
-	POLL_DURATION = 250 * time.Millisecond
 }
