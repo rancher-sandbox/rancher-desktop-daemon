@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: SUSE LLC
 // SPDX-FileCopyrightText: The Rancher Desktop Authors
 
@@ -28,7 +28,17 @@ import (
 // ReadDirectoryChanges traffic volume needed to trigger fsnotify's
 // "buffer larger than it is" error path on Windows; an in-process
 // goroutine writer does not.
-const writerEnvVar = "RDD_TAIL_TEST_WRITER"
+// writerEnvVar makes the test binary run as a subprocess that writes
+// JSON event lines to its stdout until stdin is closed. We self-exec
+// (see TestMain) because an external writer process produces the
+// ReadDirectoryChanges traffic volume needed to trigger fsnotify's
+// "buffer larger than it is" error path on Windows; an in-process
+// goroutine writer does not.
+const writerEnvVar = "TAIL_TEST_WRITER"
+
+// stressEnvVar opts in to TestInotifyTrackerNoDeadlockOnRepeatedRotation.
+// The test takes ~7 minutes, so it runs only when explicitly requested.
+const stressEnvVar = "TAIL_STRESS"
 
 func TestMain(m *testing.M) {
 	if os.Getenv(writerEnvVar) == "1" {
@@ -39,9 +49,10 @@ func TestMain(m *testing.M) {
 }
 
 // TestInotifyTrackerNoDeadlockOnRepeatedRotation exercises the shared
-// InotifyTracker with the same pattern rdd's LimaVM controller uses on
-// every hostagent restart: rotate an existing log file to a numbered
-// backup, create a fresh one, run a Tail against it, then stop.
+// InotifyTracker with a log-rotation pattern: rotate an existing log
+// file to a numbered backup, create a fresh one, run a Tail against it,
+// then stop. This mirrors what a long-running process that tails a
+// rotating log does on every rotation cycle.
 //
 // On the pre-fix tracker (single-goroutine run() that serviced Add/Remove
 // RPCs and drained watcher.Events/Errors from one select) this
@@ -63,8 +74,8 @@ func TestMain(m *testing.M) {
 // volume to trigger fsnotify's internal overflow error. With the
 // three-goroutine fix every cycle finishes cleanly.
 func TestInotifyTrackerNoDeadlockOnRepeatedRotation(t *testing.T) {
-	if testing.Short() {
-		t.Skip("stress test")
+	if testing.Short() || os.Getenv(stressEnvVar) != "1" {
+		t.Skipf("set %s=1 to run the stress test", stressEnvVar)
 	}
 	prev := runtime.GOMAXPROCS(1)
 	t.Cleanup(func() { runtime.GOMAXPROCS(prev) })
@@ -96,10 +107,11 @@ func runRotationCycle(t *testing.T, cycle int, selfExe, stdoutPath, stderrPath s
 	stdoutW := rotateAndCreate(t, stdoutPath, cycle)
 
 	// Spawn the writer subprocess. cmd.Start returns as soon as the
-	// process is alive; the child will exit when we close stdin.
-	// Use a Background context: the child self-terminates via stdin close,
-	// and the per-cycle cleanup below reaps it regardless of ctx state.
-	cmd := exec.CommandContext(context.Background(), selfExe, "-test.run=^$") // no-op test selector; TestMain branches on env
+	// process is alive; the child exits when we close stdin, and the
+	// per-cycle cleanup below reaps it regardless of ctx state. Using
+	// t.Context() is a backstop: if the test panics before Wait runs,
+	// testing's cleanup still kills the subprocess.
+	cmd := exec.CommandContext(t.Context(), selfExe, "-test.run=^$") // no-op test selector; TestMain branches on env
 	cmd.Env = append(os.Environ(), writerEnvVar+"=1")
 	cmd.Stdout = stdoutW
 	cmd.Stderr = stderrW

@@ -21,9 +21,10 @@ type FileWatcher interface {
 	BlockUntilExists(*tomb.Tomb) error
 
 	// ChangeEvents reports on changes to a file, be it modification,
-	// deletion, renames or truncations. The returned FileChanges
-	// channels will be closed, thus become unusable, after a deletion
-	// or truncation event.
+	// deletion, renames or truncations. After a deletion or truncation
+	// event the implementation's goroutine returns and no further
+	// notifications arrive on the returned FileChanges; the channels
+	// themselves stay open.
 	// In order to properly report truncations, ChangeEvents requires
 	// the caller to pass their current offset in the file.
 	//
