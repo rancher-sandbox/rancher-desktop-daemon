@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260421-153207-pr-326</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260421-153207-pr-326</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-21 15:32</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/jandubois">@jandubois</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/326" class="gh-ref" data-title="Fix deadlock in vendored nxadm/tail (observed as Windows CI hostagent-watcher hang)" data-state="open" data-type="pr">#326</a> — Fix deadlock in vendored nxadm/tail (observed as Windows CI hostagent-watcher hang)</td></tr>
+      <tr><td>Branch</td><td><code>fix-tail-windows-deadlock</code></td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/673e91e"><code>673e91e</code></a> Address review 1 findings for PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/326" class="gh-ref" data-title="Fix deadlock in vendored nxadm/tail (observed as Windows CI hostagent-watcher hang)" data-state="open" data-type="pr">#326</a> + prep tail for spin-out<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/32015c9"><code>32015c9</code></a> tail/watch: synchronise watcher goroutine cleanup with Stop<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/a2d5c9f"><code>a2d5c9f</code></a> tail: resolve golangci-lint issues in the absorbed code<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/92881d9"><code>92881d9</code></a> rdd: switch hostagent watcher to local tail-based events package<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e074dd9"><code>e074dd9</code></a> tail/watch: fix deadlock in the shared InotifyTracker<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/35d6f05"><code>35d6f05</code></a> tail: rename pkg/util/nxadmtail to pkg/util/tail, merge with CLI wrapper<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/a9bcf89"><code>a9bcf89</code></a> nxadmtail: absorb upstream watch/, util/, winfile/ subpackages</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.4 (effort: high), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; one critical (newly-introduced panic race in the split tracker) and two important findings; the restructured tracker itself is sound but the goroutine split created a send-on-closed-channel window and the new Stream/Watch helpers don&#39;t close the lifecycle loop.</td></tr>
+      <tr><td>Wall-clock time</td><td><code>22 min 47 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>This PR vendors <code>nxadm/tail</code> in-tree, splits the shared <code>InotifyTracker.run()</code> into three goroutines to break the Windows deadlock on <code>fsnotify.Errors</code>, adds a <code>sync.WaitGroup</code> so <code>tail.Stop()</code> waits for per-watcher <code>ChangeEvents</code> goroutines to finish their <code>untrack</code> RPCs, and introduces <code>pkg/hostagent/events</code> as a local replacement for Lima&#39;s unpatched <code>events.Watch</code>. The structural fix is the right shape and the stress test coverage is thorough (200-cycle rotation, <code>GOMAXPROCS=1</code>, external writer subprocess to hit the fsnotify buffer-overflow path). The commit split is clean and bisectable.</p>
+    <p>However, the goroutine split introduced a new concurrency hazard: <code>InotifyTracker.sendEvent</code> now runs in its own drainer goroutine while <code>removeWatch</code> runs in the RPC goroutine, and their interaction can leave <code>sendEvent</code> in a <code>select</code> where both <code>ch &lt;- event</code> (on a closed channel) and <code>&lt;-done</code> (on a closed channel) are ready cases, giving a 50% chance of a panic that crashes the daemon. In addition, the new <code>Stream</code> helper returns as soon as <code>t.Lines</code> closes, which is <em>before</em> <code>tail.watchers.Wait()</code> completes — defeating the synchronization contract commit 6 added. And both <code>Stream</code> and <code>pkg/hostagent/events.Watch</code> swallow fatal <code>tail.Err()</code> on close, so a doomed tail loop loses its diagnostic on every iteration.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+      <div class="finding-title" id="C1">
+        <span class="finding-num">C1.</span> <code>sendEvent</code> can panic with <code>send on closed channel</code> after <code>removeWatch</code> <span class="pill pill-gemini">Gemini</span><a href="#C1" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">func (t *InotifyTracker) sendEvent(event fsnotify.Event) {
+	name := filepath.Clean(event.Name)
+
+	t.mux.Lock()
+	ch := t.chans[name]
+	done := t.done[name]
+	t.mux.Unlock()
+
+	if ch != nil &amp;&amp; done != nil {
+		select {
+		case ch &lt;- event:
+		case &lt;-done:
+		}
+	}
+}</code></pre>
+    <p>Splitting <code>run()</code> into three goroutines means <code>sendEvent</code> (events drainer) and <code>removeWatch</code> (RPC handler) now run concurrently. The <code>remove</code> helper at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/watch/inotify_tracker.go#L111-L126"><code>inotify_tracker.go:111-126</code></a> closes <code>done</code> first (under <code>shared.mux</code>), then sends on the unbuffered <code>shared.remove</code>; <code>run()</code> receives and calls <code>removeWatch</code> at line 174, which closes <code>ch</code>.</p>
+      <pre><code class="language-go">// inotify_tracker.go:115-124 — remove()
+shared.mux.Lock()
+done := shared.done[winfo.fname]
+if done != nil {
+    delete(shared.done, winfo.fname)
+    close(done)
+}
+shared.mux.Unlock()
+shared.remove &lt;- winfo</code></pre>
+      <pre><code class="language-go">// inotify_tracker.go:176-181 — removeWatch()
+t.mux.Lock()
+ch := t.chans[winfo.fname]
+if ch != nil {
+    delete(t.chans, winfo.fname)
+    close(ch)
+}</code></pre>
+    <p>Race: <code>sendEvent</code> unlocks with non-nil <code>ch</code> and <code>done</code>. Before it reaches the <code>select</code>, <code>remove</code> closes <code>done</code> and <code>removeWatch</code> closes <code>ch</code>. On entry to the <code>select</code>, both cases are ready (a send on a closed channel is selectable and panics; a receive on a closed channel is selectable and returns the zero value). Go picks pseudo-randomly, so ~50% of the time this path is taken it panics with <code>send on closed channel</code>, crashing the daemon. In the pre-PR upstream code <code>sendEvent</code> and <code>removeWatch</code> ran on the same goroutine inside a single <code>select</code>, so the race did not exist.</p>
+    <p>The window is small (between <code>t.mux.Unlock()</code> and entry to the <code>select</code>) but non-zero. Under the rotation + event storm pattern this PR&#39;s own stress test produces, the collision <em>can</em> happen; it would read as a flaky crash rather than a deadlock, so the stress test is unlikely to catch it.</p>
+    <p>Fix: avoid the send-on-closed case by making the send conditional on <code>done</code> not being closed, e.g. gate the send with a non-blocking poll of <code>done</code> first, or protect the send with <code>defer func() { _ = recover() }()</code> on the understanding that dropping an event for a channel that is being removed is correct. The cleanest structural fix is to have <code>removeWatch</code> <em>not</em> close <code>ch</code> (just delete it from the map) and rely on <code>t.Dying()</code> from the caller&#39;s tomb to terminate the per-file goroutine in <code>inotify.go</code>; that is larger than the minimum change, so the targeted <code>recover</code> is a pragmatic stopgap while the structural redesign is planned.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> <code>Stream</code> returns before <code>tail.watchers.Wait()</code> completes, bypassing the commit-6 synchronization <span class="pill pill-gemini">Gemini</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">var writeErr error
+for line := range t.Lines {
+    if writeErr != nil {
+        continue // drain Lines so tailFileSync can exit cleanly
+    }
+    if _, err := fmt.Fprintln(writer, line.Text); err != nil {
+        writeErr = err
+        t.Kill(err) // non-blocking; keep draining Lines so tailFileSync can finish
+    }
+}
+return writeErr</code></pre>
+    <p>Commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/32015c9"><code>32015c9</code></a> added <code>Tail.watchers sync.WaitGroup</code> specifically so <code>tail.Stop()</code> / <code>tail.Wait()</code> does not return until the per-watcher <code>ChangeEvents</code> goroutine finishes its <code>untrack</code> RPC — the whole point being that a caller immediately re-opening the same filename must not race with a still-running <code>untrack</code> on the shared tracker. The defer order in <code>tailFileSync</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/tail.go#L269-L272"><code>tail.go:269-272</code></a>) is LIFO:</p>
+      <pre><code class="language-go">defer tail.Done()
+defer tail.watchers.Wait()
+defer tail.close()</code></pre>
+    <p>So <code>tail.close()</code> runs <em>first</em> (closing <code>Lines</code>), then <code>watchers.Wait()</code> blocks until the <code>ChangeEvents</code> goroutine exits. <code>Stream</code>&#39;s <code>for line := range t.Lines</code> unblocks as soon as <code>Lines</code> is closed and returns without waiting for the rest of the defer chain. A future caller that treats <code>Stream</code>&#39;s return as &quot;the tail is fully torn down&quot; and immediately re-opens the same file reproduces exactly the race commit 6 set out to fix.</p>
+    <p>The current <code>Stream</code> callers (<code>cmd/rdd/service.go</code> and <code>cmd/rdd/limavm.go</code>) are one-shot CLI commands that exit the process after <code>Stream</code> returns, so this is latent today. It becomes a correctness trap the moment any long-running path calls <code>Stream</code> twice on the same filename, which is a realistic pattern for a log-streaming helper.</p>
+    <p>Fix: after the <code>for</code> loop, call <code>_ = t.Wait()</code> (or <code>_ = t.Stop()</code> if the loop exited because the caller cancelled) before returning. The <code>t.Wait()</code> form is safe because tomb is already <code>Dying</code> or <code>Dead</code> by the time <code>Lines</code> closes, so <code>Wait</code> returns once the full defer chain (including <code>watchers.Wait</code>) has run.</p>
+      <pre><code class="language-diff"> 	for line := range t.Lines {
+ 		// ...
+ 	}
++	_ = t.Wait()
+ 	return writeErr</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> <code>pkg/hostagent/events.Watch</code> and <code>tail.Stream</code> silently swallow fatal <code>tail.Err()</code> on close <span class="pill pill-gemini">Gemini</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">case line := &lt;-haStdoutTail.Lines:
+    if line == nil {
+        return nil
+    }</code></pre>
+    <p>When <code>tailFileSync</code> hits a non-EOF read error (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/tail.go#L371"><code>tail.go:371</code></a>: <code>_ = tail.Killf(&quot;Error reading %s: %s&quot;, tail.Filename, err)</code>), a seek error, or an unrecoverable reopen failure, it calls <code>Kill</code> / <code>Killf</code> on the tomb and then lets the defer chain close <code>Lines</code>. Both <code>events.Watch</code> and <code>Stream</code> treat &quot;<code>Lines</code> closed&quot; as clean shutdown and return <code>nil</code>, discarding <code>tail.Err()</code>.</p>
+    <p>In the controller path (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/controllers/lima/limavm/controllers/hostagent_watcher.go#L130-L134"><code>hostagent_watcher.go:130-134</code></a>), <code>runWatcher</code> only logs <code>err</code> when <code>Watch</code> returns non-nil. If <code>Watch</code> returns nil after a tail failure, the controller sees no diagnostic and proceeds to set <code>phaseStopped</code> and enqueue a reconcile — the hostagent will then be restarted, and if the new tail hits the same failure mode (e.g. permission denied on the log file, inotify instance exhaustion) the cycle repeats silently. There is no evidence in logs that the tail itself failed.</p>
+    <p>Fix: propagate <code>tail.Err()</code> back to the caller.</p>
+      <pre><code class="language-diff"> 	case line := &lt;-haStdoutTail.Lines:
+ 		if line == nil {
+-			return nil
++			return haStdoutTail.Err()
+ 		}</code></pre>
+    <p>Apply the same change to the <code>haStderrTail.Lines</code> case at <code>events.go:129-131</code> and to the end of <code>Stream</code>:</p>
+      <pre><code class="language-diff">-	return writeErr
++	if writeErr != nil {
++		return writeErr
++	}
++	return t.Err()</code></pre>
+    <p><code>tail.Err()</code> returns <code>nil</code> (or <code>tomb.ErrStillAlive</code> if called before the tomb dies, but here the range loop exited so the tomb is dead) for clean shutdowns, so the propagation is transparent when nothing went wrong.</p>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> Duplicate doc comment block on <code>writerEnvVar</code> <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">// writerEnvVar makes the test binary run as a subprocess that writes
+// JSON event lines to its stdout until stdin is closed. We self-exec
+// (see TestMain) because an external writer process produces the
+// ReadDirectoryChanges traffic volume needed to trigger fsnotify&#39;s
+// &quot;buffer larger than it is&quot; error path on Windows; an in-process
+// goroutine writer does not.
+// writerEnvVar makes the test binary run as a subprocess that writes
+// JSON event lines to its stdout until stdin is closed. We self-exec
+// (see TestMain) because an external writer process produces the
+// ReadDirectoryChanges traffic volume needed to trigger fsnotify&#39;s
+// &quot;buffer larger than it is&quot; error path on Windows; an in-process
+// goroutine writer does not.
+const writerEnvVar = &quot;TAIL_TEST_WRITER&quot;</code></pre>
+    <p>Lines 25-30 and 31-36 are byte-identical — an editing accident during the review-1 commit (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/673e91e"><code>673e91e</code></a>). Delete the duplicate block.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> <code>FileWatcher.ChangeEvents</code> doc claims the goroutine returns after truncation, but neither implementation does <span class="pill pill-claude">Claude</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">// ChangeEvents reports on changes to a file, be it modification,
+// deletion, renames or truncations. After a deletion or truncation
+// event the implementation&#39;s goroutine returns and no further
+// notifications arrive on the returned FileChanges; the channels
+// themselves stay open.</code></pre>
+    <p>The <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/watch/inotify.go#L136-L140"><code>inotify.go:136-140</code></a> truncation branch calls <code>NotifyTruncated</code> and falls through to the enclosing <code>for</code> loop:</p>
+      <pre><code class="language-go">if prevSize &gt; 0 &amp;&amp; prevSize &gt; fw.Size {
+    changes.NotifyTruncated()
+} else {
+    changes.NotifyModified()
+}</code></pre>
+    <p><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/watch/polling.go#L106-L109"><code>polling.go:106-109</code></a> does the same with <code>continue</code>. <code>tail.waitForChanges</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/tail.go#L418-L426"><code>tail.go:418-426</code></a>) depends on this: after truncation it calls <code>reopen()</code> without clearing <code>tail.changes</code>, then the next iteration re-enters <code>waitForChanges</code> expecting the same <code>FileChanges</code> object to keep firing. If the goroutine really returned after truncation, <code>tail.changes.Modified</code> would block forever on the next call.</p>
+    <p>Fix:</p>
+      <pre><code class="language-diff"> // ChangeEvents reports on changes to a file, be it modification,
+-// deletion, renames or truncations. After a deletion or truncation
+-// event the implementation&#39;s goroutine returns and no further
+-// notifications arrive on the returned FileChanges; the channels
+-// themselves stay open.
++// deletion, renames or truncations. After a deletion or rename event
++// the implementation&#39;s goroutine returns and no further notifications
++// arrive on the returned FileChanges; the channels themselves stay
++// open. Truncation and modification events are delivered indefinitely.</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> <code>watch</code> package doc still describes itself as part of the vendored nxadm/tail <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">// Package watch provides the FileWatcher abstraction used by the
+// vendored nxadm/tail to observe changes to a file.</code></pre>
+    <p>After <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/a9bcf89"><code>a9bcf89</code></a> absorbed these subpackages and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/35d6f05"><code>35d6f05</code></a> moved them out from under <code>pkg/util/nxadmtail</code>, the top-level <code>tail</code> package doc correctly describes the fork status (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/tail.go#L8-L18"><code>tail.go:8-18</code></a>). This sub-package doc was not updated and still names a consumer — &quot;vendored nxadm/tail&quot; — that no longer exists in the tree.</p>
+    <p>Fix:</p>
+      <pre><code class="language-diff">-// Package watch provides the FileWatcher abstraction used by the
+-// vendored nxadm/tail to observe changes to a file.
++// Package watch provides the FileWatcher abstraction used by
++// pkg/util/tail to observe changes to a file.</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> <code>runFakeHostagentSubprocess</code> writes from two goroutines into a single non-thread-safe <code>json.Encoder</code> <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">enc := json.NewEncoder(os.Stdout)
+_ = enc.Encode(fakeEvent{Time: time.Now(), Status: fakeStatus{SSHLocalPort: 22}})
+time.AfterFunc(200*time.Millisecond, func() {
+    _ = enc.Encode(fakeEvent{Time: time.Now(), Status: fakeStatus{SSHLocalPort: 22, Running: true}})
+})</code></pre>
+    <p><code>time.AfterFunc</code> runs its callback on its own goroutine. The tick loop below starts firing ~25 ms after <code>runFakeHostagentSubprocess</code> begins; the <code>AfterFunc</code> goroutine fires at 200 ms and races with the tick goroutine&#39;s <code>enc.Encode</code> calls. <code>json.Encoder</code> is explicitly not safe for concurrent writers — two interleaved <code>Encode</code> calls can produce a garbled line. For this test the consumer (<code>runDualTail</code>) only counts lines, so a corrupt line still counts; but the subprocess output is no longer a clean JSON stream, which is both surprising to a future test that tries to decode it and a potential source of flakes for a future strict parser.</p>
+    <p>Fix: drop <code>time.AfterFunc</code> and emit the <code>Running</code> event once from the tick loop when the appropriate elapsed time has passed, or guard the encoder with a <code>sync.Mutex</code>. The single-goroutine form is cleaner:</p>
+      <pre><code class="language-go">enc := json.NewEncoder(os.Stdout)
+_ = enc.Encode(fakeEvent{Time: time.Now(), Status: fakeStatus{SSHLocalPort: 22}})
+runningSent := false
+start := time.Now()
+// ...
+for {
+    select {
+    // ...
+    case &lt;-tick.C:
+        if !runningSent &amp;&amp; time.Since(start) &gt; 200*time.Millisecond {
+            _ = enc.Encode(fakeEvent{Time: time.Now(), Status: fakeStatus{SSHLocalPort: 22, Running: true}})
+            runningSent = true
+        }
+        for range 10 {
+            _ = enc.Encode(fakeEvent{Time: time.Now(), Status: fakeStatus{SSHLocalPort: 22}})
+        }
+    }
+}</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>context.Background()</code> inside <code>runRotationCycle</code> bypasses the test&#39;s own context <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <pre><code class="language-go">tailCtx, tailCancel := context.WithCancel(context.Background())</code></pre>
+    <p>Three lines above at line 114 the same function already uses <code>t.Context()</code> (<code>exec.CommandContext(t.Context(), ...)</code>), so the convention for the file is the test-scoped context. Using <code>context.Background()</code> here means a test timeout or <code>t.Fatal</code> elsewhere cannot cancel the in-flight tail; the cycle waits out its 10 s <code>cycleStopBudget</code> before giving up, and if the assertion within fails before <code>tailCancel()</code> runs, the goroutine started on the next line can outlive the test.</p>
+    <p>Fix:</p>
+      <pre><code class="language-diff">-tailCtx, tailCancel := context.WithCancel(context.Background())
++tailCtx, tailCancel := context.WithCancel(t.Context())</code></pre>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Single-watcher-per-process invariant preserved</strong> — Splitting <code>run()</code> into three goroutines while keeping one shared <code>fsnotify.Watcher</code> retains Linux&#39;s <code>fs.inotify.max_user_instances=128</code> budget safety, which is an easy win to lose accidentally when &quot;just add more goroutines&quot;. (in-scope) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+      <li><em></em>Containment boundary at <code>pkg/hostagent/events</code><em></em> — Introducing a local <code>Watch</code> keyed to rdd&#39;s subset of the Lima JSON schema removes the last live path through Lima&#39;s unpatched <code>events.Watch</code> without forking more of Lima than rdd actually consumes, and keeps the <code>pkg/util/tail</code> library free of rdd-specific logr glue. (in-scope) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span></li>
+      <li><strong>Test designed around the actual failure mode</strong> — <code>TestInotifyTrackerNoDeadlockOnRepeatedRotation</code> self-execs an external writer subprocess (the only way to hit fsnotify&#39;s Windows buffer-overflow path at useful volume) and pins <code>GOMAXPROCS=1</code> to serialise the scheduler the way a 2-vCPU <code>windows-latest</code> runner does. The PR&#39;s own lifecycle race (fixed in commit 6) was discovered by this same test running on Linux. (in-scope) <span class="pill pill-claude">Claude</span></li>
+      <li><strong>Root-cause-first documentation in the tracker</strong> — The <code>run()</code> doc comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/watch/inotify_tracker.go#L224-L244"><code>inotify_tracker.go:224-244</code></a> explains the four-job-one-select deadlock cycle, and the <code>watchers sync.WaitGroup</code> comment on <code>Tail</code> documents the lifecycle contract. A future reader understands the <em>why</em> without replaying the debugging session. (in-scope) <span class="pill pill-claude">Claude</span></li>
+    </ul>
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>No test for concurrent tails of the same filename</strong> — The <code>sync.WaitGroup</code> fix closes the <em>sequential</em> window (tail1 stops, tail2 opens). It does not address two tails alive simultaneously on the same filename — <code>removeWatch</code> unconditionally deletes the map entry and closes the per-file channel, which would yank the channel out from under a second live tail on the same path. Not triggered by rdd&#39;s current callers (one tail per hostagent stdout/stderr path) but undocumented as a precondition. (future) <span class="pill pill-claude">Claude</span></li>
+      <li><strong>Stress test trains on a single Goroutine scheduler</strong> — <code>GOMAXPROCS=1</code> reliably reproduces the original deadlock and the Linux lifecycle race, but masks the send-on-closed-channel race from C1 (which requires two CPUs to actually reorder <code>sendEvent.Unlock()</code> against <code>removeWatch.close(ch)</code>). Consider a second variant of the test with default <code>GOMAXPROCS</code> to exercise the multi-CPU race surface. (future)</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Unit-test coverage for the new code is solid:</p>
+    <ul>
+      <li><code>pkg/hostagent/events/events_test.go</code> covers stop-on-callback, begin filter, malformed-JSON recovery, ctx cancel, stderr drainage — the five cases called out in commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/673e91e"><code>673e91e</code></a> <span class="pill pill-claude">Claude</span>.</li>
+      <li><code>TestInotifyTrackerNoDeadlockOnRepeatedRotation</code> covers both the deadlock and the lifecycle race, red-before/green-after verified in the PR description.</li>
+      <li>Targeted <code>go test ./pkg/util/tail ./pkg/hostagent/events ./pkg/controllers/lima/limavm/controllers</code> passes <span class="pill pill-codex">Codex</span>.</li>
+    </ul>
+    <p>Gaps, ranked:</p>
+    <ol>
+      <li><em></em><code>sendEvent</code> / <code>removeWatch</code> concurrency (covers C1)<em></em> — No test exercises a rotation+event-storm where the two goroutines race on the same filename with default <code>GOMAXPROCS</code>. This is the race class C1 describes.</li>
+      <li><em></em><code>Stream</code> same-file re-open (covers I1)<em></em> — No test opens <code>Stream</code> twice back-to-back on the same filename, which would catch a regression of the commit-6 synchronization contract.</li>
+      <li><em></em><code>events.Watch</code> fatal-tail-error propagation (covers I2)<em></em> — <code>events_test.go</code> lacks a case where the underlying tail fails with a fatal error (e.g. passing a directory path, or simulating a mid-stream read error) and asserts the error is returned <span class="pill pill-gemini">Gemini</span>.</li>
+      <li><em></em>Controller path through <code>pkg/hostagent/events.Watch</code><em></em> — No controller-level test drives <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/controllers/lima/limavm/controllers/hostagent_watcher.go#L130"><code>hostagent_watcher.go:130</code></a> through the new local package and verifies reconcile re-enqueue on the fixed path; today that behavior is validated only by lower-level tests and CI <span class="pill pill-codex">Codex</span>.</li>
+      <li><em></em><code>BlockUntilExists</code> cancel from CLI<em></em> — <code>stream_test.go</code> does not cover cancelling while waiting for a missing file to appear, which is the CLI path most likely to exercise <code>BlockUntilExists()</code> after the vendoring change <span class="pill pill-codex">Codex</span>.</li>
+      <li><strong>Truncation event delivery (covers S2)</strong> — Neither the stress test nor <code>events_test.go</code> exercises truncation on the tailed file. A small unit test that shrinks the file and asserts continued event flow would document the real contract and guard future refactors <span class="pill pill-claude">Claude</span>.</li>
+    </ol>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li>Exported symbols in the new packages (<code>Watch</code>, <code>Event</code>, <code>Status</code>, <code>Stream</code>, <code>Open</code>, <code>Config</code>, <code>Tail</code>, etc.) all have godoc comments <span class="pill pill-claude">Claude</span>.</li>
+      <li>Two comments are stale (S2, S3); one is duplicated (S1).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/tail/tail.go#L67-L85"><code>pkg/util/tail/tail.go:67-85</code></a>&#39;s <code>Config.RateLimiter</code> was removed from the struct in the original vendoring, but the <code>cooloff</code> branch inside <code>tailFileSync:311-328</code> is still live and references a rate-limit scenario that can never fire. Pre-existing, flagged here as spin-out cleanup rather than a PR blocker <span class="pill pill-claude">Claude</span>.</li>
+      <li>The NOTICE update and the new package comments adequately explain the vendored-tail move and the local hostagent event wrapper <span class="pill pill-codex">Codex</span>.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Clean. Each of the seven commits is a self-contained concept:</p>
+    <ul>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/a9bcf89"><code>a9bcf89</code></a> absorbs upstream files (mechanical).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/35d6f05"><code>35d6f05</code></a> renames + merges with the CLI wrapper.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e074dd9"><code>e074dd9</code></a> applies the deadlock fix + stress test.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/92881d9"><code>92881d9</code></a> cuts over <code>hostagent_watcher</code> to the fork.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/a2d5c9f"><code>a2d5c9f</code></a> resolves lint debt introduced by the absorption.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/32015c9"><code>32015c9</code></a> fixes the second (Linux) lifecycle race discovered by the stress test.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/673e91e"><code>673e91e</code></a> addresses prior review feedback and MIT-relicensing prep for spin-out.</li>
+    </ul>
+    <p>Commit messages are specific about what changed and why. Bisect across this range would pinpoint a regression in the correct concept.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><em></em><code>XXX: we must not log from a library.</code><em></em> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/tail/tail.go#L407"><code>pkg/util/tail/tail.go:407</code></a> — pre-existing from upstream nxadm/tail, inherited as-is.</li>
+      <li><em></em><code>XXX: report this error back to the user</code><em></em> at <code>pkg/util/tail/watch/inotify.go:131</code> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/a9bcf890f8bdda37f63a86a74a741c78a53956ab/pkg/util/nxadmtail/watch/polling.go#L94"><code>polling.go:94</code></a> — pre-existing upstream <code>panic(...)</code> on unexpected <code>Stat</code> failure; not addressed, not regressed <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span>.</li>
+      <li><em></em><code>XXX: use tomb.Tomb to cleanly manage these goroutines</code><em></em> at <code>pkg/util/tail/watch/polling.go:68</code> — pre-existing <span class="pill pill-claude">Claude</span>.</li>
+      <li><em></em>Lima&#39;s <code>events.Watch</code> remains unpatched; rdd bypasses it<em></em> — explicit in the &quot;Out of scope&quot; section of the PR description and in the new package&#39;s doc comment. Consistent with the stated plan to share the fix with Lima later <span class="pill pill-claude">Claude</span>.</li>
+      <li><strong>&quot;Do NOT call Cleanup&quot; warning on both tail handles</strong> at <code>pkg/hostagent/events/events.go:88-99</code> — deliberate preservation of Lima&#39;s long-standing constraint; mirrored on the stderr defer as part of the review-1 commit <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span>.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>No unresolved inline review comments on the PR as of this review.</p>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Produced the most findings by volume — five suggestions, all valid — covering documentation drift (S2, S3), an editing artifact (S1), a test-helper concurrency bug (S4), and the <code>t.Context()</code> hygiene issue (S5). Anchored the Design Observations and Testing Assessment sections with concrete, evidence-based strengths and coverage gaps. Missed the two concurrency findings that Gemini caught (C1, I1, I2) despite them being the most impactful issues in the review — traced the defer chain in <code>tailFileSync</code> deeply enough to note the <code>sync.WaitGroup</code> contract but did not connect that to the Stream consumer or to the drainer/RPC goroutine split&#39;s effect on <code>sendEvent</code> / <code>removeWatch</code> concurrency. Calibration felt right: nothing flagged as Critical or Important that wasn&#39;t, and the &quot;no blocking issues&quot; verdict was compatible with a reasonable reading of the code — but the deeper races were genuinely missed, not just softened.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Single suggestion (S5), which Gemini and Claude both also found. Strong Design Observations and accurate Testing Assessment gaps (3 and 5 in the consolidated list). Did run the targeted test suite and reported it green, which is useful confirmation. Missed every race and synchronization issue — C1, I1, I2 all ungazed. The review reads as a competent &quot;nothing alarming&quot; pass rather than an independent verification of the new concurrency primitives. Low value on a PR whose whole point is concurrency.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Landed both concurrency findings (C1: sendEvent panic race, I1: Stream bypasses watchers.Wait) and the error-swallowing gap (I2). All three required tracing defer chains, goroutine boundaries, and channel ownership across three files — exactly the failure mode the rest of the PR tries to prevent, and exactly what a concurrency review should catch. Initial severity on I1 and I2 was Critical in Gemini&#39;s own output; consolidation downgraded I1 to Important (current callers don&#39;t trigger) and I2 to Important (controller path still enqueues a reconcile), but the findings themselves were on target. Coverage summary was thorough and accurate. Did not run <code>git blame</code> (known quota-driven behavior) so did not distinguish regressions from pre-existing — in this PR it did not matter because the two important findings both originated in this PR&#39;s commits. Highest-value reviewer on this pass.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.7</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>15m 39s</td><td>8m 38s</td><td>6m 09s</td></tr>
+        <tr><td>Findings</td><td>5S</td><td>1S</td><td>1C 2I 1S</td></tr>
+        <tr><td>Tool calls</td><td>44 (Bash 26, Read 18)</td><td>59 (shell 56, stdin 3)</td><td>3 (run<em>shell</em>command 3)</td></tr>
+        <tr><td>Design observations</td><td>4</td><td>2</td><td>0</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>5</td><td>0</td><td>3</td></tr>
+        <tr><td>Files reviewed</td><td>24</td><td>24</td><td>24</td></tr>
+        <tr><td>Coverage misses</td><td>2</td><td>2</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>5S</strong></td><td><strong>1S</strong></td><td><strong>1C 2I 1S</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>2 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Reconciliation</strong>: Gemini raised its C1 (Stream bypasses watchers.Wait) at Critical severity; consolidation downgraded to Important I1 because current callers (CLI one-shot commands) do not trigger the race — the finding is a latent contract violation. Gemini raised its I1 (swallowed tail errors) at Important; retained as Important I2 with the note that the controller still reconciles on <code>phaseStopped</code>, so the impact is diagnostic rather than wedging. Gemini&#39;s C2 (sendEvent panic) retained as Critical C1.</p>
+    <p>Gemini was the clear winner here. Its two concurrency findings were the highest-value output of the review; without them the review would have produced only polish-level suggestions on a PR whose whole purpose is to fix concurrency. Claude provided the polish coverage and a strong structural read. Codex contributed one finding already found by the other two. Running Opus and Gemini as the pair would have covered essentially the same ground at lower cost; Codex&#39;s value-add on this PR was negligible.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="skill-improvements">Skill improvements <a href="#skill-improvements" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Prompt agents to enumerate new concurrency edges introduced by a refactor.</strong> When a PR restructures goroutines (splits one goroutine into N, adds a <code>sync.WaitGroup</code> between two subsystems, turns a single-goroutine select into multiple), have the reviewer explicitly list (a) which shared state was previously protected by &quot;one goroutine does everything&quot; and is now protected by mutex/channel, (b) which close/delete operations that used to run in the same goroutine as their readers now run concurrently, and (c) which public API returns whose return now precedes a background shutdown that used to complete before return. The two missed concurrency findings on this review (C1, I1) both fall into category (b) and (c); agents that skipped the enumeration missed them.</li>
+    </ul>
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <p>None this pass — existing <code>deep-review-context.md</code> guidance was still accurate.</p>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
