@@ -191,64 +191,77 @@ h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1
       <div class="finding-title" id="I1">
         <span class="finding-num">I1.</span> Unsynchronized read of <code>r.apiNamespace</code> in <code>HandleLogs</code> <span class="pill pill-claude">Claude</span><a href="#I1" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L65-L79">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="65" data-line="70-74"><code class="language-go">	}
-	defer conn.Close()
-	defer func() {
-		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
-		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
-		if err != nil {
-			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
-		}
-	}()
-
-	writer, err := conn.NextWriter(websocket.TextMessage)
-	if err != nil {
-		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L65-L79">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="65" data-line="70-74"><code class="language-go">		http.Error(w, &quot;Invalid container ID&quot;, http.StatusBadRequest)
 		return
-	}</code></pre>
-    <p><code>r.apiNamespace</code> is written by <code>Reconcile</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L165"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:165</code></a> with no lock, and is now read here from HTTP-handler goroutines with no lock. <code>go test -race</code> will flag it, and a weak-memory-model architecture could produce a torn or empty read. In practice <code>apiNamespace</code> is effectively immutable after the first reconcile (per the field doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L122-L124"><code>engine_reconciler.go:122-124</code></a>), so today&#39;s worst observable outcome is a briefly-empty-string read that yields a spurious 404 before the first Reconcile has run — but the race is real.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L160-L170">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="160" data-line="165"><code class="language-go">	}
+	}
+	log.V(5).Info(&quot;Handling logs for container&quot;, &quot;containerID&quot;, containerID)
 
-	// The watcher runs only when the App is Running on the moby
-	// backend. Any other state stops the watcher and sweeps mirror
-	// resources. Skip the sweep once ContainerEngineReady already
-	// reflects the terminal state, to avoid four empty List calls per
-	// unrelated reconcile; a failed sweep leaves the condition pending
-	// and the next requeue retries.
-	wantWatcher := running &amp;&amp; engineIsDocker
-	if !wantWatcher {
-		if watcherRunning {</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L117-L129">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="117" data-line="122-124"><code class="language-go">	// goroutine captures its generation at launch and uses it to detect
-	// whether it has been superseded.
-	contextProbeGen int
-	// contextProbeWg is used by removeDockerContext to wait for the probe
-	// goroutine to finish before deleting the context directory, ensuring
-	// the goroutine cannot write currentContext after the directory is gone.
-	contextProbeWg sync.WaitGroup
-}
+	var c containersv1alpha1.Container
+	err := r.Client.Get(req.Context(), types.NamespacedName{
+		Namespace: r.apiNamespace,
+		Name:      containerID,
+	}, &amp;c)
+	if err != nil {
+		switch {
+		case apierrors.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
+			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)</code></pre>
+    <p><code>r.apiNamespace</code> is written by <code>Reconcile</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L165"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:165</code></a> with no lock, and is now read here from HTTP-handler goroutines with no lock. <code>go test -race</code> will flag it, and a weak-memory-model architecture could produce a torn or empty read. In practice <code>apiNamespace</code> is effectively immutable after the first reconcile (per the field doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L122-L124"><code>engine_reconciler.go:122-124</code></a>), so today&#39;s worst observable outcome is a briefly-empty-string read that yields a spurious 404 before the first Reconcile has run — but the race is real.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L160-L170">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="160" data-line="165"><code class="language-go">
+	var app appv1alpha1.App
+	if err := r.Get(ctx, client.ObjectKey{Name: appName}, &amp;app); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	r.apiNamespace = app.GetResourceNamespace()
 
-// Reconcile handles App condition changes, Docker watcher lifecycle,
-// Container action annotations, and finalizer processing for mirror
-// resources.
-func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {</code></pre>
-    <p>The struct-level comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L113-L115"><code>engine_reconciler.go:113-115</code></a> claims &quot;Only Reconcile and the manager&#39;s shutdown-hook goroutine... contend for the fields below.&quot; That invariant is now false — <code>HandleLogs</code> is a third concurrent accessor. The field comment at line 126-127 was simultaneously rewritten from a precise description of what <code>watcherMu</code> guards against to a generic note about hold duration, so the struct&#39;s concurrency contract is now less documented than before the change (see S1).</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L108-L120">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="108" data-line="113-115"><code class="language-go">	watcherCtx    context.Context
-	watcherCancel context.CancelFunc
+	running := meta.IsStatusConditionTrue(app.Status.Conditions, appv1alpha1.AppConditionRunning)
+	engineIsDocker := app.Spec.ContainerEngine.Name == engineMoby
 
-	// contextMu protects contextProbeCancel and contextProbeGen.
-	contextMu sync.Mutex
-	// contextProbeCancel cancels the in-flight Docker context probe goroutine.
-	// It is nil when no probe is running.
-	contextProbeCancel context.CancelFunc
-	// contextProbeGen is incremented each time a new probe is launched; the
-	// goroutine captures its generation at launch and uses it to detect
-	// whether it has been superseded.
-	contextProbeGen int
-	// contextProbeWg is used by removeDockerContext to wait for the probe</code></pre>
+	// Treat a dead watcher as a transient disconnect and fall through.</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L117-L129">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="117" data-line="122-124"><code class="language-go">	client.Client
+
+	// reconcileChan receives events from the engine watcher goroutine.
+	reconcileChan chan event.GenericEvent
+
+	// apiNamespace mirrors App.spec.namespace (immutable). Reconcile
+	// populates it before any mirror operation.
+	apiNamespace string
+
+	// watcherMu guards r.watcher; note that this may be held for a long time
+	// during initialization.
+	watcherMu sync.Mutex
+	watcher   engine</code></pre>
+    <p>The struct-level comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L113-L115"><code>engine_reconciler.go:113-115</code></a> claims &quot;Only Reconcile and the manager&#39;s shutdown-hook goroutine... contend for the fields below.&quot; That invariant is now false — <code>HandleLogs</code> is a third concurrent accessor. The field comment at line 126-127 was simultaneously rewritten from a precise description of what <code>watcherMu</code> guards against to a generic note about hold duration, so the struct&#39;s concurrency contract is now less documented than before the change (see S1).</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L108-L120">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="108" data-line="113-115"><code class="language-go">
+// EngineReconciler watches the App resource for the Running condition and
+// manages an engine watcher goroutine that mirrors engine state into K8s.
+//
+// The App is a cluster-scoped singleton, so controller-runtime runs at
+// most one Reconcile at a time. Only Reconcile and the manager&#39;s
+// shutdown-hook goroutine (see SetupWithManager) contend for the
+// fields below.
+type EngineReconciler struct {
+	client.Client
+
+	// reconcileChan receives events from the engine watcher goroutine.
+	reconcileChan chan event.GenericEvent</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L121-L132">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="121" data-line="126-127"><code class="language-go">			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
+		default:
+			log.V(5).Info(&quot;Failed to inspect container&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Failed to inspect container&quot;, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	reader, err := watcher.getLogs(ctx, &amp;c, opts...)
+	if err != nil {
+		switch {</code></pre>
     <p>Fix: acquire <code>watcherMu</code> once at entry and read <code>watcher</code> and <code>apiNamespace</code> under it; update the struct-level comment and the <code>watcherMu</code> field comment to name <code>HandleLogs</code> as a concurrent reader. Reordering also lets callers see the more-specific 503 before the 404, which helps diagnosis (see S6).</p>
       <pre><code class="language-diff">-	var c containersv1alpha1.Container
 -	err := r.Client.Get(req.Context(), types.NamespacedName{
@@ -279,32 +292,32 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
       <div class="finding-title" id="S1">
         <span class="finding-num">S1.</span> <code>watcherMu</code> field comment and <code>EngineReconciler</code> struct doc went stale <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L108-L132">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="108" data-line="113-127"><code class="language-go">	watcherCtx    context.Context
-	watcherCancel context.CancelFunc
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L108-L132">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="108" data-line="113-127"><code class="language-go">
+// EngineReconciler watches the App resource for the Running condition and
+// manages an engine watcher goroutine that mirrors engine state into K8s.
+//
+// The App is a cluster-scoped singleton, so controller-runtime runs at
+// most one Reconcile at a time. Only Reconcile and the manager&#39;s
+// shutdown-hook goroutine (see SetupWithManager) contend for the
+// fields below.
+type EngineReconciler struct {
+	client.Client
 
-	// contextMu protects contextProbeCancel and contextProbeGen.
-	contextMu sync.Mutex
-	// contextProbeCancel cancels the in-flight Docker context probe goroutine.
-	// It is nil when no probe is running.
-	contextProbeCancel context.CancelFunc
-	// contextProbeGen is incremented each time a new probe is launched; the
-	// goroutine captures its generation at launch and uses it to detect
-	// whether it has been superseded.
-	contextProbeGen int
-	// contextProbeWg is used by removeDockerContext to wait for the probe
-	// goroutine to finish before deleting the context directory, ensuring
-	// the goroutine cannot write currentContext after the directory is gone.
-	contextProbeWg sync.WaitGroup
-}
+	// reconcileChan receives events from the engine watcher goroutine.
+	reconcileChan chan event.GenericEvent
 
-// Reconcile handles App condition changes, Docker watcher lifecycle,
-// Container action annotations, and finalizer processing for mirror
-// resources.
-func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
-	log := logf.FromContext(ctx)
+	// apiNamespace mirrors App.spec.namespace (immutable). Reconcile
+	// populates it before any mirror operation.
+	apiNamespace string
 
-	var app appv1alpha1.App</code></pre>
+	// watcherMu guards r.watcher; note that this may be held for a long time
+	// during initialization.
+	watcherMu sync.Mutex
+	watcher   engine
+
+	// watcherCtx is the parent context for every engine watcher the
+	// reconciler starts. A manager.RunnableFunc cancels it on</code></pre>
     <p>Pre-PR the field comment read: &quot;watcherMu guards r.watcher against the shutdown-hook goroutine&#39;s stopWatcher call. Reconcile runs serially (see struct doc), so the lock has no other role.&quot; The rewrite dropped the writer-identification (the shutdown hook) and the serial-Reconcile note in exchange for a hold-time remark that was equally true of the old code. After this PR, <code>HandleLogs</code> is a third concurrent reader, so the comment should grow more specific, not less.</p>
     <p>Fix: enumerate the three concurrent participants (Reconcile, shutdown-hook goroutine, <code>HandleLogs</code>) and state which fields each one touches. Update the struct doc at lines 113-115 in the same pass.</p>
     <p><code>(suggestion, regression)</code></p>
@@ -313,61 +326,61 @@ func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.
       <div class="finding-title" id="S2">
         <span class="finding-num">S2.</span> Docs promise UTF-8 message text, but the endpoint streams raw binary <span class="pill pill-codex">Codex</span><a href="#S2" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L257-L271">docs/design/api_containers.md</a></div>
-      <pre data-start="257" data-line="262-266"><code class="language-md">```
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L257-L271">docs/design/api_containers.md</a></div>
+      <pre data-start="257" data-line="262-266"><code class="language-md">
+The GUI is the intended caller for these actions. CLI users should
+reach for `docker start`, `docker stop`, etc. instead: the engine
+mirrors Docker state back into `status.status` either way.
 
-#### Untag image
-Delete the `Image` object; the finalizer will untag the image.  If all tags of
-an image are removed, _and_ it is not in use by a container (running or not),
-then the image itself is removed.
+#### Fetch container logs
+An endpoint at `/passthrough/.../logs/${container}` will speak WebSocket;
+messages are one way, as stream of bytes; messages should not be buffered.
+Message text must be UTF-8 encoded.  The last portion of the path must be the
+full container ID.
 
-If a container is using an image via a tag, then removing that tag may end up
-creating a new `Image` object to represent the untagged image.
+The following query parameters are accepted:
 
-#### Delete untagged image
-Delete the `Image` object (which does not have any `.status.repoTag` set).  An
-admission controller must be set up so that this is not allowed if there is a
-running container that uses that image.
-</code></pre>
-    <p>The doc mixes two incompatible contracts: &quot;stream of bytes&quot; plus per-message UTF-8. The implementation provides only the former. <code>websocketWriter.Write</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L45-L56"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:45-56</code></a> emits one <code>websocket.BinaryMessage</code> per raw <code>Write</code>, fed by <code>io.Copy</code> or <code>stdcopy.StdCopy</code> at lines 224-227. Those writers can split anywhere, so a frame can end mid-rune or contain arbitrary non-text bytes from the container stream. A client that codes to &quot;Message text must be UTF-8 encoded&quot; will build wrong framing assumptions.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L40-L61">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="40" data-line="45-56"><code class="language-go">			ShowStdout: true,
-			ShowStderr: true,
-			Follow:     true,
-		},
-	)
+Parameter | Description | Default
+--- | --- | ---</code></pre>
+    <p>The doc mixes two incompatible contracts: &quot;stream of bytes&quot; plus per-message UTF-8. The implementation provides only the former. <code>websocketWriter.Write</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L45-L56"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:45-56</code></a> emits one <code>websocket.BinaryMessage</code> per raw <code>Write</code>, fed by <code>io.Copy</code> or <code>stdcopy.StdCopy</code> at lines 224-227. Those writers can split anywhere, so a frame can end mid-rune or contain arbitrary non-text bytes from the container stream. A client that codes to &quot;Message text must be UTF-8 encoded&quot; will build wrong framing assumptions.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L40-L61">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="40" data-line="45-56"><code class="language-go">// with each Write call resulting in a separate [websocket.BinaryMessage].
+type websocketWriter struct {
+	conn *websocket.Conn
+}
+
+func (w *websocketWriter) Write(p []byte) (int, error) {
+	_ = w.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+	writer, err := w.conn.NextWriter(websocket.BinaryMessage)
 	if err != nil {
-		switch {
-		case errdefs.IsNotFound(err):
-			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
-			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)
-		case errdefs.IsInvalidArgument(err):
-			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
-			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
-		default:
-			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
-			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
-		}
-		return
+		return 0, err
 	}
+	n, err := writer.Write(p)
+	if err == nil {
+		err = writer.Close()
+	}
+	return n, err
+}
 
-	upgrader := websocket.Upgrader{}
-	conn, err := upgrader.Upgrade(w, req, nil)</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L219-L232">docs/design/api_containers.md</a></div>
-      <pre data-start="219" data-line="224-227"><code class="language-plaintext">has completed:
-```yaml
-apiVersion: containers.rancherdesktop.io/v1alpha1
-kind: ImagePushRequest
-metadata:
-  name: image-push-12345
-  namespace: rancher-desktop
-spec:
-  # `.metadata.name` of the image tag to push.
-  imageRef: &#39;sha256.999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b-12345&#39;
-status:
-  conditions:
-  - type: Complete
-    status: True</code></pre>
+// HandleLogs implements the log endpoint to pass through container logs.
+// It is at `/passthrough/engine/logs/{container}[?tail=999]`.
+func (r *EngineReconciler) HandleLogs(w http.ResponseWriter, req *http.Request) {
+	log := ctrl.LoggerFrom(req.Context())</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L219-L232">docs/design/api_containers.md</a></div>
+      <pre data-start="219" data-line="224-227"><code class="language-plaintext">`ContainerRequest` objects at the same time for the same containerd
+`name`/`namespace` pair.
+
+#### Change container state
+
+Set the `containers.rancherdesktop.io/action` annotation on the
+`Container` to request a one-shot action. The engine reconciler reads
+the annotation, dispatches the matching Docker call, records the
+outcome in `status.lastAction`, and removes the annotation.
+
+Valid values: `start`, `stop`, `pause`, `unpause`, `restart`.
+
+A single annotation holds at most one pending action. Writing a new
+value replaces the old, so a user who requests `pause` and then</code></pre>
     <p>Fix: document this as an opaque binary stream with no frame-to-line or frame-to-UTF-8 guarantee. The exec endpoint (line 276-278) references &quot;unbuffered binary as in the logs endpoint&quot;, so align the wording there once logs is fixed. The sentence also reads ungrammatically — &quot;as stream of bytes&quot; wants an article — worth polishing while the doc is open.</p>
       <pre><code class="language-diff">-An endpoint at `/passthrough/.../logs/${container}` will speak WebSocket;
 -messages are one way, as stream of bytes; messages should not be buffered.
@@ -383,49 +396,49 @@ status:
       <div class="finding-title" id="S3">
         <span class="finding-num">S3.</span> Container ID validator is too permissive: accepts any-length and uppercase hex <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#S3" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L32-L43">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="32" data-line="37-38"><code class="language-go">		return
-	}
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L32-L43">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="32" data-line="37-38"><code class="language-go">	writeTimeout   = 10 * time.Second
+	pingInterval   = 10 * time.Second
+	pingTimeout    = time.Minute
+)
 
-	// TODO: Figure out containerd
-	reader, err := r.watcher.cli.ContainerLogs(
-		req.Context(),
-		containerID,
-		client.ContainerLogsOptions{
-			ShowStdout: true,
-			ShowStderr: true,
-			Follow:     true,
-		},</code></pre>
+var containerIDValidator = regexp.MustCompile(`^[0-9a-fA-F]+$`)
+
+// websocketWriter implements [io.Writer] writing to a websocket connection,
+// with each Write call resulting in a separate [websocket.BinaryMessage].
+type websocketWriter struct {
+	conn *websocket.Conn
+}</code></pre>
     <p>Two independent observations converge on the same regex:</p>
-    <p>The API doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L265-L266"><code>docs/design/api_containers.md:265-266</code></a> says &quot;the full container ID&quot; is required, but the validator accepts any hex prefix. <code>/passthrough/engine/logs/deadbeef</code> passes the 400 gate and hits the mirror lookup at lines 71-74, returning 404 and making client bugs harder to diagnose.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L260-L271">docs/design/api_containers.md</a></div>
-      <pre data-start="260" data-line="265-266"><code class="language-plaintext">Delete the `Image` object; the finalizer will untag the image.  If all tags of
-an image are removed, _and_ it is not in use by a container (running or not),
-then the image itself is removed.
+    <p>The API doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L265-L266"><code>docs/design/api_containers.md:265-266</code></a> says &quot;the full container ID&quot; is required, but the validator accepts any hex prefix. <code>/passthrough/engine/logs/deadbeef</code> passes the 400 gate and hits the mirror lookup at lines 71-74, returning 404 and making client bugs harder to diagnose.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L260-L271">docs/design/api_containers.md</a></div>
+      <pre data-start="260" data-line="265-266"><code class="language-plaintext">mirrors Docker state back into `status.status` either way.
 
-If a container is using an image via a tag, then removing that tag may end up
-creating a new `Image` object to represent the untagged image.
+#### Fetch container logs
+An endpoint at `/passthrough/.../logs/${container}` will speak WebSocket;
+messages are one way, as stream of bytes; messages should not be buffered.
+Message text must be UTF-8 encoded.  The last portion of the path must be the
+full container ID.
 
-#### Delete untagged image
-Delete the `Image` object (which does not have any `.status.repoTag` set).  An
-admission controller must be set up so that this is not allowed if there is a
-running container that uses that image.
-</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L66-L79">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="66" data-line="71-74"><code class="language-go">	defer conn.Close()
-	defer func() {
-		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
-		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
-		if err != nil {
-			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
-		}
-	}()
+The following query parameters are accepted:
 
-	writer, err := conn.NextWriter(websocket.TextMessage)
+Parameter | Description | Default
+--- | --- | ---</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L66-L79">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="66" data-line="71-74"><code class="language-go">		return
+	}
+	log.V(5).Info(&quot;Handling logs for container&quot;, &quot;containerID&quot;, containerID)
+
+	var c containersv1alpha1.Container
+	err := r.Client.Get(req.Context(), types.NamespacedName{
+		Namespace: r.apiNamespace,
+		Name:      containerID,
+	}, &amp;c)
 	if err != nil {
-		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
-		return
-	}</code></pre>
+		switch {
+		case apierrors.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
+			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)</code></pre>
     <p>The validator also accepts uppercase A–F. A Kubernetes object name must be a DNS-1123 subdomain (lowercase only), so <code>r.Client.Get</code> rejects <code>DEADBEEF...</code> as <code>Invalid</code>. That error is neither <code>IsNotFound</code> nor <code>IsInvalidArgument</code> as the handler understands them, so it falls to the <code>default</code> branch and returns 500 instead of 400.</p>
     <p>Fix: tighten the regex to the canonical Docker ID shape, which is 64 lowercase hex characters:</p>
       <pre><code class="language-diff">-var containerIDValidator = regexp.MustCompile(`^[0-9a-fA-F]+$`)
@@ -437,29 +450,29 @@ running container that uses that image.
       <div class="finding-title" id="S4">
         <span class="finding-num">S4.</span> <code>websocketWriter.Write</code> leaks a half-open writer when the inner <code>Write</code> fails <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L40-L61">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="40" data-line="45-56"><code class="language-go">			ShowStdout: true,
-			ShowStderr: true,
-			Follow:     true,
-		},
-	)
-	if err != nil {
-		switch {
-		case errdefs.IsNotFound(err):
-			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
-			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)
-		case errdefs.IsInvalidArgument(err):
-			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
-			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
-		default:
-			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
-			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
-		}
-		return
-	}
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L40-L61">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="40" data-line="45-56"><code class="language-go">// with each Write call resulting in a separate [websocket.BinaryMessage].
+type websocketWriter struct {
+	conn *websocket.Conn
+}
 
-	upgrader := websocket.Upgrader{}
-	conn, err := upgrader.Upgrade(w, req, nil)</code></pre>
+func (w *websocketWriter) Write(p []byte) (int, error) {
+	_ = w.conn.SetWriteDeadline(time.Now().Add(writeTimeout))
+	writer, err := w.conn.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		return 0, err
+	}
+	n, err := writer.Write(p)
+	if err == nil {
+		err = writer.Close()
+	}
+	return n, err
+}
+
+// HandleLogs implements the log endpoint to pass through container logs.
+// It is at `/passthrough/engine/logs/{container}[?tail=999]`.
+func (r *EngineReconciler) HandleLogs(w http.ResponseWriter, req *http.Request) {
+	log := ctrl.LoggerFrom(req.Context())</code></pre>
     <p>When <code>writer.Write(p)</code> errors, the per-message writer is not closed. Gorilla&#39;s <code>beginMessage</code> then rejects the next <code>NextWriter</code> call with <code>&quot;websocket: concurrent write to websocket connection&quot;</code> until the connection is torn down. Today this is benign: <code>stdcopy.StdCopy</code> and <code>io.Copy</code> both stop on the first write error, so no next call happens. If the writer is reused outside <code>stdcopy</code> (or a future caller retries), the leak turns subsequent writes into a cryptic error.</p>
     <p>Fix: always close the writer and surface the first non-nil error.</p>
       <pre><code class="language-diff"> 	n, err := writer.Write(p)
@@ -477,38 +490,53 @@ running container that uses that image.
       <div class="finding-title" id="S5">
         <span class="finding-num">S5.</span> <code>HandleLogs</code> doc comment omits the <code>follow</code> query parameter <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L53-L65">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="53" data-line="58-60"><code class="language-go">		default:
-			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
-			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L53-L65">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="53" data-line="58-60"><code class="language-go">		err = writer.Close()
+	}
+	return n, err
+}
+
+// HandleLogs implements the log endpoint to pass through container logs.
+// It is at `/passthrough/engine/logs/{container}[?tail=999]`.
+func (r *EngineReconciler) HandleLogs(w http.ResponseWriter, req *http.Request) {
+	log := ctrl.LoggerFrom(req.Context())
+	containerID, _, _ := strings.Cut(strings.TrimLeft(req.URL.Path, &quot;/&quot;), &quot;/&quot;)
+	if !containerIDValidator.MatchString(containerID) {
+		log.V(5).Info(&quot;Invalid container ID&quot;, &quot;container&quot;, containerID)
+		http.Error(w, &quot;Invalid container ID&quot;, http.StatusBadRequest)</code></pre>
+    <p><code>follow</code> is parsed at lines 89-97 but absent from the godoc. <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L273"><code>docs/design/api_containers.md:273</code></a> lists both parameters, so this is the only place a Go caller would see a stale contract.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L268-L278">docs/design/api_containers.md</a></div>
+      <pre data-start="268" data-line="273"><code class="language-plaintext">The following query parameters are accepted:
+
+Parameter | Description | Default
+--- | --- | ---
+`tail` | Only print the given number of lines (before following). | All
+`follow` | Follow the log stream. | `true`
+
+#### Exec (shell) in container
+An endpoint at `/passthrough/.../exec` will speak WebSocket; messages are
+bidirectional, unbuffered binary as in the logs endpoint.  Any text must be
+UTF-8 encoded.</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L84-L102">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="84" data-line="89-97"><code class="language-go">		return
+	}
+
+	var opts []engineLogOptions
+
+	if f := req.URL.Query().Get(&quot;follow&quot;); f != &quot;&quot; {
+		if follow, err := strconv.ParseBool(f); err == nil {
+			opts = append(opts, engineLogWithFollow(follow))
+		} else {
+			log.V(5).Info(&quot;Invalid follow parameter&quot;, &quot;follow&quot;, f, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid follow parameter&quot;, http.StatusBadRequest)
+			return
 		}
-		return
+	}
+	if tail := req.URL.Query().Get(&quot;tail&quot;); tail != &quot;&quot; {
+		opts = append(opts, engineLogWithTail(tail))
 	}
 
-	upgrader := websocket.Upgrader{}
-	conn, err := upgrader.Upgrade(w, req, nil)
-	if err != nil {
-		log.V(5).Info(&quot;Failed to upgrade to WebSocket&quot;, &quot;error&quot;, err)
-		return
-	}</code></pre>
-    <p><code>follow</code> is parsed at lines 89-97 but absent from the godoc. <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L273"><code>docs/design/api_containers.md:273</code></a> lists both parameters, so this is the only place a Go caller would see a stale contract.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L268-L278">docs/design/api_containers.md</a></div>
-      <pre data-start="268" data-line="273"><code class="language-plaintext">Delete the `Image` object (which does not have any `.status.repoTag` set).  An
-admission controller must be set up so that this is not allowed if there is a
-running container that uses that image.
-
-## Volumes
-
-```yaml
-apiVersion: containers.rancherdesktop.io/v1alpha1
-kind: Volume
-metadata:
-  name: volume-name-12345 # based on containerd name / namespace?</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L84-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="84" data-line="89-97"><code class="language-go">		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
-		// At this point we already sent the data, so we can&#39;t send HTTP status.
-	}
-}</code></pre>
+	r.watcherMu.Lock()</code></pre>
     <p>Fix: extend the doc to list both parameters, or point at the design doc.</p>
     <p><code>(suggestion, regression)</code></p>
     </div>
@@ -516,9 +544,23 @@ metadata:
       <div class="finding-title" id="S6">
         <span class="finding-num">S6.</span> <code>GetPassthroughEndpoints</code> sort differs between engine and mock/demo controllers <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controller.go#L68-L80">pkg/controllers/app/engine/controller.go</a></div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controller.go#L68-L80">pkg/controllers/app/engine/controller.go</a></div>
       <pre data-start="68" data-line="73-75"><code class="language-go">
 func (c *controller) GetCRDData() string {
+	return &quot;&quot;
+}
+
+func (c *controller) GetPassthroughEndpoints() []string {
+	return slices.Sorted(maps.Keys(c.passthroughs))
+}
+
+func (c *controller) GetPassthroughHandler(endpoint string) http.Handler {
+	if c.reconciler == nil {
+		return nil
+	}</code></pre>
+    <p>The engine returns a sorted slice; <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/mock/mock_controller.go#L81"><code>pkg/controllers/mock/mock_controller.go:81</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/demo/controller.go#L77"><code>pkg/controllers/app/demo/controller.go:77</code></a> return <code>slices.Collect</code> output with no ordering. The interface doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/base/controller.go#L64-L70"><code>pkg/controllers/base/controller.go:64-70</code></a> leaves order undefined, so nothing breaks, but discovery ConfigMap payloads and log lines flicker for controllers with multiple endpoints. Pick one convention and apply it everywhere.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/mock/mock_controller.go#L76-L86">pkg/controllers/mock/mock_controller.go</a></div>
+      <pre data-start="76" data-line="81"><code class="language-go">func (c *controller) GetCRDData() string {
 	return &quot;&quot;
 }
 
@@ -527,35 +569,21 @@ func (c *controller) GetPassthroughEndpoints() []string {
 }
 
 func (c *controller) GetPassthroughHandler(endpoint string) http.Handler {
-	if c.reconciler == nil {
-		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-			http.Error(w, &quot;Controller not ready&quot;, http.StatusServiceUnavailable)</code></pre>
-    <p>The engine returns a sorted slice; <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/mock/mock_controller.go#L81"><code>pkg/controllers/mock/mock_controller.go:81</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/demo/controller.go#L77"><code>pkg/controllers/app/demo/controller.go:77</code></a> return <code>slices.Collect</code> output with no ordering. The interface doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/base/controller.go#L64-L70"><code>pkg/controllers/base/controller.go:64-70</code></a> leaves order undefined, so nothing breaks, but discovery ConfigMap payloads and log lines flicker for controllers with multiple endpoints. Pick one convention and apply it everywhere.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/mock/mock_controller.go#L76-L86">pkg/controllers/mock/mock_controller.go</a></div>
-      <pre data-start="76" data-line="81"><code class="language-go">	mgr.GetLogger().Info(&quot;Setting up Mock ContainerReconciler&quot;)
-	err = (&amp;containerReconciler{
-		Client:   mgr.GetClient(),
-		Recorder: mgr.GetEventRecorder(controllerLongName),
-	}).SetupWithManager(mgr)
-	if err != nil {
-		return err
-	}
+	return c.passthroughs[endpoint]
+}</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/demo/controller.go#L72-L82">pkg/controllers/app/demo/controller.go</a></div>
+      <pre data-start="72" data-line="77"><code class="language-go">func (c *controller) GetCRDData() string {
+	return demoCRD
+}
 
-	mgr.GetLogger().Info(&quot;Setting up Mock ImageReconciler&quot;)
-	err = (&amp;imageReconciler{</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/demo/controller.go#L72-L82">pkg/controllers/app/demo/controller.go</a></div>
-      <pre data-start="72" data-line="77"><code class="language-go">func (c *controller) GetPassthroughEndpoints() []string {
+func (c *controller) GetPassthroughEndpoints() []string {
 	return slices.Collect(maps.Keys(c.passthroughs))
 }
 
 func (c *controller) GetPassthroughHandler(endpoint string) http.Handler {
 	return c.passthroughs[endpoint]
-}
-
-func (c *controller) handleHello(w http.ResponseWriter, r *http.Request) {
-	_, _ = io.WriteString(w, &quot;Hello, world!\n&quot;)
-	for k, v := range r.Header {</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/base/controller.go#L59-L75">pkg/controllers/base/controller.go</a></div>
+}</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/base/controller.go#L59-L75">pkg/controllers/base/controller.go</a></div>
       <pre data-start="59" data-line="64-70"><code class="language-go">//
 // This is intended for controllers that need to provide more complex HTTP
 // functionality that cannot be provided using custom resources, such as
@@ -580,30 +608,25 @@ type PassthroughController interface {
       <div class="finding-title" id="S7">
         <span class="finding-num">S7.</span> &quot;Docker watcher not running&quot; is misleading on the containerd backend <span class="pill pill-claude">Claude</span><a href="#S7" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L1-L20">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="1" data-line="105-108"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
-// SPDX-FileCopyrightText: SUSE LLC
-// SPDX-FileCopyrightText: The Rancher Desktop Authors
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L100-L113">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="100" data-line="105-108"><code class="language-go">	}
 
-package controllers
+	r.watcherMu.Lock()
+	watcher := r.watcher
+	r.watcherMu.Unlock()
+	if watcher == nil {
+		log.V(5).Info(&quot;Docker watcher not running&quot;)
+		http.Error(w, &quot;Docker watcher not running&quot;, http.StatusServiceUnavailable)
+		return
+	}
 
-import (
-	&quot;net/http&quot;
-	&quot;regexp&quot;
-	&quot;strings&quot;
-	&quot;time&quot;
-
-	&quot;github.com/containerd/errdefs&quot;
-	&quot;github.com/gorilla/websocket&quot;
-	&quot;github.com/moby/moby/api/pkg/stdcopy&quot;
-	&quot;github.com/moby/moby/client&quot;
-
-	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
-)
+	ctx, cancel := context.WithCancel(req.Context())
+	defer cancel()
 </code></pre>
-    <p><code>watcher == nil</code> covers two very different conditions: App stopped, and <code>App.spec.containerEngine.name == &quot;containerd&quot;</code> (see <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L197"><code>engine_reconciler.go:197</code></a> where <code>wantWatcher = running &amp;&amp; engineIsDocker</code>). A GUI user on the containerd backend sees a transient and misleading &quot;not running&quot; message. Containerd support is explicitly planned (comment on <code>engineMoby</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L51-L54"><code>engine_reconciler.go:51-54</code></a>).</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L46-L59">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="46" data-line="51-54"><code class="language-go">	// mirrorFinalizer is added to mirror resources so user deletions
+    <p><code>watcher == nil</code> covers two very different conditions: App stopped, and <code>App.spec.containerEngine.name == &quot;containerd&quot;</code> (see <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L197"><code>engine_reconciler.go:197</code></a> where <code>wantWatcher = running &amp;&amp; engineIsDocker</code>). A GUI user on the containerd backend sees a transient and misleading &quot;not running&quot; message. Containerd support is explicitly planned (comment on <code>engineMoby</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L51-L54"><code>engine_reconciler.go:51-54</code></a>).</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L46-L59">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="46" data-line="51-54"><code class="language-go">
+	// mirrorFinalizer is added to mirror resources so user deletions
 	// are forwarded to the container engine before the resource is removed.
 	mirrorFinalizer = &quot;engine.rancherdesktop.io/mirror&quot;
 
@@ -613,22 +636,21 @@ import (
 	engineMoby = &quot;moby&quot;
 )
 
-// engine is the reconciler-facing contract every container-engine
-// implementation must satisfy. dockerWatcher is the only current
-// implementation; a forthcoming containerd implementation will provide a
-// second. Methods that the reconciler does not call (event handlers,</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L192-L202">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
-      <pre data-start="192" data-line="197"><code class="language-go">			terminalMessage = &quot;Engine mirroring is only supported with the moby backend&quot;
-		}
-		current := meta.FindStatusCondition(app.Status.Conditions, appv1alpha1.AppConditionContainerEngineReady)
-		alreadyClean := !watcherDied &amp;&amp; current != nil &amp;&amp; current.Reason == terminalReason &amp;&amp; current.Status == terminalStatus
-		if !alreadyClean {
-			if err := r.cleanupMirrorResources(ctx); err != nil {
-				log.Error(err, &quot;Failed to clean up mirror resources&quot;)
-				return ctrl.Result{}, err
-			}
-		}
-		return ctrl.Result{}, r.setEngineCondition(ctx, &amp;app, terminalStatus, terminalReason, terminalMessage)</code></pre>
+// engineLogOptionsData holds the options for fetching container logs.
+type engineLogOptionsData struct {
+	tail   string</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L192-L202">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="192" data-line="197"><code class="language-go">	// backend. Any other state stops the watcher and sweeps mirror
+	// resources. Skip the sweep once ContainerEngineReady already
+	// reflects the terminal state, to avoid four empty List calls per
+	// unrelated reconcile; a failed sweep leaves the condition pending
+	// and the next requeue retries.
+	wantWatcher := running &amp;&amp; engineIsDocker
+	if !wantWatcher {
+		if watcherRunning {
+			log.Info(&quot;Stopping Docker watcher&quot;,
+				&quot;running&quot;, running, &quot;engine&quot;, app.Spec.ContainerEngine.Name)
+			r.stopWatcher()</code></pre>
     <p>Fix: distinguish the two cases. Read <code>App.Spec.ContainerEngine.Name</code> inline, or stash a small reason when the reconciler tears the watcher down, and return e.g. &quot;log passthrough is not supported on the containerd backend&quot; with <code>501 Not Implemented</code>.</p>
     <p><code>(suggestion, gap)</code></p>
     </div>
@@ -636,37 +658,37 @@ import (
       <div class="finding-title" id="S8">
         <span class="finding-num">S8.</span> New BATS tests issue log requests before waiting for the Container mirror <span class="pill pill-claude">Claude</span><a href="#S8" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/bats/tests/32-app-controllers/engine-docker.bats#L180-L193">bats/tests/32-app-controllers/engine-docker.bats</a></div>
-      <pre data-start="180" data-line="185-188"><code class="language-bash">
-@test &quot;volume name with uppercase and underscore is mirrored&quot; {
-    # Docker permits characters (uppercase, underscore) that are
-    # invalid in RFC 1123 subdomain names. volumeK8sName hashes the
-    # Docker name into a valid subdomain; the original is preserved
-    # in status.name and queryable via the field selector.
-    docker volume create My_Vol_Ume
-    rdd ctl wait --for=create --namespace=&quot;${RDD_NAMESPACE}&quot; volume \
-        --field-selector &quot;status.name=My_Vol_Ume&quot; --timeout=30s
-    docker volume rm My_Vol_Ume
-    rdd ctl wait --for=delete --namespace=&quot;${RDD_NAMESPACE}&quot; volume \
-        --field-selector &quot;status.name=My_Vol_Ume&quot; --timeout=30s
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/bats/tests/32-app-controllers/engine-docker.bats#L180-L193">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="180" data-line="185-188"><code class="language-bash">    command=&#39;
+        echo &quot;hello&quot;
+        sleep 1
+        echo &quot;world&quot;
+    &#39;
+    run_e -0 docker run --detach --tty --name test-logs-tty busybox /bin/sh -c &quot;${command}&quot;
+    container=${output}
+
+    do_websocket &quot;/passthrough/engine/logs/${container}&quot;
+    # `--tty` means the output is cooked, so LF has been converted to CRLF.
+    assert_line hello$&#39;\r&#39;
+    assert_line world$&#39;\r&#39;
 }
 </code></pre>
     <p>Every other new test waits for the mirror with <code>rdd ctl wait --for=create container/${cid}</code> before touching it (see &quot;docker run creates Container resource&quot; at line 140-143). The three logs tests skip that wait. On a slow VM the Docker-event-to-mirror path can trail the Docker API by long enough for <code>r.Client.Get</code> to return NotFound, producing a 404 and a failed assertion. The <code>sleep 1</code> inside the busybox command does not help because the test issues the request before the sleep runs.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/bats/tests/32-app-controllers/engine-docker.bats#L135-L148">bats/tests/32-app-controllers/engine-docker.bats</a></div>
-      <pre data-start="135" data-line="140-143"><code class="language-plaintext">    assert_output &quot;test-lifecycle&quot;
-
-    # Fresh mirrors carry no action history.
-    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
-        -o jsonpath=&#39;{.status.lastAction}&#39;
-    refute_output
-}
-
-@test &quot;docker stop updates Container status to exited&quot; {
-    run -0 docker inspect test-lifecycle --format &#39;{{.Id}}&#39;
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/bats/tests/32-app-controllers/engine-docker.bats#L135-L148">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="135" data-line="140-143"><code class="language-plaintext">
+@test &quot;docker run creates Container resource with status=running&quot; {
+    run_e -0 docker run -d --name test-lifecycle busybox sleep inf
     cid=${output}
 
-    docker stop test-lifecycle
-    rdd ctl wait --for=jsonpath=&#39;{.status.status}&#39;=exited \</code></pre>
+    rdd ctl wait --for=create --namespace=&quot;${RDD_NAMESPACE}&quot; \
+        container/&quot;${cid}&quot; --timeout=30s
+    rdd ctl wait --for=jsonpath=&#39;{.status.status}&#39;=running \
+        --namespace=&quot;${RDD_NAMESPACE}&quot; container/&quot;${cid}&quot; --timeout=10s
+
+    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+        -o jsonpath=&#39;{.status.name}&#39;
+    assert_output &quot;test-lifecycle&quot;
+</code></pre>
     <p>Fix: prefix each <code>do_websocket</code> call with <code>rdd ctl wait --for=create --namespace=&quot;${RDD_NAMESPACE}&quot; container/&quot;${container}&quot; --timeout=30s</code>.</p>
     <p><code>(suggestion, gap)</code></p>
     </div>
@@ -674,12 +696,43 @@ import (
       <div class="finding-title" id="S9">
         <span class="finding-num">S9.</span> Negative paths for the new endpoint are untested <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#S9" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L84-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="84" data-line="89-97"><code class="language-go">		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
-		// At this point we already sent the data, so we can&#39;t send HTTP status.
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L84-L102">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="84" data-line="89-97"><code class="language-go">		return
 	}
-}</code></pre>
-    <p>The 400 branches (invalid <code>follow</code>, non-hex container ID) and the 404 branch (unknown container ID) have no test coverage in <code>bats/tests/32-app-controllers/engine-docker.bats</code>. The mock passthrough suite at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/bats/tests/34-containers-controllers/containers-mock.bats#L75-L79"><code>bats/tests/34-containers-controllers/containers-mock.bats:75-79</code></a> already exercises a similar pattern, so one curl assertion each lands cheaply and guards against status-code regressions.</p>
+
+	var opts []engineLogOptions
+
+	if f := req.URL.Query().Get(&quot;follow&quot;); f != &quot;&quot; {
+		if follow, err := strconv.ParseBool(f); err == nil {
+			opts = append(opts, engineLogWithFollow(follow))
+		} else {
+			log.V(5).Info(&quot;Invalid follow parameter&quot;, &quot;follow&quot;, f, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid follow parameter&quot;, http.StatusBadRequest)
+			return
+		}
+	}
+	if tail := req.URL.Query().Get(&quot;tail&quot;); tail != &quot;&quot; {
+		opts = append(opts, engineLogWithTail(tail))
+	}
+
+	r.watcherMu.Lock()</code></pre>
+    <p>The 400 branches (invalid <code>follow</code>, non-hex container ID) and the 404 branch (unknown container ID) have no test coverage in <code>bats/tests/32-app-controllers/engine-docker.bats</code>. The mock passthrough suite at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/bats/tests/34-containers-controllers/containers-mock.bats#L75-L79"><code>bats/tests/34-containers-controllers/containers-mock.bats:75-79</code></a> already exercises a similar pattern, so one curl assertion each lands cheaply and guards against status-code regressions.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/bats/tests/34-containers-controllers/containers-mock.bats#L70-L84">bats/tests/34-containers-controllers/containers-mock.bats</a></div>
+      <pre data-start="70" data-line="75-79"><code class="language-plaintext">    run -0 curl --silent --header &quot;Authorization: Bearer ${token}&quot; --insecure \
+        &quot;${server_url/http/ws}/passthrough/mock/logs/${container}&quot;
+    assert_line &quot;Logs for container ${container}&quot;
+    assert_line &quot;Label: ${label}&quot;$&#39;\t&#39;&quot;${value}&quot;
+
+    # Check that invalid containers are rejected.
+    run -22 curl --silent --header &quot;Authorization: Bearer ${token}&quot; --insecure \
+        &quot;${server_url/http/ws}/passthrough/mock/logs/invalid-container-id&quot;
+    run -22 curl --silent --header &quot;Authorization: Bearer ${token}&quot; --insecure \
+        &quot;${server_url/http/ws}/passthrough/mock/logs/00000000&quot;
+}
+
+@test &quot;images are created&quot; {
+    rdd ctl wait --for=create namespace rdd-mocks --timeout=30s
+</code></pre>
     <p>Fix: add three assertions — invalid <code>follow=maybe</code>, non-hex container ID, and hex-but-unknown ID.</p>
     <p><code>(suggestion, gap)</code></p>
     </div>
@@ -687,27 +740,18 @@ import (
       <div class="finding-title" id="S10">
         <span class="finding-num">S10.</span> <code>conn.SetReadLimit(4096)</code> is a magic number <span class="pill pill-claude">Claude</span><a href="#S10" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L1-L20">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
-      <pre data-start="1" data-line="156"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
-// SPDX-FileCopyrightText: SUSE LLC
-// SPDX-FileCopyrightText: The Rancher Desktop Authors
-
-package controllers
-
-import (
-	&quot;net/http&quot;
-	&quot;regexp&quot;
-	&quot;strings&quot;
-	&quot;time&quot;
-
-	&quot;github.com/containerd/errdefs&quot;
-	&quot;github.com/gorilla/websocket&quot;
-	&quot;github.com/moby/moby/api/pkg/stdcopy&quot;
-	&quot;github.com/moby/moby/client&quot;
-
-	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
-)
-</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L151-L161">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="151" data-line="156"><code class="language-go">	if err != nil {
+		log.V(5).Info(&quot;Failed to upgrade to WebSocket&quot;, &quot;error&quot;, err)
+		return
+	}
+	defer conn.Close()
+	conn.SetReadLimit(4096)
+	defer func() {
+		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(controlTimeout))
+		if err == nil {
+			// Allow for websocket to close gracefully</code></pre>
     <p>The other five timing-related literals at the top of the file (<code>controlTimeout</code>, <code>writeTimeout</code>, <code>pingInterval</code>, <code>pingTimeout</code>) are named. This one deserves the same treatment, both for consistency and because the rationale — clients are not expected to send anything large; 4096 covers PONGs and any future client-to-server protocol — is not obvious at the call site.</p>
     <p>Fix: lift to a named constant alongside the others, with a short comment on the rationale.</p>
     <p><code>(suggestion, regression)</code></p>
@@ -716,13 +760,8 @@ import (
       <div class="finding-title" id="S11">
         <span class="finding-num">S11.</span> <code>MarkControlPlaneReady</code> fires before controllers start, and silently proceeds on discovery-registration failure <span class="pill pill-gemini">Gemini</span><a href="#S11" class="pilcrow">&#182;</a>
       </div>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L188-L208">pkg/service/controllers/manager.go</a></div>
-      <pre data-start="188" data-line="193-203"><code class="language-go">	// Add health checks
-	if err := mgr.AddHealthzCheck(&quot;healthz&quot;, healthz.Ping); err != nil {
-		return fmt.Errorf(&quot;failed to set up health check: %w&quot;, err)
-	}
-	if err := mgr.AddReadyzCheck(&quot;readyz&quot;, healthz.Ping); err != nil {
-		return fmt.Errorf(&quot;failed to set up ready check: %w&quot;, err)
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/service/controllers/manager.go#L188-L208">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="188" data-line="193-203"><code class="language-go">		return fmt.Errorf(&quot;failed to set up ready check: %w&quot;, err)
 	}
 
 	// Register controller manager in cluster for service discovery before
@@ -732,57 +771,62 @@ import (
 		// Don&#39;t fail startup for discovery registration errors
 	}
 
+	// Mark the control plane ready after registerDiscovery so clients
+	// waiting on the ready annotation see both CRDs installed and
+	// controller registration written, not just CRDs.
+	if err := MarkControlPlaneReady(ctx, scm.discovery.client); err != nil {
+		return fmt.Errorf(&quot;failed to mark control plane as ready: %w&quot;, err)
+	}
+
 	// Ensure cleanup on shutdown with a timeout to avoid blocking if apiserver is gone
 	defer func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cleanupCancel()
-		if err := scm.discovery.UnregisterControllerManager(cleanupCtx); err != nil {
-			log.Error(err, &quot;Failed to unregister controller manager&quot;)</code></pre>
+		defer cleanupCancel()</code></pre>
     <p>The annotation advertises readiness at line 201, but the passthrough server (added as a <code>manager.Runnable</code> at line 215) does not start listening until <code>mgr.Start(ctx)</code> at line 284. A client that sees the ready annotation and races to connect hits connection-refused on the new passthrough port. Discovery-registration failure is also swallowed, so the annotation may fire over an empty or partial discovery ConfigMap.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L210-L220">pkg/service/controllers/manager.go</a></div>
-      <pre data-start="210" data-line="215"><code class="language-go">	}()
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/service/controllers/manager.go#L210-L220">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="210" data-line="215"><code class="language-go">			log.Error(err, &quot;Failed to unregister controller manager&quot;)
+		}
+	}()
 
 	// Add pass through server
 	if err := mgr.Add(manager.RunnableFunc(scm.runPassthroughServer)); err != nil {
 		return fmt.Errorf(&quot;failed to add pass through server to manager: %w&quot;, err)
 	}
 
-	// Track webhook setup goroutines
-	var webhookWaitGroup sync.WaitGroup
-	webhookErrors := make(chan error, len(scm.registrations))
-</code></pre>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L279-L289">pkg/service/controllers/manager.go</a></div>
-      <pre data-start="279" data-line="284"><code class="language-go">		return fmt.Errorf(&quot;failed to start shared controller manager: %w&quot;, err)
+	// Register all controllers before launching webhook goroutines.
+	// RegisterWithManager calls AddToScheme, which writes to the scheme map.</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/service/controllers/manager.go#L279-L289">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="279" data-line="284"><code class="language-go">		&quot;controllers&quot;, len(scm.registrations),
+		&quot;metricsPort&quot;, scm.metricsPort,
+		&quot;healthPort&quot;, scm.healthPort)
+
+	// Start the manager (this blocks until context is cancelled)
+	if err := mgr.Start(ctx); err != nil {
+		return fmt.Errorf(&quot;failed to start shared controller manager: %w&quot;, err)
 	}
 
 	return nil
-}
-
-// GetManager returns the underlying controller-runtime manager
-// This is useful for advanced use cases where direct access to the manager is needed.
-func (scm *SharedControllerManager) GetManager() ctrl.Manager {
-	return scm.manager
 }</code></pre>
     <p>The PR does not modify this block, but the new passthrough endpoint is precisely the new surface that exposes the readiness race — the <code>handler == nil</code> defensive check the PR added at the newly-modified lines 479-486 acknowledges the same ordering concern at a finer grain. Worth addressing together rather than layering more workarounds.</p>
-      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L474-L491">pkg/service/controllers/manager.go</a></div>
-      <pre data-start="474" data-line="479-486"><code class="language-go">		}
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/service/controllers/manager.go#L474-L491">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="474" data-line="479-486"><code class="language-go">				prefix := fmt.Sprintf(&quot;/%s/%s&quot;, registration.GetName(), endpoint)
+				log.V(2).Info(&quot;Registering passthrough endpoint&quot;,
+					&quot;controller&quot;, registration.GetName(), &quot;endpoint&quot;, prefix)
+				mux.Handle(prefix+&quot;/&quot;, http.StripPrefix(
+					prefix,
+					http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						handler := httpController.GetPassthroughHandler(endpoint)
+						if handler == nil {
+							http.Error(w, &quot;handler not ready&quot;, http.StatusServiceUnavailable)
+							return
+						}
+						handler.ServeHTTP(w, r)
+					})))
+			}
+		}
 	}
 
-	if !hasPassthroughServers {
-		klog.V(2).InfoS(&quot;No pass through controllers registered, skipping pass through server startup&quot;)
-		return nil
-	}
-
-	server := http.Server{
-		Addr:     fmt.Sprintf(&quot;localhost:%d&quot;, scm.passthroughPort),
-		Handler:  mux,
-		ErrorLog: slog.NewLogLogger(logr.ToSlogHandler(klog.FromContext(ctx)), slog.LevelError),
-	}
-
-	shutdownComplete := make(chan struct{})
-	go func() {
-		defer close(shutdownComplete)
-		&lt;-ctx.Done()</code></pre>
+	if !hasPassthroughServers {</code></pre>
     <p>Fix: move <code>MarkControlPlaneReady</code> into a post-<code>mgr.Start</code> <code>manager.Runnable</code>, and only fire it when discovery registration succeeded.</p>
     <p><code>(suggestion, gap)</code></p>
     </div>
@@ -792,14 +836,14 @@ func (scm *SharedControllerManager) GetManager() ctrl.Manager {
     <div class="card card-design">
     <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
     <ul>
-      <li><strong>Late WebSocket upgrade</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L147-L154"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:147-154</code></a> (in-scope) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. All three reviewers called this out: the handler defers the upgrade until after the K8s <code>Get</code>, Docker <code>ContainerInspect</code>, and <code>ContainerLogs</code> open succeed. Errors flow back through real HTTP status codes instead of post-handshake WebSocket close frames, which is much easier for clients to handle.</li>
-      <li><em></em>Pre-upgrade TTY detection via <code>ContainerInspect</code><em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/docker_watcher.go#L463-L470"><code>pkg/controllers/app/engine/controllers/docker_watcher.go:463-470</code></a> (in-scope) <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. <code>Client.ContainerLogs</code> does not expose media type, so inspecting <code>Config.Tty</code> first is the correct way to pick between raw copy and <code>stdcopy.StdCopy</code>. Matches Docker&#39;s own CLI strategy.</li>
-      <li><strong>Graceful ping/pong keep-alive</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L176-L220"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:176-220</code></a> (in-scope) <span class="pill pill-gemini">Gemini</span>. Correct use of Go 1.23 timer semantics; reset on pong and on successful read; cleanly canceled via the shared context.</li>
-      <li><em></em>Late <code>GetPassthroughHandler</code> binding in the mux<em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L479-L486"><code>pkg/service/controllers/manager.go:479-486</code></a> (in-scope) <span class="pill pill-claude">Claude</span>. Moving the handler lookup inside the <code>http.HandlerFunc</code> closure tolerates the startup window when <code>c.reconciler</code> is nil and returns 503 instead of panicking.</li>
+      <li><strong>Late WebSocket upgrade</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L147-L154"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:147-154</code></a> (in-scope) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. All three reviewers called this out: the handler defers the upgrade until after the K8s <code>Get</code>, Docker <code>ContainerInspect</code>, and <code>ContainerLogs</code> open succeed. Errors flow back through real HTTP status codes instead of post-handshake WebSocket close frames, which is much easier for clients to handle.</li>
+      <li><em></em>Pre-upgrade TTY detection via <code>ContainerInspect</code><em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/docker_watcher.go#L463-L470"><code>pkg/controllers/app/engine/controllers/docker_watcher.go:463-470</code></a> (in-scope) <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. <code>Client.ContainerLogs</code> does not expose media type, so inspecting <code>Config.Tty</code> first is the correct way to pick between raw copy and <code>stdcopy.StdCopy</code>. Matches Docker&#39;s own CLI strategy.</li>
+      <li><strong>Graceful ping/pong keep-alive</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L176-L220"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:176-220</code></a> (in-scope) <span class="pill pill-gemini">Gemini</span>. Correct use of Go 1.23 timer semantics; reset on pong and on successful read; cleanly canceled via the shared context.</li>
+      <li><em></em>Late <code>GetPassthroughHandler</code> binding in the mux<em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/service/controllers/manager.go#L479-L486"><code>pkg/service/controllers/manager.go:479-486</code></a> (in-scope) <span class="pill pill-claude">Claude</span>. Moving the handler lookup inside the <code>http.HandlerFunc</code> closure tolerates the startup window when <code>c.reconciler</code> is nil and returns 503 instead of panicking.</li>
     </ul>
     <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
     <ul>
-      <li><em></em>The engine controller is not blank-imported by <code>cmd/app-controller/main.go</code> or <code>cmd/containers-controller/main.go</code><em></em> (future) <span class="pill pill-claude">Claude</span>. Only <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/cmd/service.go#L59"><code>pkg/service/cmd/service.go:59</code></a> blank-imports <code>pkg/controllers/app/engine</code>. Per the repo&#39;s deep-review steering, &quot;both <code>cmd/*/main.go</code> and the embedded service package blank-import the controller.&quot; Running the engine reconciler as an out-of-tree process would silently drop its passthrough endpoint with no signal to the operator. Pre-existing gap, but more visible now that the passthrough endpoint exists.</li>
+      <li><em></em>The engine controller is not blank-imported by <code>cmd/app-controller/main.go</code> or <code>cmd/containers-controller/main.go</code><em></em> (future) <span class="pill pill-claude">Claude</span>. Only <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/service/cmd/service.go#L59"><code>pkg/service/cmd/service.go:59</code></a> blank-imports <code>pkg/controllers/app/engine</code>. Per the repo&#39;s deep-review steering, &quot;both <code>cmd/*/main.go</code> and the embedded service package blank-import the controller.&quot; Running the engine reconciler as an out-of-tree process would silently drop its passthrough endpoint with no signal to the operator. Pre-existing gap, but more visible now that the passthrough endpoint exists.</li>
     </ul>
     </div>
     <hr>
@@ -811,7 +855,7 @@ func (scm *SharedControllerManager) GetManager() ctrl.Manager {
       <li><strong>Mirror-creation race in the new tests</strong> (S8) — the most likely source of CI flakes.</li>
       <li><strong>Negative paths untested</strong> (S9) — invalid <code>follow</code>, non-hex container ID, hex-but-unknown ID. All reachable; none asserted.</li>
       <li><strong>Ping/pong keep-alive uncovered</strong> — tests complete in under a minute, so <code>pingInterval = 10s</code> / <code>pingTimeout = 60s</code> never fire. Not a regression, but the keep-alive is the most intricate new code.</li>
-      <li><strong>Stderr demux on the non-TTY path</strong> — the <code>stdcopy.StdCopy</code> branch at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L227"><code>container_passthrough.go:227</code></a> is exercised indirectly; no test asserts stderr preservation.</li>
+      <li><strong>Stderr demux on the non-TTY path</strong> — the <code>stdcopy.StdCopy</code> branch at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L227"><code>container_passthrough.go:227</code></a> is exercised indirectly; no test asserts stderr preservation.</li>
       <li><strong>Log request on the containerd backend</strong> — no test for the 503 path (which today carries the misleading message from S7).</li>
     </ol>
     <p><code>make build-rdd</code> and <code>go test ./pkg/controllers/app/engine/... ./pkg/service/controllers ./pkg/controllers/mock/...</code> reported green during review (Codex).</p>
@@ -821,9 +865,9 @@ func (scm *SharedControllerManager) GetManager() ctrl.Manager {
 
     <div class="card card-neutral">
     <ul>
-      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L262-L273"><code>docs/design/api_containers.md:262-273</code></a> describes the new endpoint and its query parameters, but mixes incompatible framing guarantees (binary stream plus per-message UTF-8, see S2) and promises a &quot;full container ID&quot; the handler does not enforce (see S3).</li>
-      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L58-L59"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:58-59</code></a> — godoc for <code>HandleLogs</code> lists <code>tail</code> but not <code>follow</code> (see S5).</li>
-      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L113-L127"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:113-127</code></a> — struct doc and <code>watcherMu</code> field comment went stale against the new HTTP-handler concurrency (see I1 and S1).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/docs/design/api_containers.md#L262-L273"><code>docs/design/api_containers.md:262-273</code></a> describes the new endpoint and its query parameters, but mixes incompatible framing guarantees (binary stream plus per-message UTF-8, see S2) and promises a &quot;full container ID&quot; the handler does not enforce (see S3).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/container_passthrough.go#L58-L59"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:58-59</code></a> — godoc for <code>HandleLogs</code> lists <code>tail</code> but not <code>follow</code> (see S5).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L113-L127"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:113-127</code></a> — struct doc and <code>watcherMu</code> field comment went stale against the new HTTP-handler concurrency (see I1 and S1).</li>
       <li>Minor prose: line 264 &quot;as stream of bytes&quot; wants &quot;as a stream of bytes&quot;; line 277 &quot;unbuffered binary as in the logs endpoint&quot; is ungrammatical. Easy polish while the doc is open.</li>
     </ul>
     </div>
@@ -838,7 +882,7 @@ func (scm *SharedControllerManager) GetManager() ctrl.Manager {
 
     <div class="card card-neutral">
     <ul>
-      <li><strong>Containerd backend returns 503 for log requests</strong> — containerd mirroring is still on the roadmap (see <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L51-L54"><code>engine_reconciler.go:51-54</code></a>). S7 covers the user-facing message today.</li>
+      <li><strong>Containerd backend returns 503 for log requests</strong> — containerd mirroring is still on the roadmap (see <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/71b57d242cd4dd118c5dedc54d00bbb05a2f72c9/pkg/controllers/app/engine/controllers/engine_reconciler.go#L51-L54"><code>engine_reconciler.go:51-54</code></a>). S7 covers the user-facing message today.</li>
       <li><em></em><code>Client.ContainerLogs</code> does not expose media type<em></em> — raised by @mook-as in the PR thread. The current <code>ContainerInspect</code> + <code>Config.Tty</code> approach is the resolution and matches Docker&#39;s own CLI behavior.</li>
       <li><strong>TTY detection via inspect is a point-in-time read</strong> — the container&#39;s TTY configuration is immutable after create, so this is not a race the handler can lose.</li>
     </ul>
