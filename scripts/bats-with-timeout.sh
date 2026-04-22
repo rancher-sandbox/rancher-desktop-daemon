@@ -209,19 +209,17 @@ dump_memory_pressure() {
 # Every invocation is behind `timeout` so a hung guest cannot block the
 # bundle capture itself.
 dump_windows_vm_logs() {
-    case "$(uname -s)" in
-        MINGW*|MSYS*|CYGWIN*) ;;
-        *) return ;;
-    esac
-    command -v wsl.exe >/dev/null 2>&1 || return
+    command -v wsl.exe >/dev/null 2>&1 || return 0
 
-    # `--quiet --list --running` prints one distro name per line, but WSL
-    # emits UTF-16LE (with a BOM) on some Windows builds. Strip NULs and
-    # extract `lima-<name>` substrings directly so the leftover BOM bytes
-    # cannot interfere with a line-anchored match.
+    # WSL_UTF8=1 makes wsl.exe emit UTF-8 (WSL 0.64.0, 2022); without
+    # it the default is UTF-16LE with a BOM. Export so all wsl.exe
+    # calls below inherit it.
+    local -x WSL_UTF8=1
+
+    # --list --running --quiet prints one distro per line.
     local distros
     distros=$(timeout --kill-after=1 10 wsl.exe --list --running --quiet 2>/dev/null \
-        | tr -d '\0\r' | grep -Eo 'lima-[A-Za-z0-9_-]+' | sort -u || true)
+        | grep '^lima-' | sort -u || true)
     if [ -z "$distros" ]; then
         return
     fi
@@ -233,22 +231,20 @@ dump_windows_vm_logs() {
 
         echo
         echo "--- ${distro}: systemctl status rancher-desktop.target ---"
-        timeout --kill-after=1 10 \
-            wsl.exe -d "$distro" -- systemctl status rancher-desktop.target --no-pager 2>&1 || true
+        timeout --kill-after=1 10 wsl.exe -d "$distro" -- \
+            systemctl status rancher-desktop.target --no-pager 2>&1 || true
 
         echo
         echo "--- ${distro}: ps auxf ---"
-        timeout --kill-after=1 10 \
-            wsl.exe -d "$distro" -- ps auxf 2>&1 || true
+        timeout --kill-after=1 10 wsl.exe -d "$distro" -- \
+            ps auxf 2>&1 || true
 
-        # Dump the full journal for this boot. Lima VMs live only as
-        # long as the bats target, so the journal is bounded by the
-        # run's wall time; no caps to match the macOS/Linux serial.log
-        # behavior, where the full console log is preserved.
+        # Dump the full journal for this boot. The VM lives only as
+        # long as the bats target, so the journal is naturally bounded.
         echo
         echo "--- ${distro}: journalctl -b ---"
-        timeout --kill-after=1 30 \
-            wsl.exe -d "$distro" -- journalctl -b --no-pager 2>&1 || true
+        timeout --kill-after=1 30 wsl.exe -d "$distro" -- \
+            journalctl -b --no-pager 2>&1 || true
     done
 }
 

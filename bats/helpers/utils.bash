@@ -318,10 +318,12 @@ try() {
     local count=0
     while true; do
         if [[ -n "${per_try_timeout}" ]]; then
-            # --kill-after=5s promotes SIGTERM to SIGKILL if the command
-            # ignores the graceful signal; the grace window is short so
-            # pathological cases still cannot stall the retry loop.
-            run_e timeout --kill-after=5s "${per_try_timeout}" "$@"
+            # --verbose logs "sending signal TERM" to stderr so the try
+            # log distinguishes a timeout kill from a plain non-zero
+            # exit. --kill-after=5s escalates SIGTERM to SIGKILL when
+            # the command ignores the graceful signal, so a hung retry
+            # cannot stall the loop.
+            run_e timeout --verbose --kill-after=5s "${per_try_timeout}" "$@"
         else
             run_e "$@"
         fi
