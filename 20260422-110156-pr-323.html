@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260422-110156-pr-323</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260422-110156-pr-323</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-04-22 11:01</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/mook-as">@mook-as</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/323" class="gh-ref" data-title="implement log passthrough" data-state="open" data-type="pr">#323</a> — implement log passthrough</td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/71b57d2"><code>71b57d2</code></a> Address (AI) review comments<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/78e9315"><code>78e9315</code></a> implement log passthrough</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.4 (effort: high), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; one genuine data race on <code>r.apiNamespace</code> is worth addressing, plus a handful of clarity and test-coverage cleanups</td></tr>
+      <tr><td>Wall-clock time</td><td><code>38 min 3 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/323" class="gh-ref" data-title="implement log passthrough" data-state="open" data-type="pr">#323</a> adds a WebSocket log-passthrough endpoint (<code>/passthrough/engine/logs/{container}</code>) for the Docker backend, wiring it through the engine controller&#39;s <code>HandleLogs</code> handler and exposing the engine&#39;s shared-mux entry via <code>GetPassthroughEndpoints</code>. The second commit addresses earlier AI-review feedback: binary frame encoding, pre-upgrade TTY detection via <code>ContainerInspect</code>, websocket ping/pong keep-alive, <code>tail</code>/<code>follow</code> query parameters, watcher-mutex access, and late handler binding to tolerate startup ordering.</p>
+    <p>The implementation is structurally sound and the review consensus is positive. No critical defects surfaced. One <strong>important</strong> issue: the new HTTP handler reads <code>r.apiNamespace</code> from arbitrary goroutines without synchronization, violating the struct&#39;s documented single-reconciler invariant. The rest are suggestions — mainly doc drift (API contract promises UTF-8 text while the wire carries raw binary; &quot;full container ID&quot; claimed but any hex string is accepted), untested negative paths for the new endpoint, and a mirror-creation race in the new BATS tests that will surface as a CI flake.</p>
+    <p>Structure: 1 important (data race), 11 suggestions (including 2 merged from multiple agents), 1 design concern (blank-import gap), several acknowledged limitations tied to pending containerd work.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Unsynchronized read of <code>r.apiNamespace</code> in <code>HandleLogs</code> <span class="pill pill-claude">Claude</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L65-L79">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="65" data-line="70-74"><code class="language-go">	}
+	defer conn.Close()
+	defer func() {
+		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	writer, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+		return
+	}</code></pre>
+    <p><code>r.apiNamespace</code> is written by <code>Reconcile</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L165"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:165</code></a> with no lock, and is now read here from HTTP-handler goroutines with no lock. <code>go test -race</code> will flag it, and a weak-memory-model architecture could produce a torn or empty read. In practice <code>apiNamespace</code> is effectively immutable after the first reconcile (per the field doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L122-L124"><code>engine_reconciler.go:122-124</code></a>), so today&#39;s worst observable outcome is a briefly-empty-string read that yields a spurious 404 before the first Reconcile has run — but the race is real.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L160-L170">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="160" data-line="165"><code class="language-go">	}
+
+	// The watcher runs only when the App is Running on the moby
+	// backend. Any other state stops the watcher and sweeps mirror
+	// resources. Skip the sweep once ContainerEngineReady already
+	// reflects the terminal state, to avoid four empty List calls per
+	// unrelated reconcile; a failed sweep leaves the condition pending
+	// and the next requeue retries.
+	wantWatcher := running &amp;&amp; engineIsDocker
+	if !wantWatcher {
+		if watcherRunning {</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L117-L129">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="117" data-line="122-124"><code class="language-go">	// goroutine captures its generation at launch and uses it to detect
+	// whether it has been superseded.
+	contextProbeGen int
+	// contextProbeWg is used by removeDockerContext to wait for the probe
+	// goroutine to finish before deleting the context directory, ensuring
+	// the goroutine cannot write currentContext after the directory is gone.
+	contextProbeWg sync.WaitGroup
+}
+
+// Reconcile handles App condition changes, Docker watcher lifecycle,
+// Container action annotations, and finalizer processing for mirror
+// resources.
+func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {</code></pre>
+    <p>The struct-level comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L113-L115"><code>engine_reconciler.go:113-115</code></a> claims &quot;Only Reconcile and the manager&#39;s shutdown-hook goroutine... contend for the fields below.&quot; That invariant is now false — <code>HandleLogs</code> is a third concurrent accessor. The field comment at line 126-127 was simultaneously rewritten from a precise description of what <code>watcherMu</code> guards against to a generic note about hold duration, so the struct&#39;s concurrency contract is now less documented than before the change (see S1).</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L108-L120">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="108" data-line="113-115"><code class="language-go">	watcherCtx    context.Context
+	watcherCancel context.CancelFunc
+
+	// contextMu protects contextProbeCancel and contextProbeGen.
+	contextMu sync.Mutex
+	// contextProbeCancel cancels the in-flight Docker context probe goroutine.
+	// It is nil when no probe is running.
+	contextProbeCancel context.CancelFunc
+	// contextProbeGen is incremented each time a new probe is launched; the
+	// goroutine captures its generation at launch and uses it to detect
+	// whether it has been superseded.
+	contextProbeGen int
+	// contextProbeWg is used by removeDockerContext to wait for the probe</code></pre>
+    <p>Fix: acquire <code>watcherMu</code> once at entry and read <code>watcher</code> and <code>apiNamespace</code> under it; update the struct-level comment and the <code>watcherMu</code> field comment to name <code>HandleLogs</code> as a concurrent reader. Reordering also lets callers see the more-specific 503 before the 404, which helps diagnosis (see S6).</p>
+      <pre><code class="language-diff">-	var c containersv1alpha1.Container
+-	err := r.Client.Get(req.Context(), types.NamespacedName{
+-		Namespace: r.apiNamespace,
+-		Name:      containerID,
+-	}, &amp;c)
++	r.watcherMu.Lock()
++	watcher := r.watcher
++	apiNamespace := r.apiNamespace
++	r.watcherMu.Unlock()
++	if watcher == nil {
++		log.V(5).Info(&quot;Docker watcher not running&quot;)
++		http.Error(w, &quot;Docker watcher not running&quot;, http.StatusServiceUnavailable)
++		return
++	}
++
++	var c containersv1alpha1.Container
++	err := r.Client.Get(req.Context(), types.NamespacedName{
++		Namespace: apiNamespace,
++		Name:      containerID,
++	}, &amp;c)</code></pre>
+    <p><code>(important, regression)</code></p>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> <code>watcherMu</code> field comment and <code>EngineReconciler</code> struct doc went stale <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L108-L132">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="108" data-line="113-127"><code class="language-go">	watcherCtx    context.Context
+	watcherCancel context.CancelFunc
+
+	// contextMu protects contextProbeCancel and contextProbeGen.
+	contextMu sync.Mutex
+	// contextProbeCancel cancels the in-flight Docker context probe goroutine.
+	// It is nil when no probe is running.
+	contextProbeCancel context.CancelFunc
+	// contextProbeGen is incremented each time a new probe is launched; the
+	// goroutine captures its generation at launch and uses it to detect
+	// whether it has been superseded.
+	contextProbeGen int
+	// contextProbeWg is used by removeDockerContext to wait for the probe
+	// goroutine to finish before deleting the context directory, ensuring
+	// the goroutine cannot write currentContext after the directory is gone.
+	contextProbeWg sync.WaitGroup
+}
+
+// Reconcile handles App condition changes, Docker watcher lifecycle,
+// Container action annotations, and finalizer processing for mirror
+// resources.
+func (r *EngineReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	var app appv1alpha1.App</code></pre>
+    <p>Pre-PR the field comment read: &quot;watcherMu guards r.watcher against the shutdown-hook goroutine&#39;s stopWatcher call. Reconcile runs serially (see struct doc), so the lock has no other role.&quot; The rewrite dropped the writer-identification (the shutdown hook) and the serial-Reconcile note in exchange for a hold-time remark that was equally true of the old code. After this PR, <code>HandleLogs</code> is a third concurrent reader, so the comment should grow more specific, not less.</p>
+    <p>Fix: enumerate the three concurrent participants (Reconcile, shutdown-hook goroutine, <code>HandleLogs</code>) and state which fields each one touches. Update the struct doc at lines 113-115 in the same pass.</p>
+    <p><code>(suggestion, regression)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> Docs promise UTF-8 message text, but the endpoint streams raw binary <span class="pill pill-codex">Codex</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L257-L271">docs/design/api_containers.md</a></div>
+      <pre data-start="257" data-line="262-266"><code class="language-md">```
+
+#### Untag image
+Delete the `Image` object; the finalizer will untag the image.  If all tags of
+an image are removed, _and_ it is not in use by a container (running or not),
+then the image itself is removed.
+
+If a container is using an image via a tag, then removing that tag may end up
+creating a new `Image` object to represent the untagged image.
+
+#### Delete untagged image
+Delete the `Image` object (which does not have any `.status.repoTag` set).  An
+admission controller must be set up so that this is not allowed if there is a
+running container that uses that image.
+</code></pre>
+    <p>The doc mixes two incompatible contracts: &quot;stream of bytes&quot; plus per-message UTF-8. The implementation provides only the former. <code>websocketWriter.Write</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L45-L56"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:45-56</code></a> emits one <code>websocket.BinaryMessage</code> per raw <code>Write</code>, fed by <code>io.Copy</code> or <code>stdcopy.StdCopy</code> at lines 224-227. Those writers can split anywhere, so a frame can end mid-rune or contain arbitrary non-text bytes from the container stream. A client that codes to &quot;Message text must be UTF-8 encoded&quot; will build wrong framing assumptions.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L40-L61">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="40" data-line="45-56"><code class="language-go">			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+		},
+	)
+	if err != nil {
+		switch {
+		case errdefs.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
+			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)
+		case errdefs.IsInvalidArgument(err):
+			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
+		default:
+			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, req, nil)</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L219-L232">docs/design/api_containers.md</a></div>
+      <pre data-start="219" data-line="224-227"><code class="language-plaintext">has completed:
+```yaml
+apiVersion: containers.rancherdesktop.io/v1alpha1
+kind: ImagePushRequest
+metadata:
+  name: image-push-12345
+  namespace: rancher-desktop
+spec:
+  # `.metadata.name` of the image tag to push.
+  imageRef: &#39;sha256.999adf320e40662dc96119a14f07459af9959a081d10ccab7c405257030ab96b-12345&#39;
+status:
+  conditions:
+  - type: Complete
+    status: True</code></pre>
+    <p>Fix: document this as an opaque binary stream with no frame-to-line or frame-to-UTF-8 guarantee. The exec endpoint (line 276-278) references &quot;unbuffered binary as in the logs endpoint&quot;, so align the wording there once logs is fixed. The sentence also reads ungrammatically — &quot;as stream of bytes&quot; wants an article — worth polishing while the doc is open.</p>
+      <pre><code class="language-diff">-An endpoint at `/passthrough/.../logs/${container}` will speak WebSocket;
+-messages are one way, as stream of bytes; messages should not be buffered.
+-Message text must be UTF-8 encoded.  The last portion of the path must be the
+-full container ID.
++An endpoint at `/passthrough/.../logs/${container}` will speak WebSocket.
++Messages are one way and binary; frame boundaries are transport artifacts and
++do not correspond to log lines or UTF-8 rune boundaries. The last portion of
++the path must be the full container ID.</code></pre>
+    <p><code>(suggestion, regression)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> Container ID validator is too permissive: accepts any-length and uppercase hex <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L32-L43">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="32" data-line="37-38"><code class="language-go">		return
+	}
+
+	// TODO: Figure out containerd
+	reader, err := r.watcher.cli.ContainerLogs(
+		req.Context(),
+		containerID,
+		client.ContainerLogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+		},</code></pre>
+    <p>Two independent observations converge on the same regex:</p>
+    <p>The API doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L265-L266"><code>docs/design/api_containers.md:265-266</code></a> says &quot;the full container ID&quot; is required, but the validator accepts any hex prefix. <code>/passthrough/engine/logs/deadbeef</code> passes the 400 gate and hits the mirror lookup at lines 71-74, returning 404 and making client bugs harder to diagnose.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L260-L271">docs/design/api_containers.md</a></div>
+      <pre data-start="260" data-line="265-266"><code class="language-plaintext">Delete the `Image` object; the finalizer will untag the image.  If all tags of
+an image are removed, _and_ it is not in use by a container (running or not),
+then the image itself is removed.
+
+If a container is using an image via a tag, then removing that tag may end up
+creating a new `Image` object to represent the untagged image.
+
+#### Delete untagged image
+Delete the `Image` object (which does not have any `.status.repoTag` set).  An
+admission controller must be set up so that this is not allowed if there is a
+running container that uses that image.
+</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L66-L79">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="66" data-line="71-74"><code class="language-go">	defer conn.Close()
+	defer func() {
+		message := websocket.FormatCloseMessage(websocket.CloseNormalClosure, &quot;Closing connection&quot;)
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+		if err != nil {
+			log.V(5).Info(&quot;Failed to close WebSocket&quot;, &quot;error&quot;, err)
+		}
+	}()
+
+	writer, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to get next writer&quot;, &quot;error&quot;, err)
+		return
+	}</code></pre>
+    <p>The validator also accepts uppercase A–F. A Kubernetes object name must be a DNS-1123 subdomain (lowercase only), so <code>r.Client.Get</code> rejects <code>DEADBEEF...</code> as <code>Invalid</code>. That error is neither <code>IsNotFound</code> nor <code>IsInvalidArgument</code> as the handler understands them, so it falls to the <code>default</code> branch and returns 500 instead of 400.</p>
+    <p>Fix: tighten the regex to the canonical Docker ID shape, which is 64 lowercase hex characters:</p>
+      <pre><code class="language-diff">-var containerIDValidator = regexp.MustCompile(`^[0-9a-fA-F]+$`)
++var containerIDValidator = regexp.MustCompile(`^[0-9a-f]{64}$`)</code></pre>
+    <p>Or relax the doc to say prefixes are accepted but only full mirrored IDs resolve.</p>
+    <p><code>(suggestion, regression)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> <code>websocketWriter.Write</code> leaks a half-open writer when the inner <code>Write</code> fails <span class="pill pill-claude">Claude</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L40-L61">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="40" data-line="45-56"><code class="language-go">			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     true,
+		},
+	)
+	if err != nil {
+		switch {
+		case errdefs.IsNotFound(err):
+			log.V(5).Info(&quot;Container not found&quot;, &quot;container&quot;, containerID)
+			http.Error(w, &quot;Container not found&quot;, http.StatusNotFound)
+		case errdefs.IsInvalidArgument(err):
+			log.V(5).Info(&quot;Invalid argument&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Invalid argument&quot;, http.StatusBadRequest)
+		default:
+			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, req, nil)</code></pre>
+    <p>When <code>writer.Write(p)</code> errors, the per-message writer is not closed. Gorilla&#39;s <code>beginMessage</code> then rejects the next <code>NextWriter</code> call with <code>&quot;websocket: concurrent write to websocket connection&quot;</code> until the connection is torn down. Today this is benign: <code>stdcopy.StdCopy</code> and <code>io.Copy</code> both stop on the first write error, so no next call happens. If the writer is reused outside <code>stdcopy</code> (or a future caller retries), the leak turns subsequent writes into a cryptic error.</p>
+    <p>Fix: always close the writer and surface the first non-nil error.</p>
+      <pre><code class="language-diff"> 	n, err := writer.Write(p)
+-	if err == nil {
+-		err = writer.Close()
+-	}
+-	return n, err
++	if closeErr := writer.Close(); err == nil {
++		err = closeErr
++	}
++	return n, err</code></pre>
+    <p><code>(suggestion, regression)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S5">
+        <span class="finding-num">S5.</span> <code>HandleLogs</code> doc comment omits the <code>follow</code> query parameter <span class="pill pill-claude">Claude</span><a href="#S5" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L53-L65">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="53" data-line="58-60"><code class="language-go">		default:
+			log.V(5).Info(&quot;Failed to get container logs&quot;, &quot;error&quot;, err)
+			http.Error(w, &quot;Failed to get container logs&quot;, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	upgrader := websocket.Upgrader{}
+	conn, err := upgrader.Upgrade(w, req, nil)
+	if err != nil {
+		log.V(5).Info(&quot;Failed to upgrade to WebSocket&quot;, &quot;error&quot;, err)
+		return
+	}</code></pre>
+    <p><code>follow</code> is parsed at lines 89-97 but absent from the godoc. <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L273"><code>docs/design/api_containers.md:273</code></a> lists both parameters, so this is the only place a Go caller would see a stale contract.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L268-L278">docs/design/api_containers.md</a></div>
+      <pre data-start="268" data-line="273"><code class="language-plaintext">Delete the `Image` object (which does not have any `.status.repoTag` set).  An
+admission controller must be set up so that this is not allowed if there is a
+running container that uses that image.
+
+## Volumes
+
+```yaml
+apiVersion: containers.rancherdesktop.io/v1alpha1
+kind: Volume
+metadata:
+  name: volume-name-12345 # based on containerd name / namespace?</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L84-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="84" data-line="89-97"><code class="language-go">		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
+		// At this point we already sent the data, so we can&#39;t send HTTP status.
+	}
+}</code></pre>
+    <p>Fix: extend the doc to list both parameters, or point at the design doc.</p>
+    <p><code>(suggestion, regression)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S6">
+        <span class="finding-num">S6.</span> <code>GetPassthroughEndpoints</code> sort differs between engine and mock/demo controllers <span class="pill pill-claude">Claude</span><a href="#S6" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controller.go#L68-L80">pkg/controllers/app/engine/controller.go</a></div>
+      <pre data-start="68" data-line="73-75"><code class="language-go">
+func (c *controller) GetCRDData() string {
+	return &quot;&quot;
+}
+
+func (c *controller) GetPassthroughEndpoints() []string {
+	return slices.Collect(maps.Keys(c.passthroughs))
+}
+
+func (c *controller) GetPassthroughHandler(endpoint string) http.Handler {
+	if c.reconciler == nil {
+		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, &quot;Controller not ready&quot;, http.StatusServiceUnavailable)</code></pre>
+    <p>The engine returns a sorted slice; <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/mock/mock_controller.go#L81"><code>pkg/controllers/mock/mock_controller.go:81</code></a> and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/demo/controller.go#L77"><code>pkg/controllers/app/demo/controller.go:77</code></a> return <code>slices.Collect</code> output with no ordering. The interface doc at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/base/controller.go#L64-L70"><code>pkg/controllers/base/controller.go:64-70</code></a> leaves order undefined, so nothing breaks, but discovery ConfigMap payloads and log lines flicker for controllers with multiple endpoints. Pick one convention and apply it everywhere.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/mock/mock_controller.go#L76-L86">pkg/controllers/mock/mock_controller.go</a></div>
+      <pre data-start="76" data-line="81"><code class="language-go">	mgr.GetLogger().Info(&quot;Setting up Mock ContainerReconciler&quot;)
+	err = (&amp;containerReconciler{
+		Client:   mgr.GetClient(),
+		Recorder: mgr.GetEventRecorder(controllerLongName),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		return err
+	}
+
+	mgr.GetLogger().Info(&quot;Setting up Mock ImageReconciler&quot;)
+	err = (&amp;imageReconciler{</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/demo/controller.go#L72-L82">pkg/controllers/app/demo/controller.go</a></div>
+      <pre data-start="72" data-line="77"><code class="language-go">func (c *controller) GetPassthroughEndpoints() []string {
+	return slices.Collect(maps.Keys(c.passthroughs))
+}
+
+func (c *controller) GetPassthroughHandler(endpoint string) http.Handler {
+	return c.passthroughs[endpoint]
+}
+
+func (c *controller) handleHello(w http.ResponseWriter, r *http.Request) {
+	_, _ = io.WriteString(w, &quot;Hello, world!\n&quot;)
+	for k, v := range r.Header {</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/base/controller.go#L59-L75">pkg/controllers/base/controller.go</a></div>
+      <pre data-start="59" data-line="64-70"><code class="language-go">//
+// This is intended for controllers that need to provide more complex HTTP
+// functionality that cannot be provided using custom resources, such as
+// handling WebSocket connections to stream data.
+type PassthroughController interface {
+	// GetPassthroughEndpoints returns the list of HTTP endpoints provided by
+	// this controller.  These endpoints will be exposed on the API server under
+	// the `/passthrough/&lt;controller&gt;/&lt;endpoint&gt;/` path; for example, an
+	// endpoint named &quot;logs&quot; on the &quot;example&quot; controller will be accessible at
+	// `/passthrough/example/logs/`.  The endpoint names returned must not
+	// contain duplicates, and must be a valid path segment (i.e., no slashes).
+	GetPassthroughEndpoints() []string
+
+	// GetPassthroughHandler returns the HTTP handler for the given endpoint.
+	// The handler does not get the `/passthrough/&lt;controller&gt;/&lt;endpoint&gt;`
+	// prefix; for example, for an endpoint &quot;logs&quot; on the &quot;example&quot; controller,
+	// if the client requests `/passthrough/example/logs/id` the handler will</code></pre>
+    <p>Fix: switch mock and demo to <code>slices.Sorted</code> for stable <code>rdd ctl get configmap/rdd-controller-manager</code> diffs, or document the interface as order-undefined and accept flicker.</p>
+    <p><code>(suggestion, gap)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S7">
+        <span class="finding-num">S7.</span> &quot;Docker watcher not running&quot; is misleading on the containerd backend <span class="pill pill-claude">Claude</span><a href="#S7" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L1-L20">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="1" data-line="105-108"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: SUSE LLC
+// SPDX-FileCopyrightText: The Rancher Desktop Authors
+
+package controllers
+
+import (
+	&quot;net/http&quot;
+	&quot;regexp&quot;
+	&quot;strings&quot;
+	&quot;time&quot;
+
+	&quot;github.com/containerd/errdefs&quot;
+	&quot;github.com/gorilla/websocket&quot;
+	&quot;github.com/moby/moby/api/pkg/stdcopy&quot;
+	&quot;github.com/moby/moby/client&quot;
+
+	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
+)
+</code></pre>
+    <p><code>watcher == nil</code> covers two very different conditions: App stopped, and <code>App.spec.containerEngine.name == &quot;containerd&quot;</code> (see <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L197"><code>engine_reconciler.go:197</code></a> where <code>wantWatcher = running &amp;&amp; engineIsDocker</code>). A GUI user on the containerd backend sees a transient and misleading &quot;not running&quot; message. Containerd support is explicitly planned (comment on <code>engineMoby</code> at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L51-L54"><code>engine_reconciler.go:51-54</code></a>).</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L46-L59">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="46" data-line="51-54"><code class="language-go">	// mirrorFinalizer is added to mirror resources so user deletions
+	// are forwarded to the container engine before the resource is removed.
+	mirrorFinalizer = &quot;engine.rancherdesktop.io/mirror&quot;
+
+	// engineMoby is the App.spec.containerEngine.name value that selects
+	// the Docker backend. Containerd has no watcher yet and reports
+	// NotApplicable.
+	engineMoby = &quot;moby&quot;
+)
+
+// engine is the reconciler-facing contract every container-engine
+// implementation must satisfy. dockerWatcher is the only current
+// implementation; a forthcoming containerd implementation will provide a
+// second. Methods that the reconciler does not call (event handlers,</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L192-L202">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="192" data-line="197"><code class="language-go">			terminalMessage = &quot;Engine mirroring is only supported with the moby backend&quot;
+		}
+		current := meta.FindStatusCondition(app.Status.Conditions, appv1alpha1.AppConditionContainerEngineReady)
+		alreadyClean := !watcherDied &amp;&amp; current != nil &amp;&amp; current.Reason == terminalReason &amp;&amp; current.Status == terminalStatus
+		if !alreadyClean {
+			if err := r.cleanupMirrorResources(ctx); err != nil {
+				log.Error(err, &quot;Failed to clean up mirror resources&quot;)
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, r.setEngineCondition(ctx, &amp;app, terminalStatus, terminalReason, terminalMessage)</code></pre>
+    <p>Fix: distinguish the two cases. Read <code>App.Spec.ContainerEngine.Name</code> inline, or stash a small reason when the reconciler tears the watcher down, and return e.g. &quot;log passthrough is not supported on the containerd backend&quot; with <code>501 Not Implemented</code>.</p>
+    <p><code>(suggestion, gap)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S8">
+        <span class="finding-num">S8.</span> New BATS tests issue log requests before waiting for the Container mirror <span class="pill pill-claude">Claude</span><a href="#S8" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/bats/tests/32-app-controllers/engine-docker.bats#L180-L193">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="180" data-line="185-188"><code class="language-bash">
+@test &quot;volume name with uppercase and underscore is mirrored&quot; {
+    # Docker permits characters (uppercase, underscore) that are
+    # invalid in RFC 1123 subdomain names. volumeK8sName hashes the
+    # Docker name into a valid subdomain; the original is preserved
+    # in status.name and queryable via the field selector.
+    docker volume create My_Vol_Ume
+    rdd ctl wait --for=create --namespace=&quot;${RDD_NAMESPACE}&quot; volume \
+        --field-selector &quot;status.name=My_Vol_Ume&quot; --timeout=30s
+    docker volume rm My_Vol_Ume
+    rdd ctl wait --for=delete --namespace=&quot;${RDD_NAMESPACE}&quot; volume \
+        --field-selector &quot;status.name=My_Vol_Ume&quot; --timeout=30s
+}
+</code></pre>
+    <p>Every other new test waits for the mirror with <code>rdd ctl wait --for=create container/${cid}</code> before touching it (see &quot;docker run creates Container resource&quot; at line 140-143). The three logs tests skip that wait. On a slow VM the Docker-event-to-mirror path can trail the Docker API by long enough for <code>r.Client.Get</code> to return NotFound, producing a 404 and a failed assertion. The <code>sleep 1</code> inside the busybox command does not help because the test issues the request before the sleep runs.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/bats/tests/32-app-controllers/engine-docker.bats#L135-L148">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="135" data-line="140-143"><code class="language-plaintext">    assert_output &quot;test-lifecycle&quot;
+
+    # Fresh mirrors carry no action history.
+    run -0 rdd ctl get container &quot;${cid}&quot; --namespace=&quot;${RDD_NAMESPACE}&quot; \
+        -o jsonpath=&#39;{.status.lastAction}&#39;
+    refute_output
+}
+
+@test &quot;docker stop updates Container status to exited&quot; {
+    run -0 docker inspect test-lifecycle --format &#39;{{.Id}}&#39;
+    cid=${output}
+
+    docker stop test-lifecycle
+    rdd ctl wait --for=jsonpath=&#39;{.status.status}&#39;=exited \</code></pre>
+    <p>Fix: prefix each <code>do_websocket</code> call with <code>rdd ctl wait --for=create --namespace=&quot;${RDD_NAMESPACE}&quot; container/&quot;${container}&quot; --timeout=30s</code>.</p>
+    <p><code>(suggestion, gap)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S9">
+        <span class="finding-num">S9.</span> Negative paths for the new endpoint are untested <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#S9" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L84-L87">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="84" data-line="89-97"><code class="language-go">		log.V(5).Info(&quot;Failed to copy container logs&quot;, &quot;error&quot;, err)
+		// At this point we already sent the data, so we can&#39;t send HTTP status.
+	}
+}</code></pre>
+    <p>The 400 branches (invalid <code>follow</code>, non-hex container ID) and the 404 branch (unknown container ID) have no test coverage in <code>bats/tests/32-app-controllers/engine-docker.bats</code>. The mock passthrough suite at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/bats/tests/34-containers-controllers/containers-mock.bats#L75-L79"><code>bats/tests/34-containers-controllers/containers-mock.bats:75-79</code></a> already exercises a similar pattern, so one curl assertion each lands cheaply and guards against status-code regressions.</p>
+    <p>Fix: add three assertions — invalid <code>follow=maybe</code>, non-hex container ID, and hex-but-unknown ID.</p>
+    <p><code>(suggestion, gap)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S10">
+        <span class="finding-num">S10.</span> <code>conn.SetReadLimit(4096)</code> is a magic number <span class="pill pill-claude">Claude</span><a href="#S10" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L1-L20">pkg/controllers/app/engine/controllers/container_passthrough.go</a></div>
+      <pre data-start="1" data-line="156"><code class="language-go">// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: SUSE LLC
+// SPDX-FileCopyrightText: The Rancher Desktop Authors
+
+package controllers
+
+import (
+	&quot;net/http&quot;
+	&quot;regexp&quot;
+	&quot;strings&quot;
+	&quot;time&quot;
+
+	&quot;github.com/containerd/errdefs&quot;
+	&quot;github.com/gorilla/websocket&quot;
+	&quot;github.com/moby/moby/api/pkg/stdcopy&quot;
+	&quot;github.com/moby/moby/client&quot;
+
+	ctrl &quot;sigs.k8s.io/controller-runtime&quot;
+)
+</code></pre>
+    <p>The other five timing-related literals at the top of the file (<code>controlTimeout</code>, <code>writeTimeout</code>, <code>pingInterval</code>, <code>pingTimeout</code>) are named. This one deserves the same treatment, both for consistency and because the rationale — clients are not expected to send anything large; 4096 covers PONGs and any future client-to-server protocol — is not obvious at the call site.</p>
+    <p>Fix: lift to a named constant alongside the others, with a short comment on the rationale.</p>
+    <p><code>(suggestion, regression)</code></p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S11">
+        <span class="finding-num">S11.</span> <code>MarkControlPlaneReady</code> fires before controllers start, and silently proceeds on discovery-registration failure <span class="pill pill-gemini">Gemini</span><a href="#S11" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L188-L208">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="188" data-line="193-203"><code class="language-go">	// Add health checks
+	if err := mgr.AddHealthzCheck(&quot;healthz&quot;, healthz.Ping); err != nil {
+		return fmt.Errorf(&quot;failed to set up health check: %w&quot;, err)
+	}
+	if err := mgr.AddReadyzCheck(&quot;readyz&quot;, healthz.Ping); err != nil {
+		return fmt.Errorf(&quot;failed to set up ready check: %w&quot;, err)
+	}
+
+	// Register controller manager in cluster for service discovery before
+	// running the controllers.
+	if err := scm.registerDiscovery(ctx); err != nil {
+		log.Error(err, &quot;Failed to register controller manager for discovery&quot;)
+		// Don&#39;t fail startup for discovery registration errors
+	}
+
+	// Ensure cleanup on shutdown with a timeout to avoid blocking if apiserver is gone
+	defer func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		if err := scm.discovery.UnregisterControllerManager(cleanupCtx); err != nil {
+			log.Error(err, &quot;Failed to unregister controller manager&quot;)</code></pre>
+    <p>The annotation advertises readiness at line 201, but the passthrough server (added as a <code>manager.Runnable</code> at line 215) does not start listening until <code>mgr.Start(ctx)</code> at line 284. A client that sees the ready annotation and races to connect hits connection-refused on the new passthrough port. Discovery-registration failure is also swallowed, so the annotation may fire over an empty or partial discovery ConfigMap.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L210-L220">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="210" data-line="215"><code class="language-go">	}()
+
+	// Add pass through server
+	if err := mgr.Add(manager.RunnableFunc(scm.runPassthroughServer)); err != nil {
+		return fmt.Errorf(&quot;failed to add pass through server to manager: %w&quot;, err)
+	}
+
+	// Track webhook setup goroutines
+	var webhookWaitGroup sync.WaitGroup
+	webhookErrors := make(chan error, len(scm.registrations))
+</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L279-L289">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="279" data-line="284"><code class="language-go">		return fmt.Errorf(&quot;failed to start shared controller manager: %w&quot;, err)
+	}
+
+	return nil
+}
+
+// GetManager returns the underlying controller-runtime manager
+// This is useful for advanced use cases where direct access to the manager is needed.
+func (scm *SharedControllerManager) GetManager() ctrl.Manager {
+	return scm.manager
+}</code></pre>
+    <p>The PR does not modify this block, but the new passthrough endpoint is precisely the new surface that exposes the readiness race — the <code>handler == nil</code> defensive check the PR added at the newly-modified lines 479-486 acknowledges the same ordering concern at a finer grain. Worth addressing together rather than layering more workarounds.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L474-L491">pkg/service/controllers/manager.go</a></div>
+      <pre data-start="474" data-line="479-486"><code class="language-go">		}
+	}
+
+	if !hasPassthroughServers {
+		klog.V(2).InfoS(&quot;No pass through controllers registered, skipping pass through server startup&quot;)
+		return nil
+	}
+
+	server := http.Server{
+		Addr:     fmt.Sprintf(&quot;localhost:%d&quot;, scm.passthroughPort),
+		Handler:  mux,
+		ErrorLog: slog.NewLogLogger(logr.ToSlogHandler(klog.FromContext(ctx)), slog.LevelError),
+	}
+
+	shutdownComplete := make(chan struct{})
+	go func() {
+		defer close(shutdownComplete)
+		&lt;-ctx.Done()</code></pre>
+    <p>Fix: move <code>MarkControlPlaneReady</code> into a post-<code>mgr.Start</code> <code>manager.Runnable</code>, and only fire it when discovery registration succeeded.</p>
+    <p><code>(suggestion, gap)</code></p>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Late WebSocket upgrade</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L147-L154"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:147-154</code></a> (in-scope) <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. All three reviewers called this out: the handler defers the upgrade until after the K8s <code>Get</code>, Docker <code>ContainerInspect</code>, and <code>ContainerLogs</code> open succeed. Errors flow back through real HTTP status codes instead of post-handshake WebSocket close frames, which is much easier for clients to handle.</li>
+      <li><em></em>Pre-upgrade TTY detection via <code>ContainerInspect</code><em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/docker_watcher.go#L463-L470"><code>pkg/controllers/app/engine/controllers/docker_watcher.go:463-470</code></a> (in-scope) <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span>. <code>Client.ContainerLogs</code> does not expose media type, so inspecting <code>Config.Tty</code> first is the correct way to pick between raw copy and <code>stdcopy.StdCopy</code>. Matches Docker&#39;s own CLI strategy.</li>
+      <li><strong>Graceful ping/pong keep-alive</strong> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L176-L220"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:176-220</code></a> (in-scope) <span class="pill pill-gemini">Gemini</span>. Correct use of Go 1.23 timer semantics; reset on pong and on successful read; cleanly canceled via the shared context.</li>
+      <li><em></em>Late <code>GetPassthroughHandler</code> binding in the mux<em></em> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/controllers/manager.go#L479-L486"><code>pkg/service/controllers/manager.go:479-486</code></a> (in-scope) <span class="pill pill-claude">Claude</span>. Moving the handler lookup inside the <code>http.HandlerFunc</code> closure tolerates the startup window when <code>c.reconciler</code> is nil and returns 503 instead of panicking.</li>
+    </ul>
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><em></em>The engine controller is not blank-imported by <code>cmd/app-controller/main.go</code> or <code>cmd/containers-controller/main.go</code><em></em> (future) <span class="pill pill-claude">Claude</span>. Only <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/service/cmd/service.go#L59"><code>pkg/service/cmd/service.go:59</code></a> blank-imports <code>pkg/controllers/app/engine</code>. Per the repo&#39;s deep-review steering, &quot;both <code>cmd/*/main.go</code> and the embedded service package blank-import the controller.&quot; Running the engine reconciler as an out-of-tree process would silently drop its passthrough endpoint with no signal to the operator. Pre-existing gap, but more visible now that the passthrough endpoint exists.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Integration coverage for the happy paths is reasonable: the new BATS cases exercise TTY and non-TTY log streams, <code>tail</code>, and <code>follow=false</code>. The gaps are concentrated in three areas:</p>
+    <ol>
+      <li><strong>Mirror-creation race in the new tests</strong> (S8) — the most likely source of CI flakes.</li>
+      <li><strong>Negative paths untested</strong> (S9) — invalid <code>follow</code>, non-hex container ID, hex-but-unknown ID. All reachable; none asserted.</li>
+      <li><strong>Ping/pong keep-alive uncovered</strong> — tests complete in under a minute, so <code>pingInterval = 10s</code> / <code>pingTimeout = 60s</code> never fire. Not a regression, but the keep-alive is the most intricate new code.</li>
+      <li><strong>Stderr demux on the non-TTY path</strong> — the <code>stdcopy.StdCopy</code> branch at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L227"><code>container_passthrough.go:227</code></a> is exercised indirectly; no test asserts stderr preservation.</li>
+      <li><strong>Log request on the containerd backend</strong> — no test for the 503 path (which today carries the misleading message from S7).</li>
+    </ol>
+    <p><code>make build-rdd</code> and <code>go test ./pkg/controllers/app/engine/... ./pkg/service/controllers ./pkg/controllers/mock/...</code> reported green during review (Codex).</p>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/docs/design/api_containers.md#L262-L273"><code>docs/design/api_containers.md:262-273</code></a> describes the new endpoint and its query parameters, but mixes incompatible framing guarantees (binary stream plus per-message UTF-8, see S2) and promises a &quot;full container ID&quot; the handler does not enforce (see S3).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/container_passthrough.go#L58-L59"><code>pkg/controllers/app/engine/controllers/container_passthrough.go:58-59</code></a> — godoc for <code>HandleLogs</code> lists <code>tail</code> but not <code>follow</code> (see S5).</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L113-L127"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:113-127</code></a> — struct doc and <code>watcherMu</code> field comment went stale against the new HTTP-handler concurrency (see I1 and S1).</li>
+      <li>Minor prose: line 264 &quot;as stream of bytes&quot; wants &quot;as a stream of bytes&quot;; line 277 &quot;unbuffered binary as in the logs endpoint&quot; is ungrammatical. Easy polish while the doc is open.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Two commits, cleanly split: the first introduces the minimal implementation; the second addresses prior review feedback with an enumerated changelog. No concerns.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><strong>Containerd backend returns 503 for log requests</strong> — containerd mirroring is still on the roadmap (see <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/78e93153d29c0ddce4be94529aff4b16fabe46e3/pkg/controllers/app/engine/controllers/engine_reconciler.go#L51-L54"><code>engine_reconciler.go:51-54</code></a>). S7 covers the user-facing message today.</li>
+      <li><em></em><code>Client.ContainerLogs</code> does not expose media type<em></em> — raised by @mook-as in the PR thread. The current <code>ContainerInspect</code> + <code>Config.Tty</code> approach is the resolution and matches Docker&#39;s own CLI behavior.</li>
+      <li><strong>TTY detection via inspect is a point-in-time read</strong> — the container&#39;s TTY configuration is immutable after create, so this is not a race the handler can lose.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>None. The three in-thread PR comments either landed as changes in the second commit or are captured under Acknowledged Limitations.</p>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p><strong>[Claude]</strong> — The deepest and most actionable pass: surfaced the only important finding (the <code>apiNamespace</code> data race), traced it to the stale struct-level doc and rewritten <code>watcherMu</code> field comment, and proposed a fix that also improves diagnostics by reordering the 404/503 branches. Caught two gap-level issues the other agents missed (the BATS mirror-creation race and the engine controller&#39;s missing blank-imports). Its suggestions lean toward clarity and test-coverage cleanups, which fits a PR this tight.</p>
+    <p><strong>[Codex]</strong> — Focused and precise, but narrower than the others: limited to two doc/contract mismatches and nothing on the implementation itself. Both findings landed — UTF-8 framing and the over-permissive container ID regex — and the latter merged cleanly with Gemini&#39;s uppercase-hex observation. Ran <code>make build-rdd</code> and the package tests to back its &quot;no merge-blocker in the implementation&quot; verdict, which the consolidation accepted.</p>
+    <p><strong>[Gemini]</strong> — Two useful angles the others missed: the pre-existing <code>MarkControlPlaneReady</code> readiness race that the new passthrough endpoint exposes, and the uppercase-hex case of the container ID regex. The <code>MarkControlPlaneReady</code> finding was labeled important, but the code it points to is not changed in this PR; consolidation downgraded it to a suggestion (S11) framed around the PR&#39;s new surface. Hit a sandbox denial trying to write a throwaway test file outside the worktree (<code>/tmp/testtimer.go</code>); recovered without impact.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.7</th><th><span class="pill pill-codex">Codex</span> GPT 5.4</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>21m 00s</td><td>5m 38s</td><td>8m 31s</td></tr>
+        <tr><td>Findings</td><td>1I 8S</td><td>2S</td><td>2S</td></tr>
+        <tr><td>Tool calls</td><td>53 (Bash 30, Read 21, Grep 2)</td><td>44 (shell 41, stdin 3)</td><td>32 (run<em>shell</em>command 16, grep_search 9, glob 2)</td></tr>
+        <tr><td>Design observations</td><td>2</td><td>2</td><td>3</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td>Unique insights</td><td>7</td><td>1</td><td>2</td></tr>
+        <tr><td>Files reviewed</td><td>8</td><td>8</td><td>8</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>1I 8S</strong></td><td><strong>2S</strong></td><td><strong>2S</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>1 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p>Claude delivered the most value: the only important finding, the most unique insights, and the design-level observations that tied findings together. Codex and Gemini each contributed one useful suggestion that the others missed. The three reviews reinforced each other on the strengths (late upgrade, pre-upgrade TTY detection) without redundantly repeating them.</p>
+    <h3 id="reconciliation">Reconciliation <a href="#reconciliation" class="pilcrow">&#182;</a></h3>
+    <p>Gemini P1 &quot;Pre-existing readiness signal&quot; (important, on unchanged code): important → suggestion S11. Rationale: the code is unchanged by this PR; the PR&#39;s new passthrough endpoint is the new surface exposing the pre-existing race, so it belongs as a suggestion tied to the PR rather than a blocker for it.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li>Add a note to <code>deep-review-context.md</code> about the engine controller&#39;s blank-import gap in <code>cmd/*/main.go</code>. Reviewers should check this when a PR adds a new user-visible surface (API endpoint, passthrough handler, webhook) to a controller that is not yet registered in every standalone binary — a missing blank-import silently drops the feature in those binaries with no startup error. Apply when the PR adds a surface whose absence would not surface as a test failure.</li>
+    </ul>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
