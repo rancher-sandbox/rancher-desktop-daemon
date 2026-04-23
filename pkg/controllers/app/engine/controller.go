@@ -10,7 +10,10 @@
 package engine
 
 import (
+	"maps"
+	"net/http"
 	"runtime"
+	"slices"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -35,13 +38,25 @@ func init() {
 // keeps --controllers selections from splitting the two apart.
 const apiGroup = "containers"
 
-type controller struct{}
-
-func newController() base.Controller {
-	return &controller{}
+type controller struct {
+	reconciler   *controllers.EngineReconciler
+	passthroughs map[string]http.Handler
 }
 
-var _ base.Controller = &controller{}
+func newController() base.Controller {
+	c := &controller{}
+	c.passthroughs = map[string]http.Handler{
+		"logs": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c.reconciler.HandleLogs(w, r)
+		}),
+	}
+	return c
+}
+
+var (
+	_ base.Controller            = &controller{}
+	_ base.PassthroughController = &controller{}
+)
 
 func (c *controller) GetName() string {
 	return appv1alpha1.EngineControllerName
@@ -55,6 +70,17 @@ func (c *controller) GetCRDData() string {
 	return ""
 }
 
+func (c *controller) GetPassthroughEndpoints() []string {
+	return slices.Sorted(maps.Keys(c.passthroughs))
+}
+
+func (c *controller) GetPassthroughHandler(endpoint string) http.Handler {
+	if c.reconciler == nil {
+		return nil
+	}
+	return c.passthroughs[endpoint]
+}
+
 func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 	if err := appv1alpha1.AddToScheme(mgr.GetScheme()); err != nil {
 		return err
@@ -63,7 +89,8 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return (&controllers.EngineReconciler{
+	c.reconciler = &controllers.EngineReconciler{
 		Client: mgr.GetClient(),
-	}).SetupWithManager(mgr)
+	}
+	return c.reconciler.SetupWithManager(mgr)
 }
