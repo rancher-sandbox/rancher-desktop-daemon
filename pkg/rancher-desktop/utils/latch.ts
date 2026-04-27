@@ -21,6 +21,8 @@ limitations under the License.
  * @see https://en.wikipedia.org/wiki/Barrier_(computer_science)
  */
 interface Latch<T> extends Promise<T> {
+  /** Indicates whether the Latch has been settled. */
+  get settled(): boolean;
   /** Calling the resolve() method resolves the Latch. */
   resolve(value: T): void;
   /** Calling the reject() method rejects the Latch. */
@@ -54,6 +56,7 @@ export default function Latch<T = void>(): Latch<T> {
   const state = {
     promise: Promise.withResolvers<T>(),
     reset:   Promise.withResolvers<ResetState>(),
+    settled: false,
   };
 
   /** Wait for the latch to be settled, looping while it's reset. */
@@ -87,16 +90,24 @@ export default function Latch<T = void>(): Latch<T> {
         return waitForSettled().finally(onfinally);
       },
     },
+    settled: {
+      get() {
+        return state.settled;
+      },
+    },
     resolve: {
       value(value: T) {
         state.promise.resolve(value);
         state.reset.resolve(ResetState.SETTLED);
+        state.settled = true;
       },
     },
     reject: {
       value(reason: any) {
+        // Do not catch here; unhandled rejections should be surfaced to the user.
         state.promise.reject(reason);
         state.reset.resolve(ResetState.SETTLED);
+        state.settled = true;
       },
     },
     reset: {
@@ -104,6 +115,7 @@ export default function Latch<T = void>(): Latch<T> {
         const { reset: oldReset, promise: oldPromise } = state;
         state.promise = Promise.withResolvers<T>();
         state.reset = Promise.withResolvers<ResetState>();
+        state.settled = false;
         // Resolve the reset state, so `waitForSettled` will loop.
         oldReset.resolve(ResetState.RESET);
         // Attach a catch to the old promise to avoid unhandled rejections if

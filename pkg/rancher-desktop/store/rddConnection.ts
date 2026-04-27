@@ -50,8 +50,8 @@ export const mutations = {
 
 /**
  * fetchConfigPromise is used to ensure that multiple concurrent calls to
- * `fetchConfig` only runs once; this is so that we do not trigger multiple
- * `notifyDisconnected` calls on disconnect.
+ * `fetchConfig` only runs once; this is necessary if a disconnect causes
+ * multiple watchers to error out at once.
  */
 let fetchConfigPromise: Promise<RDDClient.KubeConfig> | undefined;
 
@@ -60,25 +60,25 @@ export const actions = {
   /**
    * Fetch the Kubernetes configuration from the backend and update the state.
    * This may be called multiple times concurrently.
+   * This never throws; instead, it blocks until success.
+   * After the first success, it always returns the same config.
    */
-  async fetchConfig({ commit, dispatch }) {
+  async fetchConfig({ commit }): Promise<RDDClient.KubeConfig> {
     if (!fetchConfigPromise) {
       fetchConfigPromise = (async() => {
-        try {
-          const config = await ipcRenderer.invoke('rdd/kube-config');
-          const kubeConfig = new RDDClient.KubeConfig();
+        while (true) {
+          try {
+            const config = await ipcRenderer.invoke('rdd/kube-config');
+            const kubeConfig = new RDDClient.KubeConfig();
 
-          kubeConfig.loadFromString(config);
-          commit('SET_CONFIG', kubeConfig);
-          await dispatch('notifyDisconnected');
-          commit('SET_ERROR', undefined);
+            kubeConfig.loadFromString(config);
+            commit('SET_CONFIG', kubeConfig);
 
-          return kubeConfig;
-        } catch (ex) {
-          commit('SET_ERROR', ex);
-          throw ex;
-        } finally {
-          fetchConfigPromise = undefined;
+            return kubeConfig;
+          } catch {
+            // Try again
+            await new Promise(resolve => setTimeout(resolve, 1_000));
+          }
         }
       })();
     }
@@ -358,18 +358,13 @@ ResourceWatchActionsReturn<T> {
       const { commit, state, dispatch, rootState, rootGetters } = actionContext;
       const rddState = rootState['rdd-connection'];
 
-      while (!rddState.config.currentContext) {
-        try {
-          await dispatch('rdd-connection/fetchConfig', {}, { root: true });
-        } catch (error) {
-          // If any error occurs during fetching of config, retry forever until
-          // the backend is up.
-          // TODO: Once we have diagnostics, emit one here so the user can
-          // deal with it.
-          commit('rdd-connection/SET_ERROR', error, { root: true });
-          console.error(error);
-          await new Promise(resolve => setTimeout(resolve, 1_000));
-        }
+      // Ensure that the connection configuration is available.  If we already
+      // have a config, this returns immediately.
+      await dispatch('rdd-connection/fetchConfig', undefined, { root: true });
+
+      if (state._watchersInitialized.settled) {
+        // This should never happen, but guard against it just in case.
+        throw new Error('setupResourceWatch called more than once');
       }
 
       try {
