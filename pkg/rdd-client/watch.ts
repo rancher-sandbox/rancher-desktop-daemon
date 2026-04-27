@@ -128,7 +128,6 @@ export class Watch {
             doneCallOnce(err);
           }
         })();
-        clearTimeout(timeout);
       } else {
         const statusText = response.statusText || 'Internal Server Error';
         const error = new Error(statusText) as Error & {
@@ -139,6 +138,8 @@ export class Watch {
       }
     } catch (err) {
       doneCallOnce(err);
+    } finally {
+      clearTimeout(timeout);
     }
 
     return controller;
