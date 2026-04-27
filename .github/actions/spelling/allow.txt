@@ -2,6 +2,7 @@ emoji
 github
 https
 passwordless
+rewatch # https://en.wiktionary.org/wiki/rewatch
 ssh
 ubuntu
 workarounds

@@ -2,7 +2,7 @@
 // Desktop Daemon.
 
 import { markRaw } from 'vue';
-import { Plugin } from 'vuex';
+import { MutationTree, Plugin } from 'vuex';
 
 import type { RootState } from '@pkg/entry/store';
 import { ActionContext, ActionTree, Commit, MutationsType } from '@pkg/store/ts-helpers';
@@ -19,8 +19,10 @@ export interface RDDConnectionState {
   config:              RDDClient.KubeConfig;
   error:               any;
   watch:               RDDClient.Watch;
-  /** The key should be of the form `module/resource`. */
-  disconnectCallbacks: Record<string, () => void>;
+  /** A mapping of module name to the names of resources set up for watching. */
+  namespacedResources: Record<string, Set<string>>;
+  /** Kubernetes namespace RDD objects live in; must not be empty. */
+  namespace:           string;
 };
 
 /** Vuex state for managing the RDD connection. */
@@ -30,7 +32,8 @@ export const state: () => RDDConnectionState = () => {
     config,
     error:               undefined,
     watch:               markRaw(new RDDClient.Watch(config)),
-    disconnectCallbacks: {},
+    namespacedResources: {},
+    namespace:           'default',
   };
 };
 
@@ -43,10 +46,19 @@ export const mutations = {
   SET_ERROR(state, error) {
     state.error = error ? markRaw(error) : error;
   },
-  SET_DISCONNECT_CALLBACKS(state, callbacks) {
-    state.disconnectCallbacks = callbacks;
+  SET_NAMESPACE(state, namespace) {
+    state.namespace = namespace;
   },
-} satisfies MutationsType<RDDConnectionState>;
+  /**
+   * Mark a namespaced resource as being watched; this is used to track
+   * re-watching resources on connect and when the Kubernetes namespace changes.
+   * @param moduleName the name of the Vuex module.
+   */
+  addNamespacedResource(state, [module, resource]: [string, string]) {
+    state.namespacedResources[module] ??= new Set();
+    state.namespacedResources[module].add(resource);
+  },
+} satisfies MutationsType<RDDConnectionState> & MutationTree<RDDConnectionState>;
 
 /**
  * fetchConfigPromise is used to ensure that multiple concurrent calls to
@@ -84,33 +96,36 @@ export const actions = {
     }
     return fetchConfigPromise;
   },
-  registerDisconnectCallback({ state, commit }, { key, callback }: { key: string, callback?: () => void }) {
-    const callbacks = { ...state.disconnectCallbacks };
-    if (!callback) {
-      delete callbacks[key];
-    } else {
-      callbacks[key] = callback;
-    }
-    commit('SET_DISCONNECT_CALLBACKS', callbacks);
-  },
-  notifyDisconnected({ commit, state }) {
-    for (const [key, callback] of Object.entries(state.disconnectCallbacks)) {
-      try {
-        callback();
-      } catch (err) {
-        console.error(`Error in RDD disconnect callback ${ key }:`, err);
-      }
-    }
-    commit('SET_DISCONNECT_CALLBACKS', {});
-  },
 } satisfies ActionTree<RDDConnectionState, any, typeof mutations>;
 
-/** Vuex plugins for managing the RDD connection. */
 export const plugins: Plugin<RootState>[] = [
+  /** Vuex plugin to automatically fetch connection configuration on startup. */
   function(store) {
     store.dispatch('rdd-connection/fetchConfig').catch(ex => {
       console.error(ex);
     });
+  },
+  /** Vuex plugin to re-watch resources on Kubernetes namespace change. */
+  function(store) {
+    let currentNamespace = store.state['rdd-connection'].namespace;
+    store.watch(
+      (state) => state['rdd-connection'].namespace,
+      (newNamespace) => {
+        if (newNamespace && newNamespace !== currentNamespace) {
+          currentNamespace = newNamespace;
+
+          const { namespacedResources } = store.state['rdd-connection'];
+          for (const [module, resources] of Object.entries(namespacedResources)) {
+            if (resources.size) {
+              store.dispatch(`${ module }/rewatchResources`, Array.from(resources))
+                .catch(error => {
+                  console.error(`Failed to rewatch resources for module ${ module }:`, error);
+                });
+            }
+          }
+        }
+      },
+    );
   },
 ];
 
@@ -158,8 +173,16 @@ interface ResourceTypeLike {
   fieldSelector?: (context: any) => string | undefined;
   /** A function which returns the type of client needed to list the resource. */
   makeClient:     (config: RDDClient.KubeConfig) => any;
-  /** A function which lists the resource. */
-  list:           (client: any, options: ListResourceOptions<any>) => Promise<RDDClient.KubernetesListObject<any>>;
+  /**
+   * A function which lists the resource.
+   * By default, the client's `list[Namespaced]<Type>` function is used.
+   */
+  list?:          (client: any, options: ListResourceOptions<any>) => Promise<RDDClient.KubernetesListObject<any>>;
+  /**
+   * Indicates that the resource needs to be re-watched when the Kubernetes namespace changes.
+   * This is only needed if `list` is given.
+   */
+  namespaced?:    boolean;
 }
 
 /**
@@ -188,7 +211,8 @@ interface ResourceType<C, StateName extends string, TypeName extends string> ext
   labelSelector?: (context: any) => string | undefined;
   fieldSelector?: (context: any) => string | undefined;
   makeClient:     (config: RDDClient.KubeConfig) => C,
-  list:           (client: C, options: ListResourceOptions<ResourceStateItem<StateName, ItemType<C, TypeName>>>) => Promise<RDDClient.KubernetesListObject<ItemType<C, TypeName>>>;
+  list?:          (client: C, options: ListResourceOptions<ResourceStateItem<StateName, ItemType<C, TypeName>>>) => Promise<RDDClient.KubernetesListObject<ItemType<C, TypeName>>>;
+  namespaced?:    boolean;
 }
 
 /**
@@ -205,29 +229,6 @@ ItemType<C, TypeName> extends never
   : ResourceType<C, StateName, TypeName> {
   return input as any;
 };
-
-/**
- * listNamespacedResource is a helper to implement the `list` function in a
- * `ResourceType<...>` when the resource is namespaced.
- * @param typeName the name of the type, in (upper or lower) camel case.
- * @returns A function implementing `ResourceType<...>.list`.
- */
-export function listNamespacedResource<
-  TypeName extends string,
-  C extends Record<
-    `listNamespaced${ TypeName }` | `list${ TypeName }ForAllNamespaces`,
-    (param?: any, options?: RDDClient.ConfigurationOptions) => any
-  >,
->(typeName: TypeName)
-  : (client: C, options: ListResourceOptions<any>) => ReturnType<C[`listNamespaced${ TypeName }`]> {
-  return (client: C, options: ListResourceOptions<any>) => {
-    return client[`listNamespaced${ typeName }`]({
-      namespace:     options.namespace,
-      fieldSelector: options.fieldSelector,
-      labelSelector: options.labelSelector,
-    });
-  };
-}
 
 /**
  * ResourceNames extracts the union of resource names from an array of ResourceTypeLike.
@@ -309,7 +310,7 @@ IntersectMapped<{ [K in keyof T]: ResourceMutationsReturn<T[K]> }> {
  */
 interface ResourceWatchActionsOptions<T extends readonly ResourceTypeLike[]> {
   /** Callback that is invoked when an error occurs. */
-  callback?: (error: Error, resourceName: ResourceNames<T>) => void,
+  callback?: (error: Error, resourceName: ResourceNames<T>[number]) => void,
 }
 
 /** ResourceWatchActionsReturn defines the return type of resourceWatchActions(). */
@@ -332,6 +333,13 @@ interface ResourceWatchActionsReturn<T extends readonly ResourceTypeLike[]> {
   watchResources(actionContext: ActionContext<ResourceStateReturn<T[number]>>, resources: readonly ResourceNames<T>[]): Promise<void>;
 
   /**
+   * Restart watching the specified resources, if they are being watched.  This
+   * is used when the resource definition will produce different results (e.g.
+   * the label selector changes).
+   */
+  rewatchResources(actionContext: ActionContext<ResourceStateReturn<T[number]>>, resources: readonly ResourceNames<T>[]): Promise<void>;
+
+  /**
    * Stop watching the specified resources.  This is expected to be called in a
    * component's onBeforeUnmount() hook.
    */
@@ -351,11 +359,9 @@ export function resourceWatchActions<const T extends readonly ResourceTypeLike[]
 ResourceWatchActionsReturn<T> {
   type State = ResourceStateReturn<T[number]>;
 
-  let reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
-
   return {
     async setupResourceWatch(actionContext: ActionContext<State>, options?: ResourceWatchActionsOptions<T>) {
-      const { commit, state, dispatch, rootState, rootGetters } = actionContext;
+      const { commit, state, dispatch, rootState } = actionContext;
       const rddState = rootState['rdd-connection'];
 
       // Ensure that the connection configuration is available.  If we already
@@ -368,52 +374,73 @@ ResourceWatchActionsReturn<T> {
       }
 
       try {
-        // Reset `_watchersInitialized`, so if this is a reconnect, the callers
-        // can wait on it again.
-        state._watchersInitialized.reset();
         for (const r of resources) {
           const resourceOptions = Object.assign({}, state._watchers[r.name]?.options, options ?? {});
+          let reconnectTimeout: ReturnType<typeof setTimeout> | undefined;
+
           state._watchers[r.name]?.watcher?.close();
           const client = r.makeClient(rddState.config);
+          const listFn: (client: any, options: ListResourceOptions<typeof state>) => any = (() => {
+            const type = r.type ?? r.name.replace(/s$/, '').replace(/^./, s => s.toUpperCase());
+            if (r.list) {
+              if (r.namespaced) {
+                commit('rdd-connection/addNamespacedResource', [module, r.name], { root: true });
+              }
+              return r.list;
+            } else if (`listNamespaced${ type }` in client) {
+              commit('rdd-connection/addNamespacedResource', [module, r.name], { root: true });
+              return (client, options) => {
+                return client[`listNamespaced${ type }`]({
+                  namespace:     options.namespace,
+                  fieldSelector: options.fieldSelector,
+                  labelSelector: options.labelSelector,
+                });
+              };
+            } else if (`list${ type }` in client) {
+              return (client, options) => {
+                return client[`list${ type }`]({
+                  fieldSelector: options.fieldSelector,
+                  labelSelector: options.labelSelector,
+                });
+              };
+            } else {
+              throw new Error(`Client ${ r.makeClient.name } does not have a list function for resource type ${ module }/${ type }`);
+            }
+          })();
           const watcher = new Watcher(
             r.name,
-            r.path(rootGetters['rdd/kubernetesNamespace'] ?? 'default'),
+            () => r.path(rootState['rdd-connection'].namespace),
             async() => { // listFn
               // If this throws, the `doneFn` callback gets called with the exception.
               const listOptions: ListResourceOptions<any> = {
-                namespace:       rootGetters['rdd/kubernetesNamespace'] ?? 'default',
+                namespace:       rootState['rdd-connection'].namespace,
                 state,
                 connectionState: rddState,
                 fieldSelector:   r.fieldSelector?.(actionContext),
                 labelSelector:   r.labelSelector?.(actionContext),
               };
-              const result = await r.list(client, listOptions);
+              const result = await listFn(client, listOptions);
               commit('rdd-connection/SET_ERROR', undefined, { root: true });
               return result;
             },
-            async(error) => { // doneFn
+            (error) => { // doneFn
               commit('rdd-connection/SET_ERROR', error, { root: true });
-              await dispatch('rdd-connection/notifyDisconnected', null, { root: true });
               if (error) {
-                resourceOptions.callback?.(error, r.name as ResourceNames<T>);
+                resourceOptions.callback?.(error, r.name);
                 console.error(`${ r.name }:`, error);
               } else {
                 console.error(`${ r.name }: Closing connection without error`);
               }
-              // The old config is no longer valid; clear it so when we set up
-              // the next watch, it will be re-fetched.
-              commit('rdd-connection/SET_CONFIG', new RDDClient.KubeConfig(), { root: true });
-              clearTimeout(reconnectTimeout);
+              // The old config is no longer valid.
               const doReconnect = async() => {
-                try {
-                  await dispatch('setupResourceWatch', options);
-                } catch (error) {
-                  console.error(error);
-                  commit('rdd-connection/SET_ERROR', error, { root: true });
-                  // If we failed to connect, try again after a delay.
-                  reconnectTimeout = setTimeout(doReconnect, 1_000);
+                // None of these are expected to throw.
+                await dispatch('rdd-connection/fetchConfig', undefined, { root: true });
+                watcher.close();
+                if (state._watchers[r.name]?.refCount > 0) {
+                  watcher.start();
                 }
               };
+              clearTimeout(reconnectTimeout);
               reconnectTimeout = setTimeout(doReconnect, 1_000);
             },
             rootState['rdd-connection'].watch,
@@ -432,15 +459,6 @@ ResourceWatchActionsReturn<T> {
             // automatically.
             watcher.start();
           }
-          const key = `${ module }/${ r.name }`;
-          await dispatch('rdd-connection/registerDisconnectCallback',
-            {
-              key,
-              callback: () => {
-                watcher.close();
-                dispatch('rdd-connection/registerDisconnectCallback', { key }, { root: true });
-              },
-            }, { root: true });
         }
         state._watchersInitialized.resolve();
       } catch (error) {
@@ -516,6 +534,25 @@ ResourceWatchActionsReturn<T> {
         await watcherInfo.watcher.loaded;
       }));
     },
+    async rewatchResources(actionContext: ActionContext<State>, resources: ResourceNames<T>[]) {
+      const { state } = actionContext;
+      await state._watchersInitialized;
+      for (const resource of resources) {
+        const watcherInfo = state._watchers[resource];
+        if (!watcherInfo) {
+          const error = new Error(`Action rewatchResources(${ resource }) called before setupResourceWatch`);
+          console.error(error);
+          throw error;
+        }
+        // Only restart the watcher if it's currently active.
+        if (watcherInfo.refCount > 0) {
+          watcherInfo.watcher.close();
+          watcherInfo.watcher.start();
+          // We may temporarily have stale data before the new watch applies;
+          // that is acceptable, and reduces flickering.
+        }
+      }
+    },
   };
 }
 
@@ -529,14 +566,20 @@ class Watcher<
   K extends string,
   T extends RDDClient.KubernetesObject,
 > {
-  #type:        K;
-  #namespace?:  string;
-  #items:       readonly T[] = [];
+  #type:           K;
+  #path:           () => string;
+  #listFn:         () => Promise<RDDClient.KubernetesListObject<T>>;
+  #doneFn:         (error?: any) => void;
+  #watch:          RDDClient.Watch;
+  #commit:         Commit<any>;
+  #namespace?:     string;
+  #labelSelector?: () => string | undefined;
+  #fieldSelector?: () => string | undefined;
+  #items:          readonly T[] = [];
   #loaded = Latch();
-  #notifyDelay: ReturnType<typeof setTimeout> | undefined;
-  #commit:      Commit<any>;
-  #doneFn:      (error?: any) => void;
-  #watcher:     RDDClient.ListWatch<T>;
+  #notifyDelay:    ReturnType<typeof setTimeout> | undefined;
+  #watcher:        RDDClient.ListWatch<T> | undefined;
+  #restartTimeout: ReturnType<typeof setTimeout> | undefined;
 
   /**
    * Create a new watcher.
@@ -544,7 +587,7 @@ class Watcher<
    */
   constructor(
     type: K,
-    path: string,
+    path: () => string,
     listFn: () => Promise<RDDClient.KubernetesListObject<T>>,
     doneFn: (error?: any) => void,
     watch: RDDClient.Watch,
@@ -554,23 +597,54 @@ class Watcher<
     fieldSelector?: () => string | undefined,
   ) {
     this.#type = type;
-    this.#namespace = namespace;
-    this.#commit = commit;
+    this.#path = path;
+    this.#listFn = listFn;
     this.#doneFn = doneFn;
+    this.#watch = watch;
+    this.#commit = commit;
+    this.#namespace = namespace;
+    this.#labelSelector = labelSelector;
+    this.#fieldSelector = fieldSelector;
     // Attach a fallback catch handler so that initial disconnects do not show
     // as errors.
     this.#loaded.catch(() => { /* ignore */ });
-    this.#watcher = new RDDClient.ListWatch<T>(
-      path,
-      watch,
-      listFn,
+
+    // Create a new ListWatch instance in `start()`, so that we don't have to
+    // worry about any issues from ListWatch restart.
+  }
+
+  start() {
+    // Stop any existing watcher before starting a new one.
+    this.#watcher?.stop(errorManuallyStopped);
+    const watcher = new RDDClient.ListWatch<T>(
+      this.#path(),
+      this.#watch,
+      this.#listFn,
       false,
-      labelSelector,
-      fieldSelector,
+      this.#labelSelector,
+      this.#fieldSelector,
     );
-    this.#watcher.on('change', this.onChange.bind(this));
-    this.#watcher.on('connect', this.onChange.bind(this));
-    this.#watcher.on('error', (err) => {
+    this.#watcher = watcher;
+    watcher.on('change', () => {
+      // Only trigger a change if this is the current watcher.
+      if (Object.is(watcher, this.#watcher)) {
+        this.onChange();
+      }
+    });
+    watcher.on('connect', () => {
+      // Only trigger a change if this is the current watcher.
+      if (Object.is(watcher, this.#watcher)) {
+        this.onChange();
+      }
+    });
+    watcher.on('error', (err) => {
+      clearTimeout(this.#restartTimeout);
+      if (!Object.is(watcher, this.#watcher)) {
+        // This error is from a stale watcher; ignore it.
+        return;
+      }
+      this.#loaded.reset();
+      this.#loaded.catch(() => { /* ignore */ });
       if (Object.is(err, errorManuallyStopped)) {
         // The watcher errored out because we called stop(); do not propagate
         // this as an actual error.
@@ -583,19 +657,22 @@ class Watcher<
           const body = JSON.parse(err.body);
           delay = body?.details?.retryAfterSeconds ?? delay;
         } catch { /* ignore */ }
-        setTimeout(() => this.start(), delay * 1_000);
+        this.#restartTimeout = setTimeout(() => this.start(), delay * 1_000);
         return;
       }
       // `err` is an object that calls `toString()` on `console.log`, so we
       // need to re-convert it to a plain object for better debugging.
-      console.debug(`${ type } watch error`, JSON.parse(JSON.stringify(err)));
+      console.debug(`${ this.#type } watch error`, JSON.parse(JSON.stringify(err)));
       this.#loaded.reject(err);
-      doneFn(err);
+      this.#doneFn(err);
     });
-  }
-
-  start() {
+    // `#watcher.start()` returns a promise that is only resolved when the
+    // connection ends, so do not await on it here.
     this.#watcher.start().catch(err => {
+      if (!Object.is(watcher, this.#watcher)) {
+        // A stale watcher ends; ignore it.
+        return;
+      }
       console.debug(`Watch ${ this.#type } ended:`, err);
       this.#doneFn(err);
       this.#loaded.reject(err);
@@ -624,6 +701,10 @@ class Watcher<
   }
 
   close() {
-    this.#watcher.stop(errorManuallyStopped);
+    clearTimeout(this.#notifyDelay);
+    clearTimeout(this.#restartTimeout);
+    this.#loaded.reset();
+    this.#loaded.catch(() => { /* ignore */ });
+    return this.#watcher?.stop(errorManuallyStopped);
   }
 }

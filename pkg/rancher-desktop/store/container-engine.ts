@@ -1,7 +1,7 @@
 import { Plugin } from 'vuex';
 
 import { RootState } from '@pkg/entry/store';
-import { defineResource, listNamespacedResource, resourceMutations, resourceState, resourceWatchActions, ResourceNames } from '@pkg/store/rddConnection';
+import { defineResource, resourceMutations, resourceState, resourceWatchActions, ResourceNames } from '@pkg/store/rddConnection';
 import { ActionContext, ActionTree, GetterTree, MutationsType } from '@pkg/store/ts-helpers';
 import { RecursivePartial } from '@pkg/utils/typeUtils';
 import * as RDDClient from '@rdd-client';
@@ -26,28 +26,24 @@ const resources = [
     name:          'containers',
     path:          namespacedResourcePath('containers'),
     makeClient:    config => config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api),
-    list:          listNamespacedResource('Container'),
     fieldSelector: resourceFieldSelector,
   }),
   defineResource({
     name:          'images',
     path:          namespacedResourcePath('images'),
     makeClient:    config => config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api),
-    list:          listNamespacedResource('Image'),
     fieldSelector: resourceFieldSelector,
   }),
   defineResource({
     name:          'namespaces',
-    type:          'containerNamespace',
+    type:          'ContainerNamespace',
     path:          namespacedResourcePath('containernamespaces'),
     makeClient:    config => config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api),
-    list:          listNamespacedResource('ContainerNamespace'),
   }),
   defineResource({
     name:          'volumes',
     path:          namespacedResourcePath('volumes'),
     makeClient:    config => config.makeApiClient(RDDClient.ContainersRancherdesktopIoV1alpha1Api),
-    list:          listNamespacedResource('Volume'),
     fieldSelector: resourceFieldSelector,
   }),
 ] as const;
@@ -101,7 +97,7 @@ export const actions = {
       commit('SET_CURRENT_NAMESPACE', namespace);
       // Refresh all resources to update the namespace filter.
       try {
-        await dispatch('setupResourceWatch');
+        await dispatch('rewatchResources', resources.map(r => r.name));
       } catch (error) {
         commit('SET_ERROR', { error: error as Error, source: 'containers' });
         console.error('Error setting up resource watch:', error);
@@ -259,26 +255,17 @@ export const actions = {
 } satisfies ActionTree<ContainerEngineState, any, typeof mutations>;
 
 export const plugins: Plugin<RootState>[] = [
-  // Re-watch resources on Kubernetes namespace change; since the namespace is
-  // initially undefined, we don't need to start immediately.
+  // Start watching resources immediately.
   function(store) {
-    let currentNamespace: string | undefined = store.getters['rdd/kubernetesNamespace'];
-
-    store.watch(
-      (_state, getters) => getters['rdd/kubernetesNamespace'],
-      (newNamespace: string | undefined) => {
-        if (newNamespace === currentNamespace) {
-          return;
-        }
-        currentNamespace = newNamespace;
-        store.dispatch('container-engine/setupResourceWatch', {
-          callback: (error: Error, resourceName: string) => {
-            store.commit('container-engine/SET_ERROR', { error, source: resourceName });
-          },
-        }).catch((error: Error) => {
-          store.commit('container-engine/SET_ERROR', { error, source: 'containers' });
-        });
+    store.dispatch('container-engine/setupResourceWatch', {
+      callback: (error: Error, source) => {
+        console.error('Error watching container engine resources:', error);
+        store.commit('container-engine/SET_ERROR', { error, source });
       },
-    );
+    }).catch((error: Error) => {
+      console.error('Failed to set up watch for container engine resources:', error);
+      // There is no specific resource associated with this error.
+      store.commit('container-engine/SET_ERROR', { error, source: 'containers' });
+    });
   },
 ];
