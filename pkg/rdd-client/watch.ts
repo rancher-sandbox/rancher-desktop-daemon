@@ -37,6 +37,9 @@ export class Watch {
   // "done" callback is called either when connection is closed or when there
   // is an error. In either case, watcher takes care of properly closing the
   // underlaying connection so that it doesn't leak any resources.
+  //
+  // This function returns when the connection is established, but does not wait
+  // for the body to be read.
   public async watch(
     path: string,
     queryParams: Record<string, string | number | boolean | undefined>,
@@ -56,12 +59,15 @@ export class Watch {
       }
     }
 
-    const requestInit = this.config.applyToFetchOptions({});
-
     const controller = new AbortController();
-    const timeoutSignal = AbortSignal.timeout(this.getRequestTimeoutMS());
-    requestInit.signal = AbortSignal.any([controller.signal, timeoutSignal]);
+    const requestInit = this.config.applyToFetchOptions({});
+    requestInit.signal = controller.signal;
     requestInit.method = 'GET';
+
+    const timeout = setTimeout(() => {
+      // The timeout only applies to the initial connection.
+      controller.abort(new DOMException('The operation timed out.', 'TimeoutError'));
+    }, this.getRequestTimeoutMS());
 
     let doneCalled = false;
     const doneCallOnce = (err: any) => {
@@ -77,28 +83,52 @@ export class Watch {
 
       if (response.status === 200 && response.body) {
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-        let lastLine = '';
 
-        while (true) {
-          const { value, done } = await reader.read();
-          let match: RegExpExecArray | null;
+        // Read the body in an async function so that we can return the
+        // controller immediately to let the caller abort as needed.
+        (async() => {
+          try {
+            let lastLine = '';
 
-          lastLine += value ?? '';
-          while ((match = /^(.*?)\r?\n(.*?)$/m.exec(lastLine))) {
-            const [, line, remaining] = match;
-            lastLine = remaining;
-            try {
-              const data = JSON.parse(line);
-              callback(data.type, data.object, data);
-            } catch {
-              // ignore parse errors
+            while (true) {
+              const { value, done } = await reader.read();
+              let match: RegExpExecArray | null;
+
+              lastLine += value ?? '';
+              while ((match = /^(.*?)\r?\n(.*?)$/m.exec(lastLine))) {
+                const [, line, remaining] = match;
+                lastLine = remaining;
+                let data: any;
+                try {
+                  data = JSON.parse(line);
+                } catch (error) {
+                  // ignore parse errors
+                  console.debug('Error parsing watch event JSON, ignoring', { line, error });
+                  continue;
+                }
+                callback(data.type, data.object, data);
+              }
+              if (done) {
+                break;
+              }
             }
+            if (lastLine) {
+              let data: any;
+              try {
+                data = JSON.parse(lastLine);
+              } catch (error) {
+                console.debug('Error parsing watch event JSON last line, ignoring', { lastLine, error });
+              }
+              if (data) {
+                callback(data.type, data.object, data);
+              }
+            }
+            doneCallOnce(null);
+          } catch (err) {
+            doneCallOnce(err);
           }
-          if (done) {
-            break;
-          }
-        }
-        doneCallOnce(null);
+        })();
+        clearTimeout(timeout);
       } else {
         const statusText = response.statusText || 'Internal Server Error';
         const error = new Error(statusText) as Error & {
@@ -108,13 +138,7 @@ export class Watch {
         throw error;
       }
     } catch (err) {
-      if (timeoutSignal.aborted && !controller.signal.aborted) {
-        // If we hit the timeout, consider this a graceful close; ListWatch will
-        // do an auto-restart.
-        doneCallOnce(null);
-      } else {
-        doneCallOnce(err);
-      }
+      doneCallOnce(err);
     }
 
     return controller;
