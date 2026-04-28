@@ -509,7 +509,7 @@ rdinstall
 RDRUNAFTERINSTALL
 rdshell
 rdsudo
-rdtest
+RDTEST
 rdvsock
 rdx
 readyz
@@ -573,7 +573,7 @@ sfc
 sharedscripts
 sharkanodo
 shasta
-shazbat
+SHAZBAT
 shortkey
 shortlived
 showduplicates
@@ -703,7 +703,7 @@ WIXUI
 wontfix
 wordpress
 wslconfig
-wslenv
+WSLENV
 WSLg
 wslify
 wslinfo

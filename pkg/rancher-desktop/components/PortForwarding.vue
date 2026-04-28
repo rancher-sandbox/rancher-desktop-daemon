@@ -102,12 +102,9 @@
 import { Banner, Checkbox } from '@rancher/components';
 import { defineComponent } from 'vue';
 
-import * as K8s from '@pkg/backend/k8s';
 import SortableTable from '@pkg/components/SortableTable/index.vue';
 
 import type { PropType } from 'vue';
-
-type ServiceEntryWithKey = K8s.ServiceEntry & { key: string };
 
 export default defineComponent({
   name:       'port-forwarding',
@@ -123,7 +120,7 @@ export default defineComponent({
   },
   props: {
     services: {
-      type:     Array as PropType<K8s.ServiceEntry[]>,
+      type:     Array as PropType<any[]>,
       required: true,
     },
     includeKubernetesServices: {
@@ -131,8 +128,8 @@ export default defineComponent({
       default: false,
     },
     k8sState: {
-      type:    String as PropType<K8s.State>,
-      default: K8s.State.STOPPED,
+      type:    String as PropType<any>,
+      default: 'STOPPED',
     },
     kubernetesIsDisabled: {
       type:    Boolean,
@@ -140,7 +137,7 @@ export default defineComponent({
     },
     // Used to determine which row to allow editing of listenPort on.
     serviceBeingEdited: {
-      type:    Object as PropType<K8s.ServiceEntry>,
+      type:    Object as PropType<any>,
       default: null,
     },
     errorMessage: {
@@ -177,9 +174,9 @@ export default defineComponent({
   },
   computed: {
     isRunning(): boolean {
-      return this.k8sState === K8s.State.STARTED;
+      return this.k8sState === 'STARTED';
     },
-    rows(): ServiceEntryWithKey[] {
+    rows(): any[] {
       let services = this.services;
 
       if (!this.includeKubernetesServices) {
@@ -203,7 +200,7 @@ export default defineComponent({
     },
   },
   methods: {
-    serviceBeingEditedIs(service: K8s.ServiceEntry): boolean {
+    serviceBeingEditedIs(service: any): boolean {
       if (this.serviceBeingEdited === null) {
         return false;
       }
@@ -221,13 +218,13 @@ export default defineComponent({
     handleCheckbox(value: boolean): void {
       this.$emit('toggledServiceFilter', value);
     },
-    emitEditPortForward(service: K8s.ServiceEntry): void {
+    emitEditPortForward(service: any): void {
       this.$emit('editPortForward', service);
     },
-    emitCancelPortForward(service: K8s.ServiceEntry): void {
+    emitCancelPortForward(service: any): void {
       this.$emit('cancelPortForward', service);
     },
-    emitCancelEditPortForward(service: K8s.ServiceEntry): void {
+    emitCancelEditPortForward(service: any): void {
       this.$emit('cancelEditPortForward', service);
     },
     emitUpdatePortForward(): void {

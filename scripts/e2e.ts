@@ -10,9 +10,6 @@ import util from 'util';
 
 import buildUtils from './lib/build-utils';
 
-import * as settings from '@pkg/config/settings';
-import { readDeploymentProfiles } from '@pkg/main/deploymentProfiles';
-
 const sleep = util.promisify(setTimeout);
 
 class E2ETestRunner extends events.EventEmitter {
@@ -106,18 +103,6 @@ class E2ETestRunner extends events.EventEmitter {
 
   async run() {
     try {
-      if (!process.env.RD_TEST_ALLOW_PROFILE) {
-        let deploymentProfiles: settings.DeploymentProfileType = { defaults: {}, locked: {} };
-
-        try {
-          deploymentProfiles = await readDeploymentProfiles();
-        } catch {}
-        if (Object.keys(deploymentProfiles.defaults).length > 0 || Object.keys(deploymentProfiles.locked).length > 0) {
-          throw new Error(["Trying to run e2e tests with existing deployment profiles isn't supported.",
-            'Set environment variable RD_TEST_ALLOW_PROFILE=true to override this check',
-          ].join('\n'));
-        }
-      }
       process.env.RD_TEST = process.env.npm_lifecycle_event || 'e2e'; // May include "screenshots"
 
       // Start the renderer process and wait for it to complete the build.

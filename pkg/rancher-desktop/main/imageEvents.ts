@@ -2,18 +2,10 @@
  * This module contains code for handling image-processor events (containerd/nerdctl, moby/docker).
  */
 
-import path from 'path';
-
-import Electron from 'electron';
-
-import { ImageProcessor, ImageType } from '@pkg/backend/images/imageProcessor';
 import { getIpcMainProxy } from '@pkg/main/ipcMain';
-import { isUnixError } from '@pkg/typings/unix.interface';
 import Logging from '@pkg/utils/logging';
-import * as window from '@pkg/window';
 
 const console = Logging.images;
-const ipcMainProxy = getIpcMainProxy(console);
 
 // Map image-related events to the associated image processor's methods
 // TODO: export the factory function to make this a singleton
@@ -25,14 +17,12 @@ const ipcMainProxy = getIpcMainProxy(console);
  */
 
 export class ImageEventHandler {
-  imageProcessor: ImageProcessor;
-
-  constructor(imageProcessor: ImageProcessor) {
-    this.imageProcessor = imageProcessor;
+  constructor() {
     this.initEventHandlers();
   }
 
-  protected onImagesChanged(images: ImageType[]) {
+  protected onImagesChanged(images: any[]) {
+    // TODO: Images events
     // window.send('images-changed', images);
   }
 

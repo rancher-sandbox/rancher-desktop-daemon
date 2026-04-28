@@ -86,7 +86,6 @@
 
 import _ from 'lodash';
 
-import { State } from '@pkg/backend/k8s';
 import TroubleshootingLineItem from '@pkg/components/TroubleshootingLineItem.vue';
 import RdCheckbox from '@pkg/components/form/RdCheckbox.vue';
 import { defaultSettings } from '@pkg/config/settings';
@@ -97,7 +96,6 @@ export default {
   title:      'Troubleshooting',
   components: { TroubleshootingLineItem, RdCheckbox },
   data:       () => ({
-    state:           State.STARTED,
     settings:        defaultSettings,
     debugLocked:     false,
     isDebugging:     false,
@@ -113,9 +111,6 @@ export default {
       'page/setHeader',
       { title: this.t('troubleshooting.title') },
     );
-    ipcRenderer.on('k8s-check-state', (_, newState) => {
-      this.$data.state = newState;
-    });
     ipcRenderer.on('settings-read', (_, newSettings) => {
       this.$data.settings = newSettings;
       ipcRenderer.send('get-debugging-statuses');

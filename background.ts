@@ -301,8 +301,6 @@ ipcMainProxy.handle('show-message-box-rd', async(_event, options: Electron.Messa
   return response;
 });
 
-ipcMainProxy.handle('service-fetch', () => []);
-
 ipcMainProxy.handle('get-locked-fields', () => ({}));
 
 function showErrorDialog(title: string, message: string, fatal?: boolean) {

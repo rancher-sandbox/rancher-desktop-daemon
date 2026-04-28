@@ -5,7 +5,6 @@ import Electron, {
   BrowserWindow, app, shell, ipcMain, nativeTheme, screen, WebContentsView,
 } from 'electron';
 
-import * as K8s from '@pkg/backend/k8s';
 import { getSettings } from '@pkg/config/settingsImpl';
 import { IpcRendererEvents } from '@pkg/typings/electron-ipc';
 import { isDevBuild } from '@pkg/utils/environment';
@@ -643,7 +642,7 @@ export async function openUnmetPrerequisitesDialog(reasonId: reqMessageId, ...ar
 /**
  * Open the error message window as a modal window.
  */
-export async function openKubernetesErrorMessageWindow(titlePart: string, mainMessage: string, failureDetails: K8s.FailureDetails) {
+export async function openKubernetesErrorMessageWindow(titlePart: string, mainMessage: string, failureDetails: any) {
   const window = openDialog('KubernetesError', {
     title:  `Rancher Desktop - Error`,
     width:  800,

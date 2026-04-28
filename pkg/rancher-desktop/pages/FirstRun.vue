@@ -101,7 +101,6 @@ import RdCheckbox from '@pkg/components/form/RdCheckbox.vue';
 import RdFieldset from '@pkg/components/form/RdFieldset.vue';
 import { defaultSettings } from '@pkg/config/settings';
 import type { ContainerEngine, Settings } from '@pkg/config/settings';
-import { PathManagementStrategy } from '@pkg/integrations/pathManager';
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 import { highestStableVersion, VersionEntry } from '@pkg/utils/kubeVersions';
 import { RecursivePartial } from '@pkg/utils/typeUtils';
@@ -185,7 +184,7 @@ export default defineComponent({
     });
     // ipcRenderer.send('k8s-versions');
     if (this.pathManagementRelevant) {
-      this.setPathManagementStrategy(PathManagementStrategy.RcFiles);
+      this.setPathManagementStrategy('rcFiles');
     }
     ipcRenderer.invoke('get-locked-fields').then((lockedFields) => {
       this.$data.kubernetesLocked = _.get(lockedFields, 'kubernetes.enabled');
@@ -237,8 +236,8 @@ export default defineComponent({
 
       return `v${ version.version }`;
     },
-    setPathManagementStrategy(val: PathManagementStrategy) {
-      this.$store.dispatch('applicationSettings/setPathManagementStrategy', val);
+    setPathManagementStrategy(val: string) {
+      // TODO: implement.
     },
     offlineCheck() {
       return this.cachedVersionsOnly ? ` ${ this.t('firstRun.kubernetesVersion.cachedOnly') }` : '';

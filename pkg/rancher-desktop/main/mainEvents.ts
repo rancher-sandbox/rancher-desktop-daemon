@@ -5,7 +5,6 @@
 
 import { EventEmitter } from 'events';
 
-import type { VMBackend } from '@pkg/backend/backend';
 import type { Settings } from '@pkg/config/settings';
 import type { TransientSettings } from '@pkg/config/transientSettings';
 import { DiagnosticsCheckerResult } from '@pkg/main/diagnostics/types';
@@ -26,43 +25,6 @@ export class NoMainEventsHandlerError extends Error {
  * methods for details.
  */
 interface MainEventNames {
-  /**
-   * Emitted when the Kubernetes backend state has changed.
-   */
-  'k8s-check-state'(mgr: VMBackend): void;
-
-  /**
-   * Fetch the currently stored settings.
-   * @note This may not match the currently active settings.
-   */
-  'settings-fetch'(): Settings;
-
-  /**
-   * Emitted when the settings have been changed.
-   *
-   * @param settings The new settings.
-   */
-  'settings-update'(settings: Settings): void;
-
-  /**
-   * Emitted to request that the settings be changed.
-   *
-   * @param settings The settings to change.
-   */
-  'settings-write'(settings: RecursivePartial<RecursiveReadonly<Settings>>): void;
-
-  /**
-   * Read the current transient settings.
-   */
-  'transient-settings-fetch'(): TransientSettings;
-
-  /**
-    * Emitted to update current transient settings.
-    *
-    * @param transientSettings The new transient settings.
-    */
-  'transient-settings-update'(transientSettings: RecursivePartial<TransientSettings>): void;
-
   /**
    * Emitted as a request to get the CA certificates.
    */

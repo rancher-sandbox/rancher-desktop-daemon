@@ -8,9 +8,6 @@ import path from 'path';
 import { KubeConfig } from '@kubernetes/client-node';
 import Electron from 'electron';
 
-import { VMBackend } from '@pkg/backend/backend';
-import { State } from '@pkg/backend/k8s';
-import * as kubeconfig from '@pkg/backend/kubeconfig';
 import { Settings } from '@pkg/config/settings';
 import { getIpcMainProxy } from '@pkg/main/ipcMain';
 import mainEvents from '@pkg/main/mainEvents';
@@ -19,8 +16,6 @@ import Logging from '@pkg/utils/logging';
 import { networkStatus } from '@pkg/utils/networks';
 import paths from '@pkg/utils/paths';
 import { openMain, send } from '@pkg/window';
-import { openDashboard } from '@pkg/window/dashboard';
-import { openPreferences } from '@pkg/window/preferences';
 
 const console = Logging.background;
 const ipcMainProxy = getIpcMainProxy(console);
@@ -31,14 +26,12 @@ const ipcMainProxy = getIpcMainProxy(console);
 export class Tray {
   protected trayMenu:              Electron.Tray;
   protected backendIsLocked = '';
-  protected kubernetesState = State.STOPPED;
   private settings:                Settings;
   private currentNetworkStatus:    networkStatus = networkStatus.CHECKING;
   private static instance:         Tray;
   private networkState:            boolean | undefined;
   private runBuildFromConfigTimer: NodeJS.Timeout | null = null;
   private kubeConfigWatchers:      fs.FSWatcher[] = [];
-  private fsWatcherInterval:       NodeJS.Timeout;
 
   protected contextMenuItems: Electron.MenuItemConstructorOptions[] = [
     {
@@ -134,42 +127,6 @@ export class Tray {
 
   private readonly trayIconSet = this.isMacOs() ? this.trayIconsMacOs : this.trayIcons;
 
-  /**
-   * Watch for changes to the kubeconfig files; when the change event is
-   * triggered, close the watcher and restart after a duration (one second).
-   */
-  private async watchForChanges() {
-    for (const watcher of this.kubeConfigWatchers) {
-      watcher.close();
-    }
-    this.kubeConfigWatchers = [];
-
-    const paths = await kubeconfig.getKubeConfigPaths();
-    const options: fs.WatchOptions = {
-      persistent: false,
-      recursive:  !this.isLinux(), // Recursive not implemented in Linux
-      encoding:   'utf-8',
-    };
-
-    this.kubeConfigWatchers = paths.map(filepath => fs.watch(filepath, options, async(eventType) => {
-      if (eventType === 'rename') {
-        try {
-          await fs.promises.access(filepath);
-        } catch (ex) {
-          // File doesn't exist; wait for it to be recreated.
-          return;
-        }
-      }
-
-      // This prevents calling buildFromConfig multiple times in quick succession
-      // while making sure that the last file change within the period is processed.
-      this.runBuildFromConfigTimer ||= setTimeout(() => {
-        this.runBuildFromConfigTimer = null;
-        this.buildFromConfig();
-      }, 1_000);
-    }));
-  }
-
   private constructor(settings: Settings) {
     this.settings = settings;
     this.trayMenu = new Electron.Tray(this.trayIconSet.starting);
@@ -193,18 +150,9 @@ export class Tray {
     this.trayMenu.setContextMenu(contextMenu);
 
     this.buildFromConfig();
-    this.watchForChanges();
-
-    // We reset the watchers on an interval in the event that `fs.watch` silently
-    // fails to keep watching. This original issue is documented at
-    // https://github.com/rancher-sandbox/rancher-desktop/pull/2038 and further discussed at
-    // https://github.com/rancher-sandbox/rancher-desktop/pull/7238#discussion_r1690128729
-    this.fsWatcherInterval = setInterval(() => this.watchForChanges(), 5 * 60_000);
 
     mainEvents.on('backend-locked-update', this.backendStateEvent);
     mainEvents.emit('backend-locked-check');
-    mainEvents.on('k8s-check-state', this.k8sStateChangedEvent);
-    mainEvents.on('settings-update', this.settingsUpdateEvent);
 
     // If the network connectivity diagnostic changes results, update it here.
     mainEvents.on('diagnostics-event', payload => {
@@ -228,10 +176,6 @@ export class Tray {
 
   private backendStateEvent = (backendIsLocked: string) => {
     this.backendStateChanged(backendIsLocked);
-  };
-
-  private k8sStateChangedEvent = (mgr: VMBackend) => {
-    this.k8sStateChanged(mgr.state);
   };
 
   private settingsUpdateEvent = (cfg: Settings) => {
@@ -260,10 +204,7 @@ export class Tray {
    */
   public hide() {
     this.trayMenu.destroy();
-    mainEvents.off('k8s-check-state', this.k8sStateChangedEvent);
-    mainEvents.off('settings-update', this.settingsUpdateEvent);
     ipcMainProxy.removeListener('update-network-status', this.updateNetworkStatusEvent);
-    clearInterval(this.fsWatcherInterval);
     if (this.runBuildFromConfigTimer) {
       clearTimeout(this.runBuildFromConfigTimer);
       this.runBuildFromConfigTimer = null;
@@ -311,15 +252,6 @@ export class Tray {
   }
 
   /**
-   * Called when the Kubernetes cluster state has changed.
-   * @param state The new cluster state.
-   */
-  protected k8sStateChanged(state: State) {
-    this.kubernetesState = state;
-    this.updateMenu();
-  }
-
-  /**
    * Called when the application settings have changed.
    */
   protected settingsChanged() {
@@ -331,40 +263,9 @@ export class Tray {
       return;
     }
 
-    const labels = {
-      [State.STOPPED]:  'Kubernetes is stopped',
-      [State.STARTING]: 'Kubernetes is starting',
-      [State.STARTED]:  'Kubernetes is running',
-      [State.STOPPING]: 'Kubernetes is shutting down',
-      [State.ERROR]:    'Kubernetes has encountered an error',
-      [State.DISABLED]: 'Kubernetes is disabled',
-    };
+    const logo = this.trayIconSet.starting;
 
-    let icon = path.join(paths.resources, 'icons', 'kubernetes-icon-black.png');
-    let logo = this.trayIconSet.starting;
-
-    if (this.kubernetesState === State.STARTED || this.kubernetesState === State.DISABLED) {
-      icon = path.join(paths.resources, 'icons', 'kubernetes-icon-color.png');
-      logo = this.trayIconSet.started;
-      // Update the contexts as a new kubernetes context will be added
-      this.updateContexts();
-      this.contextMenuItems = this.updateDashboardState(
-        this.kubernetesState === State.STARTED &&
-        this.settings.kubernetes.enabled,
-      );
-    } else if (this.kubernetesState === State.ERROR) {
-      // For licensing reasons, we cannot just tint the Kubernetes logo.
-      // Here we're using an icon from GitHub's octicons set.
-      icon = path.join(paths.resources, 'icons', 'issue-opened-16.png');
-      logo = this.trayIconSet.error;
-    }
-
-    const stateMenu = this.contextMenuItems.find(item => item.id === 'state');
-
-    if (stateMenu) {
-      stateMenu.label = labels[this.kubernetesState] || labels[State.ERROR];
-      stateMenu.icon = icon;
-    }
+    // TODO: Update the tray icon and state based on backend state.
 
     const containerEngineMenu = this.contextMenuItems.find(item => item.id === 'container-engine');
 
@@ -433,11 +334,6 @@ export class Tray {
    * @param {Electron.MenuItem} menuItem The menu item that was clicked.
    */
   protected contextClick(menuItem: Electron.MenuItem) {
-    kubeconfig.setCurrentContext(menuItem.label, () => {
-      this.updateContexts();
-      const contextMenu = Electron.Menu.buildFromTemplate(this.contextMenuItems);
-
-      this.trayMenu.setContextMenu(contextMenu);
-    });
+    // TODO: Implement this
   }
 }

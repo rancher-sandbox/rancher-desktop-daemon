@@ -1,7 +1,6 @@
 import { createStore, mapActions, mapGetters, mapMutations, mapState, ModuleTree, Plugin } from 'vuex';
 
 import * as ActionMenu from '../store/action-menu';
-import * as ApplicationSettings from '../store/applicationSettings';
 import * as ContainerEngine from '../store/container-engine';
 import * as Diagnostics from '../store/diagnostics';
 import * as Extensions from '../store/extensions';
@@ -14,11 +13,9 @@ import * as RDD from '../store/rdd';
 import * as RDDConnection from '../store/rddConnection';
 import * as ResourceFetch from '../store/resource-fetch';
 import * as Snapshots from '../store/snapshots';
-import * as TransientSettings from '../store/transientSettings';
 
 const modules = {
   'action-menu':       ActionMenu,
-  applicationSettings: ApplicationSettings,
   'container-engine':  ContainerEngine,
   diagnostics:         Diagnostics,
   extensions:          Extensions,
@@ -31,7 +28,6 @@ const modules = {
   'rdd-connection':    RDDConnection,
   'resource-fetch':    ResourceFetch,
   snapshots:           Snapshots,
-  transientSettings:   TransientSettings,
 };
 
 export type Modules = typeof modules;

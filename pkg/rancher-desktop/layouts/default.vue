@@ -144,7 +144,6 @@ export default {
   },
 
   beforeUnmount() {
-    ipcRenderer.off('k8s-check-state');
     ipcRenderer.off('extensions/getContentArea');
     ipcRenderer.removeAllListeners('backend-locked');
     ipcRenderer.removeAllListeners('backend-unlocked');

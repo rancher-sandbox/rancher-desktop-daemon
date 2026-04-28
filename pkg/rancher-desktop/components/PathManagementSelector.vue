@@ -2,11 +2,9 @@
 import { RadioButton, RadioGroup } from '@rancher/components';
 import { defineComponent } from 'vue';
 
-import { PathManagementStrategy } from '@pkg/integrations/pathManager';
-
 interface pathManagementOptions {
   label:       string,
-  value:       PathManagementStrategy,
+  value:       string,
   description: string
 }
 
@@ -19,7 +17,7 @@ export default defineComponent({
   props: {
     value: {
       type:    String,
-      default: PathManagementStrategy.RcFiles,
+      default: 'rcFiles',
     },
     row: {
       type:    Boolean,
@@ -40,12 +38,12 @@ export default defineComponent({
       return [
         {
           label:       this.t('pathManagement.options.rcFiles.label'),
-          value:       PathManagementStrategy.RcFiles,
+          value:       'rcFiles',
           description: this.t('pathManagement.options.rcFiles.description', { }, true),
         },
         {
           label:       this.t('pathManagement.options.manual.label'),
-          value:       PathManagementStrategy.Manual,
+          value:       'manual',
           description: this.t('pathManagement.options.manual.description', { }, true),
         },
       ];
@@ -61,7 +59,7 @@ export default defineComponent({
     },
   },
   methods: {
-    updateVal(value: PathManagementStrategy) {
+    updateVal(value: string) {
       this.$emit('input', value);
     },
   },

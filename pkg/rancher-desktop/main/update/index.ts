@@ -193,15 +193,6 @@ async function getUpdater(): Promise<AppUpdater | undefined> {
   return updater;
 }
 
-mainEvent.on('settings-update', (settings: Settings) => {
-  if (settings.application.updater.enabled && state === State.CONFIGURED) {
-    // We have a configured updater, but haven't done the actual check yet.
-    // This means the setting was disabled when we configured the updater.
-    // Start checking now.
-    doInitialUpdateCheck();
-  }
-});
-
 /**
  * Set up the updater, and possibly run the updater if it has already been
  * downloaded and is ready to install.

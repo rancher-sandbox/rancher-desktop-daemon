@@ -3,9 +3,8 @@ import { join } from 'path';
 import _ from 'lodash';
 
 import { LockedSettingsType, Settings } from '@pkg/config/settings';
-import { save, turnFirstRunOff } from '@pkg/config/settingsImpl';
+import { turnFirstRunOff } from '@pkg/config/settingsImpl';
 import { TransientSettings } from '@pkg/config/transientSettings';
-import SettingsValidator from '@pkg/main/commandServer/settingsValidator';
 import Logging from '@pkg/utils/logging';
 import paths from '@pkg/utils/paths';
 import { RecursiveKeys, RecursivePartial } from '@pkg/utils/typeUtils';
@@ -119,7 +118,6 @@ export function updateFromCommandLine(cfg: Settings, lockedFields: LockedSetting
     }
     newSettings = _.merge(newSettings, getObjectRepresentation(fqFieldName as RecursiveKeys<Settings>, finalValue));
   }
-  const settingsValidator = new SettingsValidator();
   const newKubernetesVersion = newSettings.kubernetes?.version;
 
   if (newKubernetesVersion) {
@@ -132,26 +130,6 @@ export function updateFromCommandLine(cfg: Settings, lockedFields: LockedSetting
     if (cfg.kubernetes.version) {
       limitedK8sVersionList.push(cfg.kubernetes.version);
     }
-    settingsValidator.k8sVersions = limitedK8sVersionList;
-  }
-  const [needToUpdate, errors, isFatal] = settingsValidator.validateSettings(cfg, newSettings, lockedFields);
-
-  if (errors.length > 0) {
-    const errorString = `Error in command-line options:\n${ errors.join('\n') }`;
-
-    if (errors.some(error => /field ".+?" is locked/.test(error))) {
-      throw new LockedFieldError(errorString);
-    }
-    if (isFatal) {
-      throw new FatalCommandLineOptionError(errorString);
-    }
-    throw new Error(errorString);
-  }
-  if (needToUpdate) {
-    cfg = _.merge(cfg, newSettings);
-    save(cfg);
-  } else {
-    console.debug(`No need to update preferences based on command-line options ${ commandLineArgs.join(', ') }`);
   }
   turnFirstRunOff();
 

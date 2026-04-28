@@ -54,19 +54,11 @@ export class DiagnosticsManager {
       ? Promise.resolve(diagnostics)
       : (async() => {
         const imports = (await Promise.all([
-          import('./connectedToInternet'),
           import('./dockerCliSymlinks'),
-          import('./dockerContext'),
           import('./integrationsWindows'),
-          import('./kubeConfigSymlink'),
-          import('./kubeContext'),
           import('./kubeVersionsAvailable'),
-          import('./limaDarwin'),
           import('./limaOverrides'),
-          import('./mobyImageStore'),
           import('./mockForScreenshots'),
-          import('./pathManagement'),
-          import('./rdBinInShell'),
           import('./testCheckers'),
           import('./wslDistros'),
           import('./wslInfo'),

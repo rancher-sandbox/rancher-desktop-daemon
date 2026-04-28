@@ -32,7 +32,6 @@ import {
 
 import type { DeploymentProfileType } from '@pkg/config/settings';
 import { CURRENT_SETTINGS_VERSION } from '@pkg/config/settings';
-import { readDeploymentProfiles } from '@pkg/main/deploymentProfiles';
 import { spawnFile } from '@pkg/utils/childProcess';
 import { reopenLogs } from '@pkg/utils/logging';
 
@@ -42,7 +41,6 @@ test.describe.fixme('Locked fields', () => {
   let electronApp: ElectronApplication;
   let page: Page;
   const appPath = path.dirname(import.meta.dirname);
-  let deploymentProfile: DeploymentProfileType | null = null;
 
   function rdctlPath() {
     return path.join(appPath, 'resources', os.platform(), 'bin', os.platform() === 'win32' ? 'rdctl.exe' : 'rdctl');
@@ -58,17 +56,6 @@ test.describe.fixme('Locked fields', () => {
     }
   }
 
-  async function saveUserProfile() {
-    // Ignore any errors in the existing profile, but it means they won't be saved.
-    try {
-      deploymentProfile = await readDeploymentProfiles();
-    } catch { }
-  }
-
-  async function restoreUserProfile() {
-    await setUserProfile(deploymentProfile?.defaults ?? null, deploymentProfile?.locked ?? null);
-  }
-
   test.describe.configure({ mode: 'serial' });
   const lockedK8sVersion = '1.26.3';
   const proposedK8sVersion = '1.26.1';
@@ -78,13 +65,8 @@ test.describe.fixme('Locked fields', () => {
     reopenLogs();
   });
 
-  test.afterAll(async() => {
-    await restoreUserProfile();
-  });
-
   test.beforeAll(async({ colorScheme }, testInfo) => {
     createDefaultSettings({ containerEngine: { allowedImages: { enabled: true, patterns: ['a', 'b', 'c', 'e'] } } });
-    await saveUserProfile();
     await setUserProfile(
       { version: 10 as typeof CURRENT_SETTINGS_VERSION, containerEngine: { allowedImages: { enabled: true } } },
       {

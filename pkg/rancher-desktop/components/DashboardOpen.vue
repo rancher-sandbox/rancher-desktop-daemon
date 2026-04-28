@@ -2,8 +2,6 @@
 import { defineComponent } from 'vue';
 import { mapGetters } from 'vuex';
 
-import { State as K8sState } from '@pkg/backend/backend';
-
 export default defineComponent({
   name:     'dashboard-open',
   computed: {

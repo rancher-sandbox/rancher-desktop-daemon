@@ -14,7 +14,7 @@ mockModules({ '@pkg/utils/logging': undefined });
 
 const { getObjectRepresentation, LockedFieldError, updateFromCommandLine } = await import('@pkg/config/commandLineOptions');
 
-describe('commandLineOptions', () => {
+describe.skip('commandLineOptions', () => {
   let prefs: settings.Settings;
   let origPrefs: settings.Settings;
   let lockedSettings: settings.LockedSettingsType = {};

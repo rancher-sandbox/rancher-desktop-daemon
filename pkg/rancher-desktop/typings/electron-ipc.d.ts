@@ -5,8 +5,6 @@
 import Electron from 'electron';
 import semver from 'semver';
 
-import type { ServiceEntry } from '@pkg/backend/k8s';
-import { SnapshotDialog, SnapshotEvent } from '@pkg/main/snapshots/types';
 import type { Direction, RecursivePartial } from '@pkg/utils/typeUtils';
 /**
  * IpcMainEvents describes events the renderer can send to the main process,
@@ -80,8 +78,6 @@ export interface IpcMainInvokeEvents {
   'settings-write':            (arg: RecursivePartial<import('@pkg/config/settings').Settings>) => void;
   'transient-settings-fetch':  () => import('@pkg/config/transientSettings').TransientSettings;
   'transient-settings-update': (arg: RecursivePartial<import('@pkg/config/transientSettings').TransientSettings>) => void;
-  'service-fetch':             (namespace?: string) => import('@pkg/backend/k8s').ServiceEntry[];
-  'service-forward':           (service: ServiceEntry, state: boolean) => void;
   'show-message-box':          (options: Electron.MessageBoxOptions) => Electron.MessageBoxReturnValue;
   'show-message-box-rd':       (options: Electron.MessageBoxOptions, modal?: boolean) => any;
 

@@ -48,14 +48,7 @@ export default defineComponent({
   methods: {
     navigate(navItem: string, tab: string) {
       console.log('Navigate!', Array.from(arguments));
-      this.$store.dispatch(
-        'transientSettings/navigatePrefDialog',
-        {
-          ...this.credentials,
-          navItem,
-          tab,
-        },
-      );
+      // TODO: Implement.
     },
   },
 });

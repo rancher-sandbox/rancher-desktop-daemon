@@ -19,12 +19,10 @@
 
 <script lang="ts">
 
-import clone from 'lodash/cloneDeep';
 import { defineComponent } from 'vue';
 
-import { State, type ServiceEntry } from '@pkg/backend/k8s';
 import PortForwarding from '@pkg/components/PortForwarding.vue';
-import { defaultSettings, Settings } from '@pkg/config/settings';
+import { defaultSettings } from '@pkg/config/settings';
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 
 export default defineComponent({
@@ -32,19 +30,19 @@ export default defineComponent({
   components: { PortForwarding },
   data() {
     return {
-      state:              State.STARTED,
+      state:              'STARTED',
       settings:           defaultSettings,
-      services:           [] as ServiceEntry[],
+      services:           [] as any[],
       errorMessage:       undefined as string | undefined,
-      serviceBeingEdited: undefined as ServiceEntry | undefined,
+      serviceBeingEdited: undefined as any | undefined,
     };
   },
 
   watch: {
     services: {
-      handler(newServices: ServiceEntry[]): void {
+      handler(newServices: any[]): void {
         if (this.serviceBeingEdited) {
-          const newService = newServices.find(service => this.compareServices(this.serviceBeingEdited as ServiceEntry, service));
+          const newService = newServices.find(service => this.compareServices(this.serviceBeingEdited, service));
 
           if (newService) {
             this.serviceBeingEdited = Object.assign(this.serviceBeingEdited, { listenPort: newService.listenPort });
@@ -60,10 +58,6 @@ export default defineComponent({
       'page/setHeader',
       { title: this.t('portForwarding.title') },
     );
-    ipcRenderer.invoke('service-fetch')
-      .then((services) => {
-        this.$data.services = services;
-      });
     ipcRenderer.on('settings-update', (event, settings) => {
       // TODO: put in a status bar
       this.$data.settings = settings;
@@ -88,17 +82,17 @@ export default defineComponent({
       }
     },
 
-    compareServices(service1: ServiceEntry, service2: ServiceEntry): boolean {
+    compareServices(service1: any, service2: any): boolean {
       return service1.name === service2.name &&
         service1.namespace === service2.namespace &&
         service1.port === service2.port;
     },
 
-    findServiceMatching(serviceToMatch: ServiceEntry | undefined, serviceList: ServiceEntry[]): ServiceEntry | undefined {
+    findServiceMatching(serviceToMatch: any | undefined, serviceList: any[]): any | undefined {
       if (!serviceToMatch) {
         return undefined;
       }
-      const compareServices = (service1: ServiceEntry, service2: ServiceEntry) => {
+      const compareServices = (service1: any, service2: any) => {
         return service1.name === service2.name &&
           service1.namespace === service2.namespace &&
           service1.port === service2.port;
@@ -107,34 +101,20 @@ export default defineComponent({
       return serviceList.find(service => compareServices(service, serviceToMatch));
     },
 
-    handleEditPortForward(service: ServiceEntry): void {
-      this.errorMessage = undefined;
-      if (this.serviceBeingEdited) {
-        ipcRenderer.invoke('service-forward', this.serviceBeingEdited, false);
-      }
-      this.serviceBeingEdited = Object.assign({}, service);
-      // Forward ServiceEntry without listenPort set to get random port.
-      // The user can change this after we get a random port.
-      ipcRenderer.invoke('service-forward', service, true);
+    handleEditPortForward(service: any): void {
+      // TODO: Implement.
     },
 
-    handleCancelEditPortForward(service: ServiceEntry): void {
-      this.errorMessage = undefined;
-      ipcRenderer.invoke('service-forward', service, false);
-      this.serviceBeingEdited = undefined;
+    handleCancelEditPortForward(service: any): void {
+      // TODO: Implement.
     },
 
-    handleCancelPortForward(service: ServiceEntry): void {
-      this.errorMessage = undefined;
-      ipcRenderer.invoke('service-forward', service, false);
+    handleCancelPortForward(service: any): void {
+      // TODO: Implement.
     },
 
     handleUpdatePortForward(): void {
-      this.errorMessage = undefined;
-      if (this.serviceBeingEdited) {
-        ipcRenderer.invoke('service-forward', clone(this.serviceBeingEdited), true);
-      }
-      this.serviceBeingEdited = undefined;
+      // TODO: Implement.
     },
 
     handleCloseError(): void {

@@ -3,7 +3,6 @@
 
 import os from 'os';
 
-import { PathManagementStrategy } from '@pkg/integrations/pathManager';
 import { RecursivePartial } from '@pkg/utils/typeUtils';
 
 export const CURRENT_SETTINGS_VERSION = 18 as const;
@@ -77,7 +76,7 @@ export const defaultSettings = {
       /** Installed extensions, mapping to the installed version (tag). */
       installed: { } as Record<string, string>,
     },
-    pathManagementStrategy: process.platform === 'win32' ? PathManagementStrategy.Manual : PathManagementStrategy.RcFiles,
+    pathManagementStrategy: process.platform === 'win32' ? 'manual' : 'rcFiles',
     telemetry:              { enabled: true },
     /** Whether we should check for updates and apply them. */
     updater:                { enabled: true },

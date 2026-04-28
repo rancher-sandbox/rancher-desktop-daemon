@@ -2,7 +2,6 @@
  * This file contains the main process side code to install extensions.
  * @see @pkg/extensions for the renderer process code.
  */
-import type { ContainerEngineClient } from '@pkg/backend/containerClient';
 import type { Settings } from '@pkg/config/settings';
 import type { RecursiveReadonly } from '@pkg/utils/typeUtils';
 
@@ -122,36 +121,6 @@ export interface Extension {
    * directory name).
    */
   extractFile(sourcePath: string, destinationPath: string): Promise<void>;
-}
-
-export interface ExtensionManager {
-  readonly client: ContainerEngineClient;
-
-  init(config: RecursiveReadonly<Settings>): Promise<void>;
-
-  /**
-   * Get the given extension.
-   * @param image The image reference of the extension, possibly including the
-   *        tag.  If the tag is not supplied, the currently-installed version is
-   *        used (see options.preferInstalled); if no version is installed,
-   *        "latest" is assumed.
-   * @param [options.preferInstalled=true] If the given image reference does not
-   *        include tags and the extension is already installed, return the
-   *        currently installed version.
-   * @note This may cause the given image to be downloaded.
-   * @note The extension will not be automatically installed.
-   */
-  getExtension(image: string, options?: { preferInstalled?: boolean }): Promise<Extension>;
-
-  /**
-   * Get a collection of all installed extensions.
-   */
-  getInstalledExtensions(): Promise<Extension[]>;
-
-  /**
-   * Shut down the extension manager, doing any clean up necessary.
-   */
-  shutdown(): Promise<void>;
 }
 
 export interface SpawnOptions {

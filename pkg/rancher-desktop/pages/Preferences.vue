@@ -9,8 +9,6 @@ import PreferencesBody from '@pkg/components/Preferences/ModalBody.vue';
 import PreferencesFooter from '@pkg/components/Preferences/ModalFooter.vue';
 import PreferencesHeader from '@pkg/components/Preferences/ModalHeader.vue';
 import PreferencesNav from '@pkg/components/Preferences/ModalNav.vue';
-import type { TransientSettings } from '@pkg/config/transientSettings';
-import type { ServerState } from '@pkg/main/commandServer/httpCommandServer';
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 import { Direction, RecursivePartial } from '@pkg/utils/typeUtils';
 import { preferencesNavItems } from '@pkg/window/preferenceConstants';
@@ -35,7 +33,6 @@ export default defineComponent({
   async beforeMount() {
     await this.$store.dispatch('preferences/fetchPreferences');
     await this.$store.dispatch('preferences/fetchLocked');
-    await this.$store.dispatch('transientSettings/fetchTransientSettings');
     this.preferencesLoaded = true;
 
     this.$store.dispatch('preferences/setPlatformWindows', os.platform().startsWith('win'));
@@ -45,11 +42,11 @@ export default defineComponent({
     });
 
     ipcRenderer.invoke('versions/macOs').then((macOsVersion) => {
-      this.$store.dispatch('transientSettings/setMacOsVersion', macOsVersion);
+      // TODO: Implement.
     });
 
     ipcRenderer.invoke('host/isArm').then((isArm) => {
-      this.$store.dispatch('transientSettings/setIsArm', isArm);
+      // TODO: Implement.
     });
   },
   beforeUnmount() {
@@ -64,10 +61,7 @@ export default defineComponent({
       await this.commitNavItem(current);
     },
     async commitNavItem(current: string) {
-      await this.$store.dispatch(
-        'transientSettings/commitPreferences',
-        { payload: { preferences: { navItem: { current } } } },
-      );
+      // TODO: Implement.
     },
     closePreferences() {
       ipcRenderer.send('preferences-close');

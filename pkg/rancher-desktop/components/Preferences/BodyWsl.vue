@@ -39,13 +39,7 @@ export default defineComponent({
       }
     },
     async commitPreferences(tabName: string) {
-      await this.$store.dispatch(
-        'transientSettings/commitPreferences',
-        {
-          ...this.credentials as ServerState,
-          payload: { preferences: { navItem: { currentTabs: { WSL: tabName } } } } as RecursivePartial<TransientSettings>,
-        },
-      );
+      // TODO: Implement.
     },
   },
 });

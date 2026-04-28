@@ -47,14 +47,7 @@ export default defineComponent({
       }
     },
     async navigate(navItem: string, tab: string) {
-      await this.$store.dispatch(
-        'transientSettings/navigatePrefDialog',
-        {
-          ...this.credentials as ServerState,
-          navItem,
-          tab,
-        },
-      );
+      // TODO: Implement.
     },
   },
 });
