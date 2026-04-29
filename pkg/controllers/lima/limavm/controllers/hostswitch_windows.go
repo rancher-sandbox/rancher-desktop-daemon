@@ -24,6 +24,8 @@ import (
 	"github.com/linuxkit/virtsock/pkg/hvsock"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sys/windows/registry"
+
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/socketbridge"
 )
 
 // hostSwitchPlatform holds the host-switch state for Windows. On non-Windows
@@ -160,7 +162,7 @@ func (r *LimaVMReconciler) runHostSwitch(ctx context.Context, logger logr.Logger
 		return
 	}
 
-	ln, err := vsockHandshake(ctx, logger)
+	ln, vmGUID, err := vsockHandshake(ctx, logger)
 	if err != nil {
 		logger.Error(err, "Vsock handshake failed")
 		return
@@ -189,6 +191,18 @@ func (r *LimaVMReconciler) runHostSwitch(ctx context.Context, logger logr.Logger
 	mux.Handle("/services/forwarder/unexpose", vn.Mux())
 
 	g, ctx := errgroup.WithContext(ctx)
+
+	// Start the host-side socket bridge now that we have the VM GUID.
+	// It listens on the Docker named pipe and forwards each connection to
+	// rdd-guest inside the VM via vsock port 6660.  rdd-guest is baked into
+	// the VM image (via rancher-desktop-opensuse) and started by systemd.
+	g.Go(func() error {
+		bridge := socketbridge.NewDockerHostBridge(vmGUID, logger)
+		if err := bridge.Run(ctx); err != nil {
+			logger.Error(err, "Socket bridge exited with error")
+		}
+		return nil
+	})
 
 	// Accept vsock connections and feed them into the virtual network.
 	g.Go(func() error {
@@ -278,28 +292,28 @@ func newVirtualNetworkConfig(subnet hostSwitchSubnet) types.Configuration {
 
 // vsockHandshake discovers the WSL2 VM via AF_VSOCK, exchanges a signature
 // to verify identity, and returns a listener on the data port.
-func vsockHandshake(ctx context.Context, logger logr.Logger) (net.Listener, error) {
+func vsockHandshake(ctx context.Context, logger logr.Logger) (net.Listener, hvsock.GUID, error) {
 	hsCtx, hsCancel := context.WithTimeout(ctx, handshakeTimeout)
 	defer hsCancel()
 
 	vmGUID, err := getVMGUID(hsCtx, logger)
 	if err != nil {
-		return nil, fmt.Errorf("VM GUID discovery failed: %w", err)
+		return nil, hvsock.GUIDZero, fmt.Errorf("VM GUID discovery failed: %w", err)
 	}
 
 	logger.Info("Handshake succeeded", "vmGUID", vmGUID.String())
 
 	ln, err := vsockListen(vmGUID, vsockListenPort)
 	if err != nil {
-		return nil, fmt.Errorf("vsock listen on port %d failed: %w", vsockListenPort, err)
+		return nil, hvsock.GUIDZero, fmt.Errorf("vsock listen on port %d failed: %w", vsockListenPort, err)
 	}
 
 	if err := signalListenerReady(hsCtx, vmGUID); err != nil {
 		ln.Close()
-		return nil, fmt.Errorf("sending %s signal failed: %w", readySignal, err)
+		return nil, hvsock.GUIDZero, fmt.Errorf("sending %s signal failed: %w", readySignal, err)
 	}
 
-	return ln, nil
+	return ln, vmGUID, nil
 }
 
 // getVMGUID discovers the Hyper-V VM running our distro by polling the
