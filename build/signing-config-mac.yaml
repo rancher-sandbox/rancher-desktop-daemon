@@ -15,20 +15,6 @@ entitlements:
     entitlements:
     - com.apple.security.cs.allow-jit
   - paths:
-    - Contents/Resources/resources/darwin/lima/bin/limactl
-    entitlements:
-    - com.apple.security.virtualization
-  - paths:
-    - Contents/Resources/resources/darwin/lima/bin/qemu-system-aarch64
-    - Contents/Resources/resources/darwin/lima/bin/qemu-system-x86_64
-    entitlements:
-    - com.apple.security.cs.allow-jit
-    - com.apple.security.hypervisor
-  - paths:
-    - Contents/Resources/resources/darwin/internal/spin
-    entitlements:
-    - com.apple.security.cs.allow-unsigned-executable-memory
-  - paths:
     - Contents/Frameworks/Rancher Desktop Helper (GPU).app
     - Contents/Frameworks/Rancher Desktop Helper (Renderer).app
     entitlements:
@@ -42,11 +28,7 @@ entitlements:
 # List of launch constraints.
 # This is similar to entitlements, but has no default: it's just a list of
 # paths, plus matching "self", "parent", and "responsible" constraints.
-constraints:
-- paths:
-  - Contents/Resources/resources/darwin/lima/bin/limactl
-  self:
-    team-identifier: '${AC_TEAMID}'
+constraints: []
 
 # A list of files/directories to remove before signing.
 remove:

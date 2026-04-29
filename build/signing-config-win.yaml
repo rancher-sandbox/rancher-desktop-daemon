@@ -13,21 +13,6 @@
 - '!vk_swiftshader.dll' # spellcheck-ignore-line
 - '!vulkan-1.dll'       # spellcheck-ignore-line
 resources/resources/win32/bin:
-- docker.exe
-- docker-credential-none.exe
-- nerdctl.exe
 - rdctl.exe
-- spin.exe
-- '!docker-credential-ecr-login.exe'
-- '!docker-credential-wincred.exe'
-- '!helm.exe'
-- '!kubectl.exe'
-- '!kuberlr.exe'
-resources/resources/win32/docker-cli-plugins:
-- '!docker-buildx.exe'
-- '!docker-compose.exe'
 resources/resources/win32/internal:
-- host-switch.exe
 - steve.exe
-- wsl-helper.exe
-- '!spin.exe'

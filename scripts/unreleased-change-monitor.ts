@@ -13,7 +13,6 @@ const mainRepo = new RancherDesktopRepository(GITHUB_OWNER, GITHUB_REPO);
 type DependencyState = { dependency: GitHubDependency } & HasUnreleasedChangesResult;
 
 const dependencies: GitHubDependency[] = [
-  new tools.DockerCLI(),
   new tools.Steve(),
   new tools.RancherDashboard(),
 ];
