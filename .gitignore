@@ -19,6 +19,5 @@
 /resources/spin-operator*
 /resources/win32/
 /screenshots/output/
-/src/go/rdctl/pkg/options/generated/*.go
 /e2e/e2e/test-results/.last-run.json
 /.yarn/

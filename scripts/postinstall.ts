@@ -22,18 +22,9 @@ interface DependencyWithContext {
  */
 const InstallTimeout = 10 * 60 * 1_000; // Ten minutes.
 
-/**
- * Retrieves the application version from package.json to stamp Go binaries.
- * This version number ensures Go utilities like WSL helpers are tagged with
- * the same version as the main application, maintaining consistency across
- * all components of Rancher Desktop.
- */
-const versionToStamp = getStampVersion();
-
 // Dependencies that should be installed into places that users touch
 // (so users' WSL distros and hosts as of the time of writing).
 const userTouchedDependencies: Dependency[] = [
-  new goUtils.RDCtl(versionToStamp),
 ];
 
 // Dependencies that are specific to unix hosts.
@@ -222,15 +213,3 @@ const keepScriptAlive = setTimeout(() => { }, 24 * 3600 * 1000);
     process.exit(exitCode);
   }
 })();
-
-/**
-* Gets the version string for Go tools from git.
-* Format: {tag}-{commits}-{hash}{dirty}
-* Examples: v1.18.0, v1.18.0-39-gf46609959, v1.18.0-39-gf46609959.m
-*/
-function getStampVersion(): string {
-  const gitCommand = 'git describe --match v[0-9]* --dirty=.m --always --tags';
-  const stdout = childProcess.execSync(gitCommand, { encoding: 'utf-8' });
-
-  return stdout;
-}

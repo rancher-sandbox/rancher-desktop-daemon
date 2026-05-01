@@ -4,7 +4,6 @@ import util from 'util';
 import { Snapshot, SpawnResult } from '@pkg/main/snapshots/types';
 import { spawnFile } from '@pkg/utils/childProcess';
 import Logging from '@pkg/utils/logging';
-import { getRdctlPath } from '@pkg/utils/paths';
 import { executable } from '@pkg/utils/resources';
 
 const console = Logging.snapshots;
@@ -38,15 +37,8 @@ class SnapshotsError {
 
 class SnapshotsImpl {
   private async rdctl(commandArgs: string[]): Promise<SpawnResult> {
-    try {
-      const rdctlPath = getRdctlPath();
-
-      return await spawnFile(rdctlPath || '', commandArgs, { stdio: ['ignore', 'pipe', 'pipe'] });
-    } catch (err: any) {
-      return {
-        stdout: err?.stdout ?? '', stderr: err?.stderr ?? '', error: err,
-      };
-    }
+    // TODO: Implement snapshots
+    return Promise.reject(new Error('rdctl has been removed'));
   }
 
   async list(): Promise<Snapshot[]> {

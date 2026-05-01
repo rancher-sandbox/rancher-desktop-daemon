@@ -99,33 +99,3 @@ export class GoDependency implements Dependency {
     return path.join(context.resourcesDir, context.platform, outputPath);
   }
 }
-
-export class RDCtl extends GoDependency {
-  constructor(version: string) {
-    super('rdctl', {
-      outputPath: 'bin',
-      modulePath: 'github.com/rancher-sandbox/rancher-desktop/src/go/rdctl',
-      version,
-    });
-  }
-
-  dependencies(context: DownloadContext): string[] {
-    if (context.dependencyPlatform === 'wsl') {
-      // For the WSL copy depend on the Windows one to generate code
-      return ['rdctl:win32'];
-    }
-
-    return [];
-  }
-
-  override async download(context: DownloadContext): Promise<void> {
-    // For WSL, don't re-generate the code; the win32 copy did it.
-    if (context.dependencyPlatform !== 'wsl') {
-      await simpleSpawn('node', ['scripts/ts-wrapper.js',
-        'scripts/generateCliCode.ts',
-        'pkg/rancher-desktop/assets/specs/command-api.yaml',
-        'src/go/rdctl/pkg/options/generated/options.go']);
-    }
-    await super.download(context);
-  }
-}

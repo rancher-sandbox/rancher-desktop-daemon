@@ -95,24 +95,12 @@ linters:
           - gocritic
           - gosec
         path: _test\.go
-      - # Exclude bodyclose when it's passed to client.ProcessRequestForAPI
-        # or client.ProcessRequestForUtility which internally closes the body.
-        linters:
-          - bodyclose
-        path: src/go/rdctl/
-        source: client.ProcessRequestFor(API|Utility)\(rdClient.DoRequest(WithPayload)?\(
       - # Exclude ST1005 when it encounters errors starting with proper noun
         linters:
           - staticcheck
         path: src/go/wsl-helper/cmd/kubeconfig.go
         text: 'ST1005:'
         source: errors.New\("Windows
-      - # Exclude ST1005 when it encounters errors starting with proper noun
-        linters:
-          - staticcheck
-        path: src/go/rdctl/pkg/lock/lock.go
-        text: 'ST1005:'
-        source: fmt.Errorf\("Rancher Desktop
       - # Exclude the FIXME comments from upstream
         linters:
           - gocritic
@@ -122,33 +110,6 @@ linters:
         linters:
           - dogsled
         source: ^\s*_, _, _ = .*\.Call\(
-      - # Ignore foreign constants
-        linters:
-          - staticcheck
-        path: src/go/rdctl/pkg/process/process_darwin.go
-        text: 'ST1003:'
-        source: ^\s*(CTL_KERN|KERN_PROCARGS)\s*=
-      - # Ignore foreign constants
-        linters:
-          - staticcheck
-        path: src/go/rdctl/pkg/process/process_windows.go
-        text: 'ST1003:'
-        source: ^\s*type\s+[A-Z0-9_]+\s+struct
-      - # Ignore foreign constants
-        linters:
-          - staticcheck
-        path: src/go/rdctl/pkg/process/process_windows.go
-        text: 'ST1003:'
-        source: ^\s*[A-Z0-9_]+\s+=
-      - # Don't de-duplicate different commands.
-        linters:
-          - dupl
-        path: src/go/rdctl/cmd/extension(Install|Uninstall)\.go$
-      - # Don't use %q for registry files to avoid escaping backslashes
-        linters:
-          - gocritic
-        path: src/go/rdctl/pkg/reg/reg.go
-        text: 'sprintfQuotedString:'
       - # This seems inconsistent across platforms
         path: src/go/nerdctl-stub/main_shared.go
         linters: [ unparam ]

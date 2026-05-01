@@ -1,8 +1,4 @@
-import path from 'path';
-
 import memoize from 'lodash/memoize';
-
-import paths from '@pkg/utils/paths';
 
 /**
  * executableMap is a mapping of valid executable names and their path.
@@ -10,16 +6,9 @@ import paths from '@pkg/utils/paths';
  * user-accessible `bin` directory.
  * Otherwise, it's an array containing the path to the executable.
  */
-const executableMap: Record<string, string[] | undefined> = {
-  docker:             undefined,
-  kubectl:            undefined,
-  nerdctl:            undefined,
-  rdctl:              undefined,
-  spin:               undefined,
-  'setup-spin':       [paths.resources, 'setup-spin'],
-  'wsl-helper':       [paths.resources, process.platform, 'internal', platformBinary('wsl-helper')],
-  'wsl-helper-linux': [paths.resources, 'linux', 'internal', 'wsl-helper'],
-};
+const executableMap = {
+  'wsl-helper': undefined,
+} satisfies Record<string, string | undefined>;
 
 function platformBinary(name: string): string {
   return process.platform === 'win32' ? `${ name }.exe` : name;
@@ -31,13 +20,7 @@ function platformBinary(name: string): string {
  * @param name The name of the binary, without file extension.
  */
 function _executable(name: keyof typeof executableMap): string {
-  const parts = executableMap[name];
-
-  if (parts === undefined) {
-    return path.join(paths.resources, process.platform, 'bin', platformBinary(name));
-  }
-
-  return path.join(...parts);
+  throw new Error(`All executables are no longer implemented`);
 }
 export const executable = memoize(_executable);
 
