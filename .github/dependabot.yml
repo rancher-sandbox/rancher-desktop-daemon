@@ -7,7 +7,9 @@ updates:
   cooldown:
     default-days: 7
 - package-ecosystem: gomod
-  directory: /
+  directories:
+  - /
+  - /bats/tests/10-cli/fake-kube
   schedule:
     interval: daily
   cooldown:
