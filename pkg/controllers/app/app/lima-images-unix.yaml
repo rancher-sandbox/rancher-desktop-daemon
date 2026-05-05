@@ -1,7 +1,7 @@
 images:
-- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.2/distro.v0.2.2.amd64.raw.xz
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.3/distro.v0.2.3.amd64.raw.xz
   arch: x86_64
-  digest: "sha256:a1aaeb12beca92d4d0ca62c19322dc217035db766c694ca287d243d6878f255c"
-- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.2/distro.v0.2.2.arm64.raw.xz
+  digest: "sha256:1d4ccf4faa3b71a2d7ad1610c0917361cf53f3ec5ac52cdc5bd6432b12bd8309"
+- location: https://github.com/rancher-sandbox/rancher-desktop-opensuse/releases/download/v0.2.3/distro.v0.2.3.arm64.raw.xz
   arch: aarch64
-  digest: "sha256:dbd58f962e42d0b946929c9ab7f5126363d6b0d918e79cd6f2c24620d087e64a"
+  digest: "sha256:a92307572b161960dc0da74d3f47ed5e1c332b69ea033113ecaeee6064a14bdd"
