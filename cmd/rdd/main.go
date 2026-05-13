@@ -73,8 +73,18 @@ func parseInstanceFlag() {
 	}
 }
 
-// setLogLevel sets the log level from command flags or RDD_LOG_LEVEL.
-func setLogLevel(cmd *cobra.Command, _ []string) error {
+// setLogOptions sets the log level from command flags or RDD_LOG_LEVEL.
+func setLogOptions(cmd *cobra.Command, _ []string) error {
+	if logFormat, err := cmd.Root().Flags().GetString("log-format"); err == nil {
+		switch logFormat {
+		case "text", "":
+			// The default log format is already text; nothing to do here.
+		case "json":
+			logrus.SetFormatter(&logrus.JSONFormatter{})
+		default:
+			return fmt.Errorf("invalid log format: %q", logFormat)
+		}
+	}
 	logLevel, err := cmd.Root().Flags().GetString("log-level")
 	if err != nil {
 		return err
@@ -120,7 +130,7 @@ func main() {
 		`),
 		SilenceUsage:      true,
 		SilenceErrors:     true,
-		PersistentPreRunE: setLogLevel,
+		PersistentPreRunE: setLogOptions,
 	}
 
 	// Add version flag with verflag-compatible behavior
@@ -134,6 +144,7 @@ func main() {
 		}
 	}
 	cmd.PersistentFlags().String("log-level", "", "Log level: "+strings.Join(levels, ", "))
+	cmd.PersistentFlags().String("log-format", "text", "Log format: text or json")
 
 	ctlCmd := newCtlCommand()
 	ctlCmd.Hidden = !developer.Mode()
