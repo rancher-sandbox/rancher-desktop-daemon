@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260514-141313-pr-350</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Supply-chain Summary table — first column gets breathing room,
+ * numeric middle columns center, header keeps its label on one line. */
+.summary-table { width: 100%; border-collapse: collapse; margin: 0.4rem 0 0.8rem; font-size: 0.92rem; }
+.summary-table th, .summary-table td {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #d5d9e0;
+  vertical-align: top;
+  text-align: left;
+}
+.summary-table th { background: rgba(255, 255, 255, 0.65); font-weight: 600; white-space: nowrap; }
+.summary-table td:first-child { min-width: 11rem; white-space: nowrap; }
+.summary-table th:not(:first-child):not(:last-child),
+.summary-table td:not(:first-child):not(:last-child) { text-align: center; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Supply-chain issue rows — used by issueList for bullets that
+ * uniformly start with a `file:line` reference. The location renders
+ * in a dark bar above the description so the eye picks up the path
+ * separately from the prose. */
+.issue-list { margin: 0.6rem 0; }
+.issue-row {
+  margin-bottom: 0.7rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.55);
+}
+.issue-loc {
+  background: #2d333b;
+  color: #adbac7;
+  padding: 0.3rem 0.7rem;
+  font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+}
+.issue-loc a { color: #7ee787; text-decoration: none; }
+.issue-loc a:hover { text-decoration: underline; }
+.issue-loc code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.issue-desc { padding: 0.55rem 0.8rem; }
+.issue-desc code { font-size: 0.85em; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260514-141313-pr-350</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-05-14 14:13</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>2 (of target)</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/Nino-K">@Nino-K</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/350" class="gh-ref" data-title="Wire up docker socket windows" data-state="open" data-type="pr">#350</a> — Wire up docker socket windows</td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5681e67"><code>5681e67</code></a> Fixes test 104 stopping VM removes all mirror resources<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e917657"><code>e917657</code></a> Wire Docker socket forwarding for Windows<br><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/b5ab872"><code>b5ab872</code></a> Bump openSUSE to v0.2.3</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.5 (effort: xhigh), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; scope the Windows Docker pipe per-instance so RDD never attaches to Docker Desktop&#39;s daemon; gate the BATS <code>cygpath</code> path on <code>is_msys</code> so the suite does not break under WSL2. @mook-as&#39;s functional report remains unresolved (author investigating).</td></tr>
+      <tr><td>Wall-clock time</td><td><code>39 min 35 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="executive-summary">Executive Summary <a href="#executive-summary" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Round 2 of PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/350" class="gh-ref" data-title="Wire up docker socket windows" data-state="open" data-type="pr">#350</a>. The author addressed every Round 1 finding except the <code>DockerSocket()</code> docstring (prior-round S4), which is now subsumed by the larger pipe-ownership finding below: <code>waitMirrorResourcesGone</code> is bounded (30 s <code>context.WithTimeout</code>) and reads the informer cache (<code>r.List</code>), the standalone <code>containers-controller</code> binary blank-imports the engine package, the stale <code>tcp/unix</code> wording is fixed, the engine reason strings are now exported constants, and the BATS <code>cygpath</code>/<code>local</code> style nits are resolved. The remaining concerns are two Important issues that survive into Round 2 as genuinely new analysis: (1) the Windows endpoint is the <strong>global</strong> Docker pipe <code>\\.\pipe\docker_engine</code>, so RDD can silently attach to — and mirror/delete containers on — Docker Desktop&#39;s daemon if it is installed; and (2) the re-enabled <code>engine-docker.bats</code> gates an MSYS2-only <code>cygpath</code> call on <code>is_windows</code>, which is also true under WSL2, exactly the gap @mook-as raised inline. The core stop/cleanup logic (<code>computeSettledCondition</code>, <code>cleanupMirrorResources</code>, the <code>apiReader</code>/<code>r.List</code> split) is well-reasoned and well-tested at the unit level.</p>
+    </div>
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Windows endpoint is the global Docker pipe — RDD can attach to Docker Desktop&#39;s daemon <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/instance/instance.go#L122-L142">pkg/instance/instance.go</a></div>
+      <pre data-start="122" data-line="127-142"><code class="language-go">
+// DockerSocket returns the path to the Docker socket for this instance
+// (e.g., ~/.rd2/docker.sock). This is the host-side socket that Lima
+// port-forwards from the guest&#39;s /var/run/docker.sock.
+// On Windows, returns the named pipe path (\\.\pipe\docker_engine).
+var DockerSocket = sync.OnceValue(func() string {
+	if runtime.GOOS == &quot;windows&quot; {
+		return `\\.\pipe\docker_engine`
+	}
+	return filepath.Join(ShortDir(), &quot;docker.sock&quot;)
+})
+
+// DockerEndpoint returns the full Docker endpoint URL for this instance.
+// On Windows this is a named-pipe URL (npipe:////./pipe/docker_engine);
+// on Unix it is a unix-socket URL (unix:///path/to/docker.sock).
+var DockerEndpoint = sync.OnceValue(func() string {
+	if runtime.GOOS == &quot;windows&quot; {
+		return `npipe:////./pipe/docker_engine`
+	}
+	return &quot;unix://&quot; + DockerSocket()
+})</code></pre>
+    <p>On Unix the socket path embeds <code>ShortDir()</code>, which factors in <code>RDD_INSTANCE</code>, so instances are isolated. On Windows both functions return the <strong>global</strong> <code>docker_engine</code> pipe — and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/socketbridge/host_windows.go#L20-L23"><code>pkg/socketbridge/host_windows.go:20-23</code></a> documents that exact name as the one &quot;Docker CLI <strong>and Docker Desktop</strong> use to reach dockerd.&quot;</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/socketbridge/host_windows.go#L15-L28">pkg/socketbridge/host_windows.go</a></div>
+      <pre data-start="15" data-line="20-23"><code class="language-go">	&quot;github.com/Microsoft/go-winio&quot;
+	&quot;github.com/go-logr/logr&quot;
+	&quot;github.com/linuxkit/virtsock/pkg/hvsock&quot;
+)
+
+const (
+	// DockerPipeName is the well-known Windows named pipe that Docker CLI
+	// and Docker Desktop use to reach dockerd.
+	DockerPipeName = `\\.\pipe\docker_engine`
+
+	// VsockForwardPort is the AF_VSOCK port that rdd-guest listens on inside
+	// the Lima VM.  Must match the constant in cmd/rdd-guest/main.go.
+	VsockForwardPort uint32 = 6660
+)</code></pre>
+    <p>The failure chain is concrete. <code>socketbridge.HostBridge.Run</code> calls <code>winio.ListenPipe(b.pipeName, nil)</code> and returns an error if the pipe is already owned (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/socketbridge/host_windows.go#L52-L56"><code>pkg/socketbridge/host_windows.go:52-56</code></a>). That error is swallowed: <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/lima/limavm/controllers/hostswitch_windows.go#L199-L205"><code>pkg/controllers/lima/limavm/controllers/hostswitch_windows.go:199-205</code></a> runs the bridge in an errgroup goroutine that logs the failure and <code>return nil</code>. Meanwhile the engine controller&#39;s Docker client connects to the same endpoint (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/docker_watcher.go#L55"><code>pkg/controllers/app/engine/controllers/docker_watcher.go:55</code></a> via <code>instance.DockerEndpoint()</code>). So with Docker Desktop installed and listening, RDD&#39;s bridge either loses the listen race or coexists as a second pipe instance, and RDD&#39;s engine client reaches Docker Desktop&#39;s daemon. <code>fullSync</code> then mirrors Docker Desktop&#39;s containers into RDD&#39;s API, and a K8s-side delete forwards <code>ContainerRemove</code> to that daemon — RDD operating destructively on a container engine it does not own. Concurrent RDD instances (<code>RDD_INSTANCE=1</code> and <code>=2</code>) collide the same way, though the repo&#39;s single-user calibration makes the Docker Desktop collision the more pressing leg.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/socketbridge/host_windows.go#L47-L61">pkg/socketbridge/host_windows.go</a></div>
+      <pre data-start="47" data-line="52-56"><code class="language-go">	}
+}
+
+// Run listens for named-pipe connections and proxies them to the guest until
+// ctx is cancelled.
+func (b *HostBridge) Run(ctx context.Context) error {
+	ln, err := winio.ListenPipe(b.pipeName, nil)
+	if err != nil {
+		return fmt.Errorf(&quot;socket-bridge: listen on %s: %w&quot;, b.pipeName, err)
+	}
+	b.log.Info(&quot;Listening&quot;, &quot;pipe&quot;, b.pipeName, &quot;vsockPort&quot;, b.vsockPort)
+
+	go func() {
+		&lt;-ctx.Done()
+		ln.Close()</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/lima/limavm/controllers/hostswitch_windows.go#L194-L210">pkg/controllers/lima/limavm/controllers/hostswitch_windows.go</a></div>
+      <pre data-start="194" data-line="199-205"><code class="language-go">
+	// Start the host-side socket bridge now that we have the VM GUID.
+	// It listens on the Docker named pipe and forwards each connection to
+	// rdd-guest inside the VM via vsock port 6660.  rdd-guest is baked into
+	// the VM image (via rancher-desktop-opensuse) and started by systemd.
+	g.Go(func() error {
+		bridge := socketbridge.NewDockerHostBridge(vmGUID, logger)
+		if err := bridge.Run(ctx); err != nil {
+			logger.Error(err, &quot;Socket bridge exited with error&quot;)
+		}
+		return nil
+	})
+
+	// Accept vsock connections and feed them into the virtual network.
+	g.Go(func() error {
+		for {
+			conn, err := ln.Accept()</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/docker_watcher.go#L50-L60">pkg/controllers/app/engine/controllers/docker_watcher.go</a></div>
+      <pre data-start="50" data-line="55"><code class="language-go">
+// newDockerWatcher creates a Docker client, performs a full sync, and starts
+// the event stream watcher goroutine.
+func newDockerWatcher(ctx context.Context, k8s client.Client, apiNamespace string, reconcileChan chan&lt;- event.GenericEvent) (*dockerWatcher, error) {
+	cli, err := mobyclient.New(
+		mobyclient.WithHost(instance.DockerEndpoint()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf(&quot;failed to create Docker client: %w&quot;, err)
+	}
+</code></pre>
+    <p>This is the same code Round 1 flagged as S4 (a docstring gap), but the Round 2 analysis is materially different: it is not the docstring, it is RDD silently mutating a foreign daemon. Round 1&#39;s S4 (still unaddressed — the docstring at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/instance/instance.go#L123"><code>instance.go:123</code></a> continues to say &quot;for this instance&quot;) is subsumed here.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/instance/instance.go#L118-L128">pkg/instance/instance.go</a></div>
+      <pre data-start="118" data-line="123"><code class="language-go">// length constraints.
+var LimaHome = sync.OnceValue(func() string {
+	return filepath.Join(ShortDir(), &quot;lima&quot;)
+})
+
+// DockerSocket returns the path to the Docker socket for this instance
+// (e.g., ~/.rd2/docker.sock). This is the host-side socket that Lima
+// port-forwards from the guest&#39;s /var/run/docker.sock.
+// On Windows, returns the named pipe path (\\.\pipe\docker_engine).
+var DockerSocket = sync.OnceValue(func() string {
+	if runtime.GOOS == &quot;windows&quot; {</code></pre>
+    <p>Gemini additionally claimed the global pipe &quot;breaks the VM boot sequence.&quot; That causal leg does not hold: the bridge starts <em>after</em> the VM GUID is known (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/lima/limavm/controllers/hostswitch_windows.go#L195-L205"><code>hostswitch_windows.go:195-205</code></a>), and @mook-as reported <code>docker run</code> / <code>docker log</code> working — so the pipe binds. His <code>Running=False/Starting</code> stall is a VM-side condition, not a pipe-bind failure.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/lima/limavm/controllers/hostswitch_windows.go#L190-L210">pkg/controllers/lima/limavm/controllers/hostswitch_windows.go</a></div>
+      <pre data-start="190" data-line="195-205"><code class="language-go">	mux.Handle(&quot;/services/forwarder/expose&quot;, vn.Mux())
+	mux.Handle(&quot;/services/forwarder/unexpose&quot;, vn.Mux())
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	// Start the host-side socket bridge now that we have the VM GUID.
+	// It listens on the Docker named pipe and forwards each connection to
+	// rdd-guest inside the VM via vsock port 6660.  rdd-guest is baked into
+	// the VM image (via rancher-desktop-opensuse) and started by systemd.
+	g.Go(func() error {
+		bridge := socketbridge.NewDockerHostBridge(vmGUID, logger)
+		if err := bridge.Run(ctx); err != nil {
+			logger.Error(err, &quot;Socket bridge exited with error&quot;)
+		}
+		return nil
+	})
+
+	// Accept vsock connections and feed them into the virtual network.
+	g.Go(func() error {
+		for {
+			conn, err := ln.Accept()</code></pre>
+    <p>Fix: scope the pipe to the instance, mirroring the Unix isolation, and pass that name through <code>socketbridge.NewDockerHostBridge</code> instead of the hardcoded <code>DockerPipeName</code> constant. If a well-known alias is required for bare <code>docker.exe</code> compatibility, bind it only after proving RDD owns it, and surface the bind failure into readiness so the engine never treats an externally-owned pipe as RDD&#39;s endpoint.</p>
+      <pre><code class="language-diff"> var DockerSocket = sync.OnceValue(func() string {
+ 	if runtime.GOOS == &quot;windows&quot; {
+-		return `\\.\pipe\docker_engine`
++		return `\\.\pipe\` + Name() + `-docker_engine`
+ 	}
+ 	return filepath.Join(ShortDir(), &quot;docker.sock&quot;)
+ })
+
+ var DockerEndpoint = sync.OnceValue(func() string {
+ 	if runtime.GOOS == &quot;windows&quot; {
+-		return `npipe:////./pipe/docker_engine`
++		return `npipe:////./pipe/` + Name() + `-docker_engine`
+ 	}
+ 	return &quot;unix://&quot; + DockerSocket()
+ })</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> <code>engine-docker.bats</code> gates an MSYS2-only <code>cygpath</code> call on <code>is_windows</code> — breaks under WSL2 <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/tests/32-app-controllers/engine-docker.bats#L13-L34">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="13" data-line="18-29"><code class="language-bash">    # Isolate all Docker config reads and writes from the developer&#39;s real
+    # ~/.docker directory. Set DOCKER_CONFIG before starting the service so
+    # the controller process inherits it (service.Start uses exec.Command
+    # without an explicit Env, so it inherits the caller&#39;s environment).
+    #
+    # On Windows, rdd.exe is a native binary: it interprets /tmp/... as a
+    # path from the drive root (C:\tmp\...) rather than MSYS2&#39;s /tmp which
+    # maps to a different location. cygpath -m produces a mixed-format path
+    # (C:/msys64/...) that both native Windows processes and MSYS2 agree on.
+    if is_windows; then
+        run -0 cygpath -m &quot;${BATS_FILE_TMPDIR}/docker-config&quot;
+        DOCKER_CONFIG=${output}
+    else
+        DOCKER_CONFIG=&quot;${BATS_FILE_TMPDIR}/docker-config&quot;
+    fi
+    export DOCKER_CONFIG
+    mkdir -p &quot;${DOCKER_CONFIG}&quot;
+
+    # Deliberately skip setup_rdd_control_plane here: `rdd set` internally
+    # calls ensureServiceRunning, which is exactly the CLI path we want to
+    # exercise — the engine controller is part of the default controller
+    # set, so no explicit --controllers selection is needed.</code></pre>
+    <p><code>is_windows()</code> returns true for <strong>both</strong> MSYS2 and WSL2 — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/helpers/os.bash#L13-L16"><code>bats/helpers/os.bash:13-16</code></a> sets <code>OS=windows</code> when <code>/proc/sys/kernel/osrelease</code> contains <code>WSL2</code>, and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/helpers/os.bash#L55"><code>os.bash:55</code></a> provides <code>is_msys()</code> precisely because the two &quot;behave differently from WSL.&quot; <code>cygpath</code> is an MSYS2 tool absent under WSL2, so <code>run -0 cygpath ...</code> fails <code>local_setup_file</code> outright there. The <code>rdd()</code> wrapper in <code>bats/helpers/commands.bash</code> already shows the correct pattern — it branches <code>is_msys</code> (uses <code>cygpath</code>) versus WSL (uses <code>wslpath</code> plus a <code>WSLENV</code> adjustment). The same gap applies to <code>DOCKER_HOST=&quot;npipe:////./pipe/docker_engine&quot;</code> at line 39 and the <code>meta.json</code> host assertion at lines 791-799: an <code>npipe://</code> endpoint is meaningful only to a native <code>docker.exe</code>, not a Linux docker client. Before this PR the whole file was <code>skip_on_windows</code>, so removing that guard is what exposed the WSL2 path.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/helpers/os.bash#L8-L21">bats/helpers/os.bash</a></div>
+      <pre data-start="8" data-line="13-16"><code class="language-bash">Darwin)
+    # OS matches the directory name of the PATH_RESOURCES directory,
+    # so uses &quot;darwin&quot; and not &quot;macos&quot;.
+    OS=darwin
+    ;;
+Linux)
+    if grep --quiet WSL2 &lt;/proc/sys/kernel/osrelease; then # spellchecker:ignore
+        OS=windows
+    else
+        OS=linux
+    fi
+    ;;
+MSYS* | MINGW*)
+    OS=windows</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/helpers/os.bash#L50-L60">bats/helpers/os.bash</a></div>
+      <pre data-start="50" data-line="55"><code class="language-bash">    fi
+}
+
+# Detect MSYS2 environment (MSYS or MINGW shells).
+# Both report OS=windows, but behave differently from WSL.
+is_msys() {
+    [[ &quot;${UNAME}&quot; == MSYS* || &quot;${UNAME}&quot; == MINGW* ]]
+}
+
+is_unix() {
+    ! is_windows &quot;$@&quot;</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/tests/32-app-controllers/engine-docker.bats#L34-L44">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="34" data-line="39"><code class="language-plaintext">    # set, so no explicit --controllers selection is needed.
+    rdd svc delete
+    rdd set running=true
+    if is_windows; then
+        export DOCKER_HOST=&quot;npipe:////./pipe/docker_engine&quot;
+    else
+        run -0 rdd svc paths docker_socket
+        export DOCKER_HOST=&quot;unix://${output}&quot;
+    fi
+    # Mirror resources live in App.spec.namespace. Override RDD_NAMESPACE
+    # to whatever the App was created with so the test queries the same</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/tests/32-app-controllers/engine-docker.bats#L786-L804">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="786" data-line="791-799"><code class="language-plaintext">    assert_file_exists &quot;${meta_file}&quot;
+
+    run -0 jq -r &#39;.Name&#39; &quot;${meta_file}&quot;
+    assert_output &quot;${context_name}&quot;
+
+    if is_windows; then
+        run -0 jq -r &#39;.Endpoints.docker.Host&#39; &quot;${meta_file}&quot;
+        assert_output &quot;npipe:////./pipe/docker_engine&quot;
+    else
+        run -0 rdd service paths docker_socket
+        socket_path=${output}
+        run -0 jq -r &#39;.Endpoints.docker.Host&#39; &quot;${meta_file}&quot;
+        assert_output &quot;unix://${socket_path}&quot;
+    fi
+}
+
+@test &quot;moby engine sets currentContext when no healthy context exists&quot; {
+    local context_name=&quot;rancher-desktop-${RDD_INSTANCE}&quot;
+</code></pre>
+    <p>This is exactly @mook-as&#39;s unresolved inline comment (&quot;This wouldn&#39;t do the right thing if we&#39;re running BATS under WSL, right?&quot;). It is latent rather than CI-breaking only if the project&#39;s Windows CI runs MSYS2 exclusively today.</p>
+    <p>Fix: gate the MSYS2-specific path on <code>is_msys</code>, and decide WSL2 behaviour explicitly — either handle <code>wslpath</code> + <code>WSLENV</code> for <code>DOCKER_CONFIG</code> and the <code>DOCKER_HOST</code> endpoint, or <code>skip</code> under WSL2 if that environment is genuinely unsupported for this suite.</p>
+      <pre><code class="language-diff">-    if is_windows; then
++    if is_msys; then
+         run -0 cygpath -m &quot;${BATS_FILE_TMPDIR}/docker-config&quot;
+         DOCKER_CONFIG=${output}
+     else
+         DOCKER_CONFIG=&quot;${BATS_FILE_TMPDIR}/docker-config&quot;
+     fi</code></pre>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> <code>cleanupMirrorResources</code> comment says &quot;the API server&#39;s watch cache&quot; but the poll reads the informer cache <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/engine_reconciler.go#L487-L506">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="487" data-line="492-501"><code class="language-go">		errs = append(errs, fmt.Errorf(&quot;failed to delete ContainerNamespaces: %w&quot;, err))
+	}
+	if err := errors.Join(errs...); err != nil {
+		return err
+	}
+	// Block until the API server&#39;s watch cache reflects the deletions.
+	// The Kubernetes watch cache is updated asynchronously: DELETE
+	// requests commit to etcd synchronously, but the cache event is
+	// processed in a separate goroutine. On slower systems (e.g.
+	// Windows CI with SQLite I/O) there is an observable window where
+	// `kubectl get` returns a just-deleted resource. Polling here
+	// ensures that ContainerEngineReady is only stamped — and `rdd set
+	// running=false` only returns — after the cache reflects the clean
+	// state, so the immediately-following test assertion passes.
+	return r.waitMirrorResourcesGone(ctx)
+}
+
+// waitMirrorResourcesGone polls the informer cache until all four mirror
+// resource types are empty or the 30-second timeout expires. r.List is
+// used (not r.apiReader) so the poll drains the watch cache, not etcd.</code></pre>
+    <p><code>waitMirrorResourcesGone</code> correctly documents itself as polling &quot;the informer cache&quot; (line 504-506), and <code>countMirrorResources</code> uses <code>r.List</code> — the controller-runtime informer cache, which is <em>downstream</em> of the API server&#39;s watch stream. An empty informer cache therefore implies the API server already processed the deletes, which is the stronger guarantee the code wants. The logic is right; only the <code>cleanupMirrorResources</code> comment is imprecise and could mislead a future reader into thinking this synchronizes against the apiserver directly.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/engine_reconciler.go#L499-L511">pkg/controllers/app/engine/controllers/engine_reconciler.go</a></div>
+      <pre data-start="499" data-line="504-506"><code class="language-go">	// running=false` only returns — after the cache reflects the clean
+	// state, so the immediately-following test assertion passes.
+	return r.waitMirrorResourcesGone(ctx)
+}
+
+// waitMirrorResourcesGone polls the informer cache until all four mirror
+// resource types are empty or the 30-second timeout expires. r.List is
+// used (not r.apiReader) so the poll drains the watch cache, not etcd.
+func (r *EngineReconciler) waitMirrorResourcesGone(ctx context.Context) error {
+	log := logf.FromContext(ctx)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	for {</code></pre>
+    <p>Fix: align line 492&#39;s wording — &quot;Block until this controller&#39;s informer cache reflects the deletions&quot; — and note that the informer cache lagging the apiserver is exactly what makes it a sufficient gate for downstream <code>rdd ctl get</code> callers.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> <code>instance.DockerSocket()</code> on Windows flows a named-pipe string into Lima&#39;s <code>HOST_DOCKER_SOCKET</code> param <span class="pill pill-claude">Claude</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/instance/instance.go#L122-L137">pkg/instance/instance.go</a></div>
+      <pre data-start="122" data-line="127-132"><code class="language-go">
+// DockerSocket returns the path to the Docker socket for this instance
+// (e.g., ~/.rd2/docker.sock). This is the host-side socket that Lima
+// port-forwards from the guest&#39;s /var/run/docker.sock.
+// On Windows, returns the named pipe path (\\.\pipe\docker_engine).
+var DockerSocket = sync.OnceValue(func() string {
+	if runtime.GOOS == &quot;windows&quot; {
+		return `\\.\pipe\docker_engine`
+	}
+	return filepath.Join(ShortDir(), &quot;docker.sock&quot;)
+})
+
+// DockerEndpoint returns the full Docker endpoint URL for this instance.
+// On Windows this is a named-pipe URL (npipe:////./pipe/docker_engine);
+// on Unix it is a unix-socket URL (unix:///path/to/docker.sock).
+var DockerEndpoint = sync.OnceValue(func() string {</code></pre>
+    <p><code>DockerSocket()</code> has two consumers: <code>DockerEndpoint()</code> (correct — it wants the pipe path) and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/app/controllers/app_controller.go#L102"><code>app_controller.go:102</code></a>, which formats it into the Lima template&#39;s <code>HOST_DOCKER_SOCKET</code> param. A Lima <code>hostSocket</code> is a host <em>filesystem</em> socket path, not a named pipe. This is currently inert because the Lima WSL2 driver advertises <code>SkipSocketForwarding: true</code>, so the value is never acted on — and the pre-existing Windows value was also unused, so this is not a behaviour regression. But the field is now semantically wrong, and the <code>DockerSocket</code> docstring&#39;s &quot;host-side socket that Lima port-forwards&quot; no longer holds on Windows.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/app/controllers/app_controller.go#L97-L107">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="97" data-line="102"><code class="language-go">	}
+	return strings.Join([]string{
+		baseTemplate,
+		&quot;param:&quot;,
+		fmt.Sprintf(&quot;  CONTAINER_ENGINE: %s&quot;, spec.ContainerEngine.Name),
+		fmt.Sprintf(&quot;  HOST_DOCKER_SOCKET: %q&quot;, instance.DockerSocket()),
+		fmt.Sprintf(&quot;  HOST_HOME_GUEST: %q&quot;, toLinuxPath(hostHome)),
+		fmt.Sprintf(&quot;  KUBERNETES_ENABLED: %v&quot;, spec.Kubernetes.Enabled),
+		fmt.Sprintf(&quot;  KUBERNETES_VERSION: %s&quot;, spec.Kubernetes.Version),
+		&quot;&quot;,
+	}, &quot;\n&quot;), nil</code></pre>
+    <p>Fix: add a brief comment at <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/app/controllers/app_controller.go#L102"><code>app_controller.go:102</code></a> noting the param is inert on Windows (WSL2 skips socket forwarding; the pipe is bridged by hostswitch), or stop reusing <code>DockerSocket()</code> there so the two semantics do not share one accessor.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> No unit coverage for the new <code>waitMirrorResourcesGone</code> / <code>countMirrorResources</code> cleanup-synchronization logic <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+    <p><code>waitMirrorResourcesGone</code> (including the 30 s timeout fall-through that returns a distinct error) and <code>countMirrorResources</code> are exercised only indirectly by <code>bats/tests/32-app-controllers/engine-docker.bats</code> (&quot;stopping VM removes all mirror resources&quot;), which cannot reach the timeout branch. No <code>EngineReconciler</code>-level unit tests exist in this package, so the absence is consistent with repo convention — but the timeout path returns an error that propagates to <code>rdd set</code> as a user-visible failure, and a regression there (e.g. polling the wrong reader) would ship green. Consider a small table test for <code>countMirrorResources</code> against a fake client, or at minimum assert the timeout error message somewhere.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> BATS hardcodes the Windows endpoint string, so it will not adapt to a per-instance pipe <span class="pill pill-gemini">Gemini</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/bats/tests/32-app-controllers/engine-docker.bats#L33-L46">bats/tests/32-app-controllers/engine-docker.bats</a></div>
+      <pre data-start="33" data-line="38-41"><code class="language-bash">    # exercise — the engine controller is part of the default controller
+    # set, so no explicit --controllers selection is needed.
+    rdd svc delete
+    rdd set running=true
+    if is_windows; then
+        export DOCKER_HOST=&quot;npipe:////./pipe/docker_engine&quot;
+    else
+        run -0 rdd svc paths docker_socket
+        export DOCKER_HOST=&quot;unix://${output}&quot;
+    fi
+    # Mirror resources live in App.spec.namespace. Override RDD_NAMESPACE
+    # to whatever the App was created with so the test queries the same
+    # namespace the engine controller uses, regardless of CRD defaults.
+    RDD_NAMESPACE=$(rdd ctl get app app -o jsonpath=&#39;{.spec.namespace}&#39;)</code></pre>
+    <p>The test hardcodes <code>npipe:////./pipe/docker_engine</code> in both the <code>local_setup_file</code> <code>DOCKER_HOST</code> export and the <code>docker_context_dir</code> host assertion. If I1 is fixed by scoping the pipe per-instance, both sites must fetch the endpoint dynamically (e.g. from <code>rdd svc paths docker_socket</code>) rather than asserting the literal. Worth folding into the I1 fix so the test tracks the endpoint instead of pinning it.</p>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><em></em><code>ContainerNamespace/moby</code> is watched but never re-applied on the steady-state path (in-scope)<em></em> <span class="pill pill-codex">Codex</span> — <code>pkg/controllers/app/engine/controllers/engine_reconciler.go:259-292,834</code>. The PR adds <code>Watches(&amp;containersv1alpha1.ContainerNamespace{}, enqueueApp)</code>, which is necessary so <code>countMirrorResources</code>&#39;s <code>r.List</code> reads a populated informer (the I1 cleanup-wait path). But it also means a delete of <code>ContainerNamespace/moby</code> now wakes the engine reconciler — and the running steady-state path only processes container actions and finalizers, so nothing recreates the namespace. <code>fullSync</code> creates it once at watcher startup (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/docker_watcher.go#L615"><code>docker_watcher.go:615</code></a>). Round 1 surfaced this as a design observation and noted the BATS test &quot;deleting ContainerNamespace/moby completes without a finalizer hang&quot; deliberately asserts it stays gone, so the behaviour is partly intentional — that reasoning still holds. The repo convention is that a <code>fullSync</code>-created mirror must &quot;either appear on the steady-state watch list (and be re-applied on reconcile) or carry a comment naming it as startup-only.&quot; It is now on the watch list but neither re-applied nor commented. Resolve the ambiguity: either add an <code>ensureContainerNamespace</code> step on the running path (and flip the test to assert recreation), or add a comment that the watch exists only to populate the cache for <code>countMirrorResources</code> and the namespace is intentionally startup-only.</li>
+      <li><em></em>Orphaned <code>hostagent</code> processes block instance-directory deletion on Windows (future, pre-existing)<em></em> <span class="pill pill-gemini">Gemini</span> — <code>pkg/service/cmd/service.go</code> (not in the diff). When <code>rdd svc delete</code> runs after a stuck start, <code>Stop()</code> issues <code>TerminateProcess</code> on Windows, which kills the service but can leave <code>hostagent</code> children running; surviving children hold file locks under <code>instance.Dir()</code>, so <code>os.RemoveAll</code> fails with <code>ERROR_ACCESS_DENIED</code> and the next <code>rdd service start</code> aborts with <code>instance &quot;rd&quot; already exists</code>. This is pre-existing and outside the diff, but the PR&#39;s Windows enablement is what makes the path reachable, and it matches @mook-as&#39;s second reported symptom. The orchestrator did not fully trace <code>service.go</code>; flagged here for the author&#39;s active investigation rather than as a finding against this PR. (See repo context on the Windows <code>taskkill</code> / <code>KillTree</code>-while-parent-alive asymmetry.)</li>
+      <li><em></em>Engine controller now runs in the external <code>containers-controller</code> binary while watching a foreign API group (future)<em></em> <span class="pill pill-claude">Claude</span> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/containers/controller.go#L12"><code>pkg/controllers/containers/controller.go:12</code></a>. Blank-importing <code>app/engine</code> into the <code>containers</code> aggregator is the correct fix for the Round 1 silent-drop finding. But <code>EngineReconciler.SetupWithManager</code> does <code>For(&amp;appv1alpha1.App{})</code> — a watch on the <code>app</code> group — while the <code>app</code> controller that installs the App CRD lives in a different aggregator. So <code>--controllers=containers</code> in standalone external mode starts a controller watching a CRD nothing in that binary installs. Harmless in the embedded <code>rdd svc serve</code> path (the app controller is always compiled in); the exposure is only the standalone external binary. If standalone external controllers are a supported deployment, the engine controller should tolerate a missing App CRD or document the <code>app</code>+<code>containers</code> co-dependency; if they are dev-only, a one-line comment closes the question.</li>
+      <li><em></em><code>waitMirrorResourcesGone</code> blocks the singleton engine reconcile for up to 30 s (future)<em></em> <span class="pill pill-claude">Claude</span> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/engine_reconciler.go#L507-L528"><code>pkg/controllers/app/engine/controllers/engine_reconciler.go:507-528</code></a>. The engine reconciler is a singleton (<code>MaxConcurrentReconciles</code> 1), so no other engine event is processed during the poll. This is acceptable: the block only happens on the <code>!wantWatcher</code> stopping path where there is nothing else useful to do, the timeout returns a recoverable error (the next reconcile retries; the terminal <code>Stopped</code> condition is stamped only after cleanup succeeds), and manager shutdown cancels the parent context promptly. The controller-runtime-idiomatic alternative — delete, return <code>RequeueAfter</code>, re-check the count at the top of <code>Reconcile</code> — avoids holding the worker but adds reconcile-entry state-machine complexity. The blocking poll is the simpler, reasonable choice; revisit only if the reconciler later needs to stay responsive during stop.</li>
+    </ul>
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><em></em><code>computeSettledCondition</code> requires a terminal engine reason at the current generation (in-scope)<em></em> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> — <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/app/controllers/app_controller.go#L434-L463"><code>pkg/controllers/app/app/controllers/app_controller.go:434-463</code></a>. The new gate (<code>ObservedGeneration &gt;= app.Generation</code> plus reason ∈ {<code>Stopped</code>, <code>NotApplicable</code>}) closes the hole where a <code>Connected/M+1</code> condition written mid-stop satisfied the <code>rdd set running=false</code> wait before mirror cleanup ran. The reasoning is documented inline and the five new table-test cases cover the absent / stale / current-but-not-terminal permutations precisely.</li>
+      <li><em></em>The <code>apiReader</code> (uncached) vs. <code>r.List</code> (cached) split is deliberate and well-commented (in-scope)<em></em> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span> — <code>pkg/controllers/app/engine/controllers/engine_reconciler.go:566-569,541</code>. <code>deleteAllOfType</code> reads the direct API server so it catches resources the watcher created seconds before <code>stopWatcher</code>; <code>countMirrorResources</code> reads the informer cache so the readiness wait gates on what downstream <code>rdd ctl get</code> callers actually observe. Round 1&#39;s I1 (unbounded loop reading etcd) is fully resolved by this plus the 30 s bound.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Unit coverage for <code>computeSettledCondition</code> is thorough — the five new table cases map one-to-one onto the new branches. Gaps, ranked by risk:</p>
+    <ol>
+      <li><strong>WSL2 BATS path (I2)</strong> — <code>local_setup_file</code> fails before any test runs under WSL2; the suite has never been exercised there since it was <code>skip_on_windows</code> until this PR.</li>
+      <li><em></em><code>waitMirrorResourcesGone</code> 30 s timeout fall-through (S3)<em></em> — the user-visible error path is unreachable from the BATS test and has no unit test.</li>
+      <li><em></em><code>alreadyClean</code> with the new <code>ObservedGeneration</code> term<em></em> — no unit test confirms a stale-generation terminal condition forces <code>cleanupMirrorResources</code> to re-run; only integration timing covers it.</li>
+      <li><em></em><code>npipe</code>-scheme probe branch<em></em> — <code>probeNamedDockerContext</code> now accepts <code>npipe</code>, but <code>docker_context_test.go</code> adds only <code>unix://</code> cases; the <code>npipe</code> probe path is reachable only via Windows BATS. A <code>seedContext(t, &quot;npipe-ctx&quot;, &quot;npipe:////./pipe/some-pipe&quot;)</code> case would lock it down on non-Windows CI.</li>
+      <li><strong>Docker Desktop pipe collision (I1)</strong> — no test exercises RDD starting when <code>\\.\pipe\docker_engine</code> is already owned by another listener.</li>
+    </ol>
+    <p>Both Claude and Codex ran <code>go test</code> against the touched packages and reported it passing; Codex also ran <code>make build-rdd</code> successfully.</p>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/instance/instance.go#L123-L126"><code>instance.go:123-126</code></a>: the <code>DockerSocket</code> docstring still says &quot;the path to the Docker socket <strong>for this instance</strong>&quot; and &quot;host-side socket that Lima port-forwards&quot; — both inaccurate on Windows (the pipe is global and bridged by hostswitch, not port-forwarded). The appended Windows line does not correct the lede. This is the unaddressed Round 1 S4, now folded into I1.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/engine_reconciler.go#L492"><code>engine_reconciler.go:492</code></a> comment imprecision is covered in S1.</li>
+      <li>New exported constants in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/apis/app/v1alpha1/app_types.go#L64-L79"><code>app_types.go:64-79</code></a> are each documented clearly, and <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/containers/controller.go#L6-L7"><code>pkg/controllers/containers/controller.go:6-7</code></a> package doc was correctly updated to add <code>engine</code> to the aggregated list — good.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Three commits, each self-contained: the openSUSE bump (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/b5ab872"><code>b5ab872</code></a>), the socket-forwarding wiring (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/e917657"><code>e917657</code></a>), and the test-104 cleanup fix (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5681e67"><code>5681e67</code></a>). The openSUSE bump is arguably unrelated to &quot;wire up docker socket windows&quot; and could have been its own PR, but it is a one-line-per-file digest bump and does not harm reviewability. Messages match their diffs; no fixup commits. No action needed.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/engine_reconciler.go#L176-L195"><code>engine_reconciler.go:176-195</code></a> already documents the watcher-died vs. never-started branch and the deliberate dual cleanup paths (<code>stopWatcher</code> vs. direct <code>removeDockerContext</code>). Not an issue.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/app/engine/controllers/docker_watcher.go#L200-L207"><code>docker_watcher.go:200-207</code></a> notes a TODO for periodic full sync so dropped image/volume events self-heal. Pre-existing and not worsened by this PR.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/5681e67f424b93017a53cbd1d2cc01457a363981/pkg/controllers/lima/limavm/controllers/hostswitch_windows.go#L151-L155"><code>hostswitch_windows.go:151-155</code></a> / <code>:199-205</code> document fire-and-forget host-switch lifecycle: failures are logged but not surfaced to the reconciler. Pre-existing — but note this is the same swallowed-error path that makes I1&#39;s silent Docker Desktop attachment possible.</li>
+      <li>The <code>TODO(windows)</code> guards in <code>engine/controller.go</code> and <code>engine_reconciler.go</code> were resolved by this PR rather than deferred, so there is no remaining acknowledged-limitation comment in the changed code.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><em></em>@mook-as, inline on <code>engine-docker.bats</code><em></em> — &quot;This wouldn&#39;t do the right thing if we&#39;re running BATS under WSL, right? Do we no longer support that?&quot; (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/350#discussion_r3236092197">discussion r3236092197</a>). No reply and no subsequent commit addresses it. The codebase clearly still intends to support WSL (<code>commands.bash</code> branches <code>is_msys</code> vs. WSL explicitly), so this is a genuine gap, not a declined concern — see <strong>I2</strong>.</li>
+      <li><strong>@mook-as, general comment</strong> — App stuck at <code>ContainerEngineReady=False/Stopped</code>, <code>Running=False/Starting</code>; <code>rdd set running=true</code> dying with &quot;failed to watch App: timed out waiting for the condition&quot;; and a wedged <code>instance &quot;rd&quot; already exists</code> state after <code>service delete</code>. @Nino-K replied &quot;I&#39;m looking into this.&quot; These are runtime integration failures the author is actively investigating. The <code>instance &quot;rd&quot; already exists</code> symptom aligns with the orphaned-<code>hostagent</code> design observation above. The <code>timed out waiting for the condition</code> symptom overlaps with the new <code>computeSettledCondition</code> gate and <code>waitMirrorResourcesGone</code> timeout — worth confirming commit <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/5681e67"><code>5681e67</code></a> (which post-dates the discussion) resolved rather than introduced the hang.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Strongest on diff-local detail and the test/wiring gaps: it owned three of the four suggestions — the <code>cleanupMirrorResources</code> comment imprecision, the <code>DockerSocket()</code>→Lima-<code>HOST_DOCKER_SOCKET</code> semantic drift (which needed tracing the second consumer of <code>DockerSocket()</code>), and the missing unit coverage — plus the sharpest design observation, that the engine controller now watches the <code>app</code> group from the <code>containers</code> aggregator in the standalone external binary. It also independently caught the WSL2 gate. Its notable miss is the headline: Claude reviewed <code>instance.go</code> and raised only the Lima-param suggestion, never connecting the global pipe to a Docker Desktop collision — the most important finding of the review, which both other agents reached.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Best analysis on the headline finding. It traced the full claim chain — from <code>socketbridge</code>&#39;s <code>ListenPipe</code> failure, through hostswitch&#39;s swallowed error, to the engine client connecting to a foreign daemon — which is what makes I1 land as a concrete data-loss risk rather than a docstring nit. It independently caught the WSL2 gate and re-raised the <code>ContainerNamespace</code> steady-state gap (consolidated as a design observation, consistent with Round 1). No false positives; it ran <code>go test</code> and <code>make build-rdd</code>. Zero suggestions — Codex stays on structural issues and leaves the smaller stuff to the other two.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Converged with Codex on the pipe-ownership finding and uniquely added the concurrent-RDD-instance angle and the orphaned-<code>hostagent</code> pre-existing gap that explains @mook-as&#39;s <code>instance &quot;rd&quot; already exists</code> symptom. But it inflated the pipe finding to Critical with an unverified causal claim — &quot;breaks the VM boot sequence&quot; — that @mook-as&#39;s own report contradicts (<code>docker run</code> works, so the pipe binds). Its S2 was a false positive: it argued <code>local socket_path</code> should be restored, having misread the assignment as living in the <code>docker_context_dir</code> helper when it is inside an <code>@test</code> block. As usual, no <code>git blame</code> (quota), so it could not separate PR-introduced from pre-existing. Lightest coverage of the three — it left <code>pkg/controllers/containers/controller.go</code> out of its summary.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.7</th><th><span class="pill pill-codex">Codex</span> GPT 5.5</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>29m 29s</td><td>10m 59s</td><td>—</td></tr>
+        <tr><td>Findings</td><td>1I 3S</td><td>2I</td><td>1I 1S</td></tr>
+        <tr><td>Tool calls</td><td>31 (Read 17, Bash 9, Grep 5)</td><td>90 (shell 88, stdin 2)</td><td>—</td></tr>
+        <tr><td>Design observations</td><td>5</td><td>3</td><td>1</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>1</td></tr>
+        <tr><td>Unique insights</td><td>5</td><td>1</td><td>1</td></tr>
+        <tr><td>Files reviewed</td><td>13</td><td>13</td><td>12</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>1</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>1I 3S</strong></td><td><strong>2I</strong></td><td><strong>1I 1S</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>1 (I→S)</td><td>2 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>1</td></tr>
+      </tbody>
+    </table>
+    <p>Reconciliation:</p>
+    <ul>
+      <li>Gemini C1 &quot;Global named pipe breaks multi-instance isolation&quot;: critical → important (I1). The destructive-to-a-foreign-daemon risk is real, but it requires Docker Desktop installed and listening, RDD is pre-release, and actual container deletion needs explicit user action — Important, not Critical. Gemini&#39;s &quot;breaks the VM boot sequence&quot; causal leg was dropped as contradicted by @mook-as&#39;s report.</li>
+      <li>Codex I2 &quot;ContainerNamespace delete events enqueue a reconcile that cannot recreate the namespace&quot;: important → design observation, consistent with Round 1&#39;s handling — the BATS test deliberately asserts the namespace stays gone after a user delete, so the behaviour is partly intentional.</li>
+      <li>Gemini I1 &quot;Orphaned hostagents block instance directory deletion&quot;: important → design observation. <code>pkg/service/cmd/service.go</code> is not in the diff; surfaced as a pre-existing concern that the PR&#39;s Windows enablement makes reachable.</li>
+      <li>Gemini S2 &quot;restore <code>local socket_path</code>&quot;: dropped as a false positive. The assignment is inside the <code>@test &quot;moby engine creates Docker context for the instance&quot;</code> block (engine-docker.bats:775-800), not the <code>docker_context_dir</code> helper (763-773), so the repo&#39;s &quot;no <code>local</code> in <code>@test</code>&quot; rule applies and Round 1&#39;s S5 removal was correct.</li>
+    </ul>
+    <p>Codex provided the most value this round — it owned the headline finding&#39;s analysis and caught everything else of substance with no false positives. Claude contributed the most breadth on the smaller issues and the cleanest design observations, but missed the headline in a file it did review. Gemini added two useful unique angles but cost a clarification-worthy false positive and an inflated severity.</p>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>[repo]</strong> <code>is_windows()</code> returns true for both MSYS2 and WSL2; <code>is_msys()</code> (in <code>bats/helpers/os.bash</code>) distinguishes them, and the <code>rdd()</code> wrapper in <code>bats/helpers/commands.bash</code> branches <code>is_msys</code> (<code>cygpath</code>, native-Windows assumptions) versus WSL (<code>wslpath</code>, <code>WSLENV</code>). When reviewing BATS code, flag any path that gates an MSYS2-only tool or a native-Windows-only assumption (e.g. an <code>npipe://</code> endpoint a Linux docker client cannot use) on <code>is_windows</code> — it must use <code>is_msys</code> or explicitly handle the WSL branch. Removing a <code>skip_on_windows</code> guard exposes the WSL2 path, which the suite was never previously exercised against.</li>
+      <li><strong>[repo]</strong> On Windows, RDD&#39;s Docker named pipe and Docker Desktop&#39;s pipe share the well-known name <code>\\.\pipe\docker_engine</code> (<code>pkg/socketbridge/host_windows.go</code>). The socketbridge <code>ListenPipe</code> failure is swallowed by the hostswitch goroutine, and <code>instance.DockerEndpoint()</code> feeds the engine controller&#39;s Docker client. When reviewing Windows Docker-endpoint code, verify the pipe is instance-scoped (or that RDD proves it owns the pipe before connecting a client) — an unscoped client can silently attach to Docker Desktop&#39;s daemon and mirror or delete its containers.</li>
+    </ul>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
