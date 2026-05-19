@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deep Review: 20260519-103443-pr-355</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <style>
+/* Deep Review — canonical stylesheet
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Edit this file to change the look of all future reviews.
+ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #f8f9fb;
+  margin: 0;
+  padding: 2rem 1rem;
+}
+main { max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.6rem; margin-bottom: 0.5rem; color: #111827; }
+h2 { font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.8rem; }
+hr { border: none; border-top: 2px solid #e5e7eb; margin: 2rem 0; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace; font-size: 0.85em; background: #f3f4f6; padding: 0.15em 0.35em; border-radius: 4px; }
+
+/* Code blocks — override Prism defaults */
+pre { margin: 0 !important; border-radius: 0 0 8px 8px !important; }
+pre[class*="language-"] { font-size: 0.78rem; line-height: 1.3; }
+pre code { background: none; padding: 0; }
+
+/* Report metadata table */
+.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
+.meta-table td { padding: 0.35rem 0.6rem; border: 1px solid #e5e7eb; vertical-align: top; }
+.meta-table td:first-child { font-weight: 600; width: 140px; background: #f9fafb; white-space: nowrap; }
+
+/* Cards — every section and finding lives in a card */
+.card { border-radius: 10px; padding: 1.2rem 1.4rem; margin-bottom: 1.2rem; }
+.card-neutral { background: #f1f3f5; border: 1px solid #d5d9e0; }
+.card-critical { background: #ffeef0; border: 1px solid #f5c6cb; }
+.card-important { background: #fff0e0; border: 1px solid #f5d9a8; }
+.card-suggestion { background: #f0f6ff; border: 1px solid #c7d9f5; }
+.card-design { background: #f0faf4; border: 1px solid #b7e4c7; }
+
+/* Severity section headings — colored to match their cards */
+.section-critical { color: #9b1c1c; }
+.section-important { color: #92400e; }
+.section-suggestion { color: #1e40af; }
+.section-design { color: #065f46; }
+
+/* Agent attribution pills */
+.pill { display: inline-block; font-size: 0.72rem; font-weight: 600; padding: 0.15em 0.55em; border-radius: 999px; margin-right: 0.3em; vertical-align: middle; letter-spacing: 0.01em; }
+.pill-claude { background: #e9d5ff; color: #6b21a8; }
+.pill-codex { background: #d1fae5; color: #065f46; }
+.pill-gemini { background: #ffe4e6; color: #9f1239; }
+.pill-qwen { background: #fed7aa; color: #9a3412; }
+.pill-gemma { background: #fef9c3; color: #854d0e; }
+.pill-glm { background: #cffafe; color: #155e75; }
+
+/* Finding titles */
+.finding-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; line-height: 1.4; }
+.finding-num { font-weight: 800; }
+
+/* Code file header — dark bar above each source code block.
+ * The filename is a GitHub permalink to the displayed line range.
+ * Text color is light gray (#adbac7) for the bar, green (#7ee787)
+ * for the hyperlink — matching GitHub's dark-mode file header. */
+.code-file-header { background: #2d333b; color: #adbac7; font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace; font-size: 0.75rem; padding: 0.4rem 0.9rem; border-radius: 8px 8px 0 0; margin-top: 0.8rem; }
+.code-file-header a { color: #7ee787; }
+.code-file-header a:hover { text-decoration: underline; }
+
+/* Line numbers (CSS counters) and line highlighting */
+.code-line { display: block; }
+.code-line::before {
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  width: 3em;
+  margin-right: 0.8em;
+  padding-right: 0.5em;
+  text-align: right;
+  color: #636e7b;
+  border-right: 1px solid #3d4556;
+  user-select: none;
+}
+.line-hl { background: rgba(255, 199, 0, 0.18); }
+
+/* Pilcrow anchor links — hidden until parent is hovered */
+.pilcrow { color: #d1d5db; text-decoration: none; font-weight: 400; margin-left: 0.4em; opacity: 0; transition: opacity 0.15s; }
+h2:hover .pilcrow, h3:hover .pilcrow, .finding-title:hover .pilcrow { opacity: 1; }
+.pilcrow:hover { color: #6b7280; text-decoration: none; }
+
+/* Fix label */
+.fix-label { font-weight: 700; }
+
+/* Agent retro summary table */
+.retro-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.9rem; table-layout: fixed; }
+.retro-table th, .retro-table td { padding: 0.45rem 0.7rem; border: 1px solid #e5e7eb; text-align: left; }
+.retro-table th { background: #f3f4f6; font-weight: 600; }
+.retro-table tr:nth-child(even) { background: #f9fafb; }
+
+/* Supply-chain Summary table — first column gets breathing room,
+ * numeric middle columns center, header keeps its label on one line. */
+.summary-table { width: 100%; border-collapse: collapse; margin: 0.4rem 0 0.8rem; font-size: 0.92rem; }
+.summary-table th, .summary-table td {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #d5d9e0;
+  vertical-align: top;
+  text-align: left;
+}
+.summary-table th { background: rgba(255, 255, 255, 0.65); font-weight: 600; white-space: nowrap; }
+.summary-table td:first-child { min-width: 11rem; white-space: nowrap; }
+.summary-table th:not(:first-child):not(:last-child),
+.summary-table td:not(:first-child):not(:last-child) { text-align: center; }
+
+/* Lists and paragraphs inside cards */
+.card ul, .card ol { margin: 0.4rem 0; padding-left: 1.5rem; }
+.card li { margin-bottom: 0.3rem; }
+.card p { margin: 0.5rem 0; }
+.card p:first-child { margin-top: 0; }
+
+/* Supply-chain issue rows — used by issueList for bullets that
+ * uniformly start with a `file:line` reference. The location renders
+ * in a dark bar above the description so the eye picks up the path
+ * separately from the prose. */
+.issue-list { margin: 0.6rem 0; }
+.issue-row {
+  margin-bottom: 0.7rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.55);
+}
+.issue-loc {
+  background: #2d333b;
+  color: #adbac7;
+  padding: 0.3rem 0.7rem;
+  font-family: "SF Mono", "Fira Code", Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+}
+.issue-loc a { color: #7ee787; text-decoration: none; }
+.issue-loc a:hover { text-decoration: underline; }
+.issue-loc code { background: none; padding: 0; color: inherit; font-size: 1em; }
+.issue-desc { padding: 0.55rem 0.8rem; }
+.issue-desc code { font-size: 0.85em; }
+
+/* Verdict highlight in metadata table */
+.verdict { font-weight: 700; }
+
+/* GitHub reference tooltips — shown on hover for #N links */
+.gh-tooltip {
+  position: absolute;
+  background: #1f2328;
+  color: #e6edf3;
+  padding: 0.55em 0.75em;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 380px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.28);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.gh-tooltip-state {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  margin-right: 0.4em;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+.gh-state-open { background: #238636; color: #fff; }
+.gh-state-closed { background: #848d97; color: #fff; }
+.gh-state-merged { background: #8957e5; color: #fff; }
+.gh-tooltip-title { vertical-align: baseline; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body { padding: 1rem 0.5rem; }
+  .card { padding: 0.9rem 1rem; }
+  pre code { font-size: 0.72rem; }
+}
+
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Deep Review: 20260519-103443-pr-355</h1>
+
+    <table class="meta-table">
+      <tr><td>Date</td><td>2026-05-19 10:45</td></tr>
+      <tr><td>Repo</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon">rancher-sandbox/rancher-desktop-daemon</a></td></tr>
+      <tr><td>Round</td><td>1</td></tr>
+      <tr><td>Author</td><td><a href="https://github.com/mook-as">@mook-as</a></td></tr>
+      <tr><td>PR</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/355" class="gh-ref" data-title="K3s: Use a dynamic port" data-state="open" data-type="pr">#355</a> — K3s: Use a dynamic port</td></tr>
+      <tr><td>Branch</td><td><code>mook-as:dynamic-k3s-port</code></td></tr>
+      <tr><td>Commits</td><td><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/commit/2db5c92"><code>2db5c92</code></a> K3s: Use a dynamic port</td></tr>
+      <tr><td>Reviewers</td><td><span class="pill pill-claude">Claude</span> Opus 4.7 (effort: xhigh), <span class="pill pill-codex">Codex</span> GPT 5.5 (effort: xhigh), <span class="pill pill-gemini">Gemini</span> 3.1 Pro (effort: default)</td></tr>
+      <tr><td>Verdict</td><td><span class="verdict">Merge with fixes</span> &mdash; one Important correctness gap (non-SSA status update violates this file&#39;s own concurrent-writer contract) plus a port-staleness window that breaches <code>ResolvePort</code>&#39;s documented contract. Test coverage and several smaller polish items follow.</td></tr>
+      <tr><td>Wall-clock time</td><td><code>14 min 20 s</code></td></tr>
+    </table>
+
+    <hr>
+
+    <hr>
+    <h2 id="critical-issues" class="section-critical">Critical Issues <a href="#critical-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-critical">
+    <p>None.</p>
+    </div>
+    <hr>
+    <h2 id="important-issues" class="section-important">Important Issues <a href="#important-issues" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-important">
+      <div class="finding-title" id="I1">
+        <span class="finding-num">I1.</span> Non-SSA <code>Status().Update</code> on App violates the concurrent-writer contract <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#I1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L225-L246">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="225" data-line="230-241"><code class="language-go">	limaVMErr := r.Get(ctx, client.ObjectKey{Name: limaVMName, Namespace: namespace}, limaVM)
+	if limaVMErr != nil &amp;&amp; !apierrors.IsNotFound(limaVMErr) {
+		return ctrl.Result{}, limaVMErr
+	}
+
+	// If the Kubernetes port is not set, set it first.
+	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Status.KubernetesPort == 0 {
+		app.Status.KubernetesPort, err = controllers.ResolvePort(ctx, 7441+instance.Index())
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to resolve Kubernetes port: %w&quot;, err)
+		}
+		if err := r.Status().Update(ctx, &amp;app); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to update App status: %w&quot;, err)
+		}
+		// The status update causes a requeue.
+		return ctrl.Result{}, nil
+	}
+
+	if apierrors.IsNotFound(limaVMErr) {
+		template, err := applySpecToTemplate(r.LimaTemplateData, app.Spec, app.Status)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to apply spec to template: %w&quot;, err)</code></pre>
+    <p><code>App.Status</code> has multiple concurrent writers — <code>AppReconciler</code> mirrors LimaVM conditions and <code>EngineReconciler.setEngineCondition</code> writes <code>ContainerEngineReady</code> on the same object. The file&#39;s own later condition update at line 371 spells this out and uses <code>retry.RetryOnConflict</code> with a re-Get for exactly this reason. The new code reuses the <code>app</code> value fetched at line 136 and calls a bare <code>r.Status().Update</code>. When <code>EngineReconciler</code> lands a write between those two points, the API server returns 409, the reconcile errors out, controller-runtime requeues, and the next pass re-runs <code>ResolvePort</code> from scratch — opening and closing a fresh listener each time. The recovery path works, but the port can churn under contention, and the pattern is exactly what the rest of the file is structured to avoid.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L131-L141">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="131" data-line="136"><code class="language-go">// The app controller is a cluster-scoped singleton - only one instance named &#39;app&#39; is allowed.
+func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
+
+	var app v1alpha1.App
+	if err := r.Get(ctx, client.ObjectKey{Name: appName}, &amp;app); err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.Error(err, &quot;Unable to fetch App singleton&quot;)
+		}
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L366-L376">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="366" data-line="371"><code class="language-go">	// app&#39;s resourceVersion from the initial Get can be stale.
+	// retry.RetryOnConflict + re-Get matches
+	// EngineReconciler.setEngineCondition; without it, concurrent
+	// writers 409-loop through controller-runtime requeues.
+	engineEnabled := r.engineEnabled(ctx)
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latest := &amp;v1alpha1.App{}
+		if err := r.Get(ctx, client.ObjectKeyFromObject(&amp;app), latest); err != nil {
+			return err
+		}
+		changed := false</code></pre>
+    <p>Fix: mirror the existing pattern.</p>
+      <pre><code class="language-diff"> // If the Kubernetes port is not set, set it first.
+ if app.Spec.Kubernetes.Enabled &amp;&amp; app.Status.KubernetesPort == 0 {
+-    app.Status.KubernetesPort, err = controllers.ResolvePort(ctx, 7441+instance.Index())
++    port, err := controllers.ResolvePort(ctx, 7441+instance.Index())
+     if err != nil {
+         return ctrl.Result{}, fmt.Errorf(&quot;failed to resolve Kubernetes port: %w&quot;, err)
+     }
+-    if err := r.Status().Update(ctx, &amp;app); err != nil {
++    if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
++        latest := &amp;v1alpha1.App{}
++        if err := r.Get(ctx, client.ObjectKey{Name: appName}, latest); err != nil {
++            return err
++        }
++        if latest.Status.KubernetesPort != 0 {
++            return nil
++        }
++        latest.Status.KubernetesPort = port
++        return r.Status().Update(ctx, latest)
++    }); err != nil {
+         return ctrl.Result{}, fmt.Errorf(&quot;failed to update App status: %w&quot;, err)
+     }
+     // The status update causes a requeue.
+     return ctrl.Result{}, nil
+ }</code></pre>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I2">
+        <span class="finding-num">I2.</span> Port probe runs minutes before the actual bind, well past <code>ResolvePort</code>&#39;s documented contract <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#I2" class="pilcrow">&#182;</a>
+      </div>
+    <p><code>ResolvePort</code> opens a <code>127.0.0.1:desired</code> listener, closes it immediately, and returns the port. Its own godoc warns the caller to <em>&quot;call this immediately before the port is needed to minimize the window between releasing and rebinding&quot;</em> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/service/controllers/ports.go#L14-L18"><code>pkg/service/controllers/ports.go:14-18</code></a>). Here, <code>AppReconciler</code> calls it on first reconcile, persists the result to <code>Status</code>, requeues, then on a later reconcile creates the input <code>ConfigMap</code>, creates the <code>LimaVM</code>, and only minutes later — once Lima provisions the VM and sets up port forwarding — does anything bind the host port. Between the close and the bind, any other process on the host can take the port. Lima&#39;s <code>portForwards</code> block (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/lima-template.yaml#L13-L21"><code>pkg/controllers/app/app/lima-template.yaml:13-21</code></a>) uses <code>hostPortRange: [0, 0]</code> to mirror the guest port, so a stolen port causes Lima to land on a different host port than the value in <code>App.Status.KubernetesPort</code>. The kubeconfig probe then writes a config pointing at a port no one is serving.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/service/controllers/ports.go#L9-L23">pkg/service/controllers/ports.go</a></div>
+      <pre data-start="9" data-line="14-18"><code class="language-go">	&quot;fmt&quot;
+	&quot;net&quot;
+	&quot;strconv&quot;
+)
+
+// ResolvePort binds a TCP port on localhost to confirm availability. If the
+// desired port is occupied, the OS assigns a random port instead. The listener
+// is closed before returning so the caller can rebind it. Call this immediately
+// before the port is needed to minimize the window between releasing and
+// rebinding.
+func ResolvePort(ctx context.Context, desired int) (int, error) {
+	lc := net.ListenConfig{}
+	ln, err := lc.Listen(ctx, &quot;tcp&quot;, &quot;127.0.0.1:&quot;+strconv.Itoa(desired))
+	if err != nil {
+		ln, err = lc.Listen(ctx, &quot;tcp&quot;, &quot;127.0.0.1:0&quot;)</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/lima-template.yaml#L8-L26">pkg/controllers/app/app/lima-template.yaml</a></div>
+      <pre data-start="8" data-line="13-21"><code class="language-yaml">firmware:
+  legacyBIOS: false
+containerd:
+  system: false
+  user: false
+portForwards:
+- guestIPMustBeZero: true
+  guestPortRange:
+  - 1
+  - 65535
+  hostIP: 0.0.0.0
+  hostPortRange:
+  - 0
+  - 0
+- guestPortRange:
+  - 0
+  - 0
+  guestSocket: /var/run/docker.sock
+  hostPortRange:</code></pre>
+    <p>Fix: tighten the resolve/bind window — move the resolve into the component that actually binds, or have that component report the actual host port back to status and treat <code>App.Status.KubernetesPort</code> as observed rather than intended. Short of that, document the contract breach on the field and on the resolve call so a future reader knows the stored port is advisory.</p>
+    </div>
+    <div class="card card-important">
+      <div class="finding-title" id="I3">
+        <span class="finding-num">I3.</span> No tests for the new port-resolution branch or <code>applySpecToTemplate</code> parameter <span class="pill pill-claude">Claude</span><a href="#I3" class="pilcrow">&#182;</a>
+      </div>
+    <p>The existing tests cover <code>computeSettledCondition</code> and <code>engineEnabled</code> only. The PR adds:</p>
+    <ul>
+      <li>A new control-flow branch (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L230-L241"><code>pkg/controllers/app/app/controllers/app_controller.go:230-241</code></a>) that fires only when <code>Spec.Kubernetes.Enabled</code> is true and <code>Status.KubernetesPort == 0</code>. Subsequent reconciles skip it, so an envelope-test that simply runs <code>Reconcile</code> twice will not exercise it.</li>
+      <li>A new parameter on <code>applySpecToTemplate</code> and a new template line (<code>KUBERNETES_PORT: %d</code>) emitted at two call sites (lines 244 and 328).</li>
+    </ul>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L225-L246">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="225" data-line="230-241"><code class="language-go">	limaVMErr := r.Get(ctx, client.ObjectKey{Name: limaVMName, Namespace: namespace}, limaVM)
+	if limaVMErr != nil &amp;&amp; !apierrors.IsNotFound(limaVMErr) {
+		return ctrl.Result{}, limaVMErr
+	}
+
+	// If the Kubernetes port is not set, set it first.
+	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Status.KubernetesPort == 0 {
+		app.Status.KubernetesPort, err = controllers.ResolvePort(ctx, 7441+instance.Index())
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to resolve Kubernetes port: %w&quot;, err)
+		}
+		if err := r.Status().Update(ctx, &amp;app); err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to update App status: %w&quot;, err)
+		}
+		// The status update causes a requeue.
+		return ctrl.Result{}, nil
+	}
+
+	if apierrors.IsNotFound(limaVMErr) {
+		template, err := applySpecToTemplate(r.LimaTemplateData, app.Spec, app.Status)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to apply spec to template: %w&quot;, err)</code></pre>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller_test.go#L239-L244">pkg/controllers/app/app/controllers/app_controller_test.go</a></div>
+      <pre data-start="239" data-line="244"><code class="language-go">
+			r := &amp;AppReconciler{Discovery: tt.discovery}
+			assert.Equal(t, r.engineEnabled(t.Context()), tt.want)
+		})
+	}
+}</code></pre>
+    <p>Neither has unit coverage, and no BATS test asserts that <code>app.status.kubernetesPort</code> settles on a sensible value after first reconcile or that the rendered template contains the expected port. The function <code>applySpecToTemplate</code> is pure and easy to cover with a table-driven test on golden output; the reconcile branch is straightforward to cover with the existing fake-client setup.</p>
+    <p>Fix: add a table-driven unit test for <code>applySpecToTemplate</code> asserting <code>KUBERNETES_PORT: &lt;n&gt;</code> for representative inputs (Kubernetes enabled with port set; Kubernetes disabled with port 0), plus a reconciler test that drives the first-reconcile branch and asserts <code>Status.KubernetesPort</code> becomes non-zero. A BATS check that reads <code>app.status.kubernetesPort</code> and <code>curl</code>s the published port for a TLS handshake would close the integration gap.</p>
+    </div>
+    <hr>
+    <h2 id="suggestions" class="section-suggestion">Suggestions <a href="#suggestions" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S1">
+        <span class="finding-num">S1.</span> Pass <code>kubernetesPort</code>, not the whole <code>AppStatus</code>, to <code>applySpecToTemplate</code> <span class="pill pill-claude">Claude</span><a href="#S1" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L89-L115">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="89" data-line="94-110"><code class="language-go">		return true
+	}
+	return slices.Contains(enabled, v1alpha1.EngineControllerName)
+}
+
+func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec, status v1alpha1.AppStatus) (string, error) {
+	hostHome, err := os.UserHomeDir()
+	if err != nil {
+		return &quot;&quot;, fmt.Errorf(&quot;failed to get host home directory: %w&quot;, err)
+	}
+	return strings.Join([]string{
+		baseTemplate,
+		&quot;param:&quot;,
+		fmt.Sprintf(&quot;  CONTAINER_ENGINE: %s&quot;, spec.ContainerEngine.Name),
+		fmt.Sprintf(&quot;  HOST_DOCKER_SOCKET: %q&quot;, instance.DockerSocket()),
+		fmt.Sprintf(&quot;  HOST_HOME_GUEST: %q&quot;, toLinuxPath(hostHome)),
+		fmt.Sprintf(&quot;  KUBERNETES_ENABLED: %v&quot;, spec.Kubernetes.Enabled),
+		fmt.Sprintf(&quot;  KUBERNETES_VERSION: %s&quot;, spec.Kubernetes.Version),
+		fmt.Sprintf(&quot;  KUBERNETES_PORT: %d&quot;, status.KubernetesPort),
+		&quot;&quot;,
+	}, &quot;\n&quot;), nil
+}
+
+// toLinuxPath converts a host path to a Linux-accessible path inside a Lima VM.
+// On Windows, os.UserHomeDir() returns a Windows path (e.g. C:\Users\foo).
+// Inside a WSL2 Lima VM the Windows filesystem is mounted at /mnt/&lt;drive&gt;/...,
+// so we convert it to WSL2 supported path. On other platforms the path is returned unchanged.</code></pre>
+    <p><code>AppStatus</code> carries <code>Conditions []metav1.Condition</code> plus the new <code>KubernetesPort int</code>. The function uses only the latter. The wider signature invites a future reader to wonder whether conditions are intentionally baked into the template, and forces the signature to drift every time an unrelated status field is added.</p>
+      <pre><code class="language-diff">-func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec, status v1alpha1.AppStatus) (string, error) {
++func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec, kubernetesPort int) (string, error) {
+     ...
+-    fmt.Sprintf(&quot;  KUBERNETES_PORT: %d&quot;, status.KubernetesPort),
++    fmt.Sprintf(&quot;  KUBERNETES_PORT: %d&quot;, kubernetesPort),</code></pre>
+    <p>Update both call sites (lines 244 and 328) to pass <code>app.Status.KubernetesPort</code>.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L239-L249">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="239" data-line="244"><code class="language-go">		// The status update causes a requeue.
+		return ctrl.Result{}, nil
+	}
+
+	if apierrors.IsNotFound(limaVMErr) {
+		template, err := applySpecToTemplate(r.LimaTemplateData, app.Spec, app.Status)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to apply spec to template: %w&quot;, err)
+		}
+		inputCM := &amp;corev1.ConfigMap{}
+		cmErr := r.Get(ctx, client.ObjectKey{Name: inputConfigMapName, Namespace: namespace}, inputCM)</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S2">
+        <span class="finding-num">S2.</span> Stored port is sticky across <code>kubernetes.enabled</code> toggle cycles <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <span class="pill pill-gemini">Gemini</span><a href="#S2" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/controllers/app_controller.go#L226-L236">pkg/controllers/app/app/controllers/app_controller.go</a></div>
+      <pre data-start="226" data-line="231"><code class="language-go">	if limaVMErr != nil &amp;&amp; !apierrors.IsNotFound(limaVMErr) {
+		return ctrl.Result{}, limaVMErr
+	}
+
+	// If the Kubernetes port is not set, set it first.
+	if app.Spec.Kubernetes.Enabled &amp;&amp; app.Status.KubernetesPort == 0 {
+		app.Status.KubernetesPort, err = controllers.ResolvePort(ctx, 7441+instance.Index())
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf(&quot;failed to resolve Kubernetes port: %w&quot;, err)
+		}
+		if err := r.Status().Update(ctx, &amp;app); err != nil {</code></pre>
+    <p>The guard re-resolves only when <code>KubernetesPort == 0</code>. A user who enables Kubernetes (port resolves to 7443), disables it, and re-enables it minutes later re-uses the stored 7443 with no check that the host port is still free. Combined with the I2 staleness window, this lets the stored port drift arbitrarily far from reality. Either zero <code>KubernetesPort</code> on the <code>enabled</code> true→false transition so the next enable resolves fresh, or document the stickiness in the field&#39;s godoc so a future kubeconfig-merge feature can surface the discrepancy when Lima ends up forwarding to a different host port.</p>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S3">
+        <span class="finding-num">S3.</span> <code># $PARAM_KUBERNETES_PORT</code> validation-marker comment is opaque and fragile <span class="pill pill-claude">Claude</span><a href="#S3" class="pilcrow">&#182;</a>
+      </div>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/lima-template.yaml#L30-L41">pkg/controllers/app/app/lima-template.yaml</a></div>
+      <pre data-start="30" data-line="35-36"><code class="language-yaml">provision:
+- mode: system
+  script: |
+    #!/bin/bash
+
+    # All param need to be mentioned for Lima validation.
+    # $PARAM_KUBERNETES_PORT
+
+    set -o errexit -o nounset -o pipefail -o xtrace
+
+    systemctl stop rancher-desktop.target
+</code></pre>
+    <p>The existing line is already terse; combined with a comment that looks like a stub variable reference, a future reader has to guess what <code># $PARAM_KUBERNETES_PORT</code> is doing there. The pattern is also brittle: anyone adding a new param has to remember to add a matching marker comment, even though the <code>for p in &quot;${!PARAM_@}&quot;</code> loop below would otherwise pick it up automatically.</p>
+      <pre><code class="language-diff">-    # All param need to be mentioned for Lima validation.
+-    # $PARAM_KUBERNETES_PORT
++    # Lima validates that every declared `param:` entry is referenced somewhere
++    # in the template. The loop below uses bash indirection that Lima&#39;s static
++    # scanner cannot see, so list any params consumed only via ${!PARAM_@} here:
++    #   $PARAM_KUBERNETES_PORT</code></pre>
+    </div>
+    <div class="card card-suggestion">
+      <div class="finding-title" id="S4">
+        <span class="finding-num">S4.</span> Design docs still describe the API as hardcoded <code>6443</code> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span><a href="#S4" class="pilcrow">&#182;</a>
+      </div>
+    <p><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/docs/design/networking.md#L185"><code>docs/design/networking.md:185</code></a> reads:</p>
+    <p>&gt; - <strong>Kubernetes port forwarding</strong>: Pre-forward <code>127.0.0.1:6443</code> to <code>192.168.127.2:6443</code> so <code>kubectl</code> on the host reaches the K8s API inside the VM.</p>
+    <p>The future-work item still names <code>6443</code>, contradicting the PR. <code>docs/design/api_app.md</code>&#39;s App status example (lines 66-85) shows only <code>conditions</code> — no <code>kubernetesPort</code>, even though the field is now part of the documented API surface.</p>
+      <div class="code-file-header"><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/docs/design/networking.md#L61-L90">docs/design/networking.md</a></div>
+      <pre data-start="61" data-line="66-85"><code class="language-plaintext">
+    Note over HS: Match found for GUID-A
+```
+
+The registry is rescanned every second because `startHostSwitch` runs before the hostagent boots the WSL2 VM. On a fresh system where no other WSL2 distro is running, the utility VM may not yet appear in the registry when the first scan runs.
+
+The signature phrase is `&quot;github.com/rancher-sandbox/rancher-desktop/src/go/networking&quot;`. This is a fixed protocol constant shared between host-switch and the guest&#39;s `network-setup` binary. Because the signature is product-wide rather than per-instance, this discovery assumes only one opensuse WSL2 instance runs at a time.
+
+### Phase 2: Data Channel (port 6656)
+
+After identifying the VM, the host-switch creates a listener and signals readiness.
+
+```mermaid
+sequenceDiagram
+    participant HS as Host-Switch
+    participant NS as network-setup (guest)
+    participant VS as vm-switch (guest)
+
+    HS-&gt;&gt;HS: Listen on vsock port 6656
+    HS-&gt;&gt;NS: Dial port 6669, send &quot;READY&quot;
+    NS-&gt;&gt;NS: Connect to vsock port 6656
+    NS-&gt;&gt;VS: Spawn vm-switch (pass vsock FD)
+    VS-&gt;&gt;VS: Create TAP device (eth0)
+    VS-&gt;&gt;HS: Ethernet frames over vsock
+    HS-&gt;&gt;VS: Ethernet frames over vsock
+```
+
+Ethernet frames use a simple framing protocol: a 2-byte little-endian size prefix followed by the raw frame payload.
+
+## Virtual Network Services</code></pre>
+    <p>Update the networking bullet to refer to <code>App.Status.KubernetesPort</code> (or <code>7441+index</code>) and add <code>kubernetesPort: &lt;n&gt;</code> plus a one-line description to the api_app.md status example.</p>
+    </div>
+    <hr>
+    <h2 id="design-observations" class="section-design">Design Observations <a href="#design-observations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-design">
+    <h3 id="concerns">Concerns <a href="#concerns" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li><strong>Host-port reservation is advisory but is treated as authoritative.</strong> <code>(in-scope)</code> <span class="pill pill-claude">Claude</span> <span class="pill pill-codex">Codex</span> <code>ResolvePort</code> opens and immediately closes a TCP listener. Nothing between that close and Lima&#39;s actual bind prevents another process from taking the port. Until this PR, the helper&#39;s callers all bound the port directly from the same goroutine. This PR is the first caller whose stored value is the user-facing port and whose binding component (Lima&#39;s hostagent) lives elsewhere. The split between &quot;who chose the port&quot; and &quot;who binds the port&quot; is the root of I2 and S2 and is worth re-evaluating at the design level — either the binding component should choose, or <code>App.Status.KubernetesPort</code> should be marked as observed rather than intended.</li>
+      <li><em></em><code>KUBERNETES_PORT=0</code> is written to <code>/etc/sysconfig/rancher-desktop</code> whenever Kubernetes is disabled.<em></em> <code>(future)</code> <span class="pill pill-claude">Claude</span> When <code>Spec.Kubernetes.Enabled == false</code>, the block at lines 230-241 is skipped, <code>Status.KubernetesPort</code> stays at zero, and <code>applySpecToTemplate</code> still emits <code>KUBERNETES_PORT: 0</code>. Today this is latent — the k3s <code>command-override.conf</code> consuming the value is gated by the systemd <code>ExecCondition</code> on <code>KUBERNETES_ENABLED</code>, so <code>0</code> never reaches <code>--https-listen-port</code>. A future systemd unit that reads <code>KUBERNETES_PORT</code> without also gating on <code>KUBERNETES_ENABLED</code> would silently misbehave. Either omit <code>KUBERNETES_PORT</code> from the emitted block when Kubernetes is disabled, or document the contract on the field.</li>
+    </ul>
+    <h3 id="strengths">Strengths <a href="#strengths" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li>The set-status-then-requeue structure at lines 230-241 keeps port resolution idempotent and out of the same write that creates the LimaVM, so a transient API-server failure cannot leave the system half-configured. <span class="pill pill-claude">Claude</span></li>
+      <li>Both call sites of <code>applySpecToTemplate</code> (lines 244 and 328) were updated together, keeping the steady-state template-update path and the first-time creation path consistent on what data feeds the template. <span class="pill pill-claude">Claude</span></li>
+      <li>Storing the selected port in App status gives CLI and UI consumers a single observable API field, once the staleness window in I2 is tightened. <span class="pill pill-codex">Codex</span></li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="testing-assessment">Testing Assessment <a href="#testing-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>Untested scenarios, highest risk first:</p>
+    <ol>
+      <li>First reconcile with <code>Spec.Kubernetes.Enabled=true</code> writes <code>Status.KubernetesPort</code> and requeues without creating the LimaVM (I3, the new branch at lines 230-241).</li>
+      <li><code>applySpecToTemplate</code> honours <code>status.KubernetesPort</code> in the emitted template (pure function, no current test).</li>
+      <li>Concurrent-writer race: <code>EngineReconciler.setEngineCondition</code> updates a condition between the <code>Get</code> at line 136 and the <code>Status().Update</code> at line 236; today&#39;s code returns an error and is requeued (I1).</li>
+      <li><code>applySpecToTemplate</code> when <code>Spec.Kubernetes.Enabled=false</code> and <code>Status.KubernetesPort=0</code> — verify the template still parses and the embedded <code>KUBERNETES_PORT: 0</code> does not break downstream consumers.</li>
+      <li><code>kubernetes.enabled</code> toggle cycles — disable then re-enable does not re-resolve the port (S2).</li>
+      <li>End-to-end: rendered Lima template, generated kubeconfig, and <code>App.Status</code> all agree on the selected fallback port when 7441+index is occupied.</li>
+    </ol>
+    <p><code>go test ./pkg/controllers/app/app/controllers</code> passes on the PR SHA.</p>
+    </div>
+    <hr>
+    <h2 id="documentation-assessment">Documentation Assessment <a href="#documentation-assessment" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/docs/design/networking.md#L185"><code>docs/design/networking.md:185</code></a> still names the old hardcoded <code>6443</code> (S4).</li>
+      <li><code>docs/design/api_app.md</code> shows an App status example without <code>kubernetesPort</code> (S4).</li>
+      <li>The new <code>KubernetesPort</code> godoc in <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/apis/app/v1alpha1/app_types.go#L106-L109"><code>pkg/apis/app/v1alpha1/app_types.go:106-109</code></a> is accurate but minimal. One additional sentence noting that the value is the <em>host</em> port resolved on first reconcile (not re-checked per reconcile) and that it is set only once when <code>kubernetes.enabled</code> first goes true would close the documentation half of S2.</li>
+      <li><a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/blob/2db5c92818544a6996e23ea57812b68198918833/pkg/controllers/app/app/lima-template.yaml#L35-L36"><code>pkg/controllers/app/app/lima-template.yaml:35-36</code></a> validation-marker comment is opaque (S3).</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="commit-structure">Commit Structure <a href="#commit-structure" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p>The PR is a single commit (<code>2db5c92 K3s: Use a dynamic port</code>); the diff is self-contained. No fixup history, no scope creep.</p>
+    </div>
+    <hr>
+    <h2 id="acknowledged-limitations">Acknowledged Limitations <a href="#acknowledged-limitations" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <p><strong>PR review comment (resolved):</strong></p>
+    <ul>
+      <li><code>pkg/controllers/app/app/lima-template.yaml</code> — @Nino-K asked whether <code>HOST_HOME_GUEST</code> needed shell quoting when it contains quotes, and suggested <code>%q</code> instead of <code>%s</code> (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/355#discussion_r3249796148">discussion r3249796148</a>). @mook-as agreed and the current diff uses <code>printf &#39;%s=%q\n&#39; &quot;${p#PARAM_}&quot; &quot;${!p}&quot;</code> for every PARAM (<a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/pull/355#discussion_r3249928003">discussion r3249928003</a>). The amendment is in-tree.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="unresolved-feedback">Unresolved Feedback <a href="#unresolved-feedback" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <ul>
+      <li>General comment from @mook-as on the PR: *&quot;I don&#39;t understand why BATS is failing on Windows, that looks unrelated. But it&#39;s passing fine on <code>main</code>, so it&#39;s <em>probably</em> to do with the PR?&quot;* The current CI snapshot for PR <a href="https://github.com/rancher-sandbox/rancher-desktop-daemon/issues/355" class="gh-ref" data-title="K3s: Use a dynamic port" data-state="open" data-type="pr">#355</a> shows all Windows BATS jobs (<code>bats-app</code>, <code>bats-lima</code>, <code>bats-others</code>) passing, so whatever blocked an earlier push appears resolved. No additional commit explains the recovery. Worth a one-line acknowledgement on the PR before merge so the comment does not look like an unresolved concern.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="agent-performance-retro">Agent Performance Retro <a href="#agent-performance-retro" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="claude"><span class="pill pill-claude">Claude</span> <a href="#claude" class="pilcrow">&#182;</a></h3>
+    <p>Strongest performance this round. Caught every Important finding raised by any agent, contributed the only test-coverage finding (I3), and added three of the four Suggestions on its own (S1 function-signature cohesion, S3 cryptic marker comment, S4 docs reconciliation). Framed the host-port-reservation race as a design observation rather than an Important — defensible, since the race predates this PR — and complemented the framing with the explicit <code>KUBERNETES_PORT=0</code>-when-disabled observation no other agent surfaced. Worth highlighting: Claude&#39;s I1 fix sketch is a drop-in replacement that another reviewer could land verbatim, including an idempotency guard (<code>if latest.Status.KubernetesPort != 0 { return nil }</code>) the other agents&#39; fixes omit.</p>
+    <h3 id="codex"><span class="pill pill-codex">Codex</span> <a href="#codex" class="pilcrow">&#182;</a></h3>
+    <p>Crisp and accurate. Two Important findings (I1 status-update pattern, I2 port-staleness window) both verified against the code, with citations into the engine reconciler&#39;s own <code>RetryOnConflict</code> block and the <code>ResolvePort</code> godoc; the I1 fix cites the exact line of the comparable retry block. Codex&#39;s I2 uniquely bundled the disable/re-enable staleness angle (Claude split it out as S2) — the bundled framing is reasonable but the split is clearer for tracking fixes. No false positives, no severity downgrades. Codex also ran <code>go test ./pkg/controllers/app/app/controllers</code> directly to confirm the type change compiles.</p>
+    <h3 id="gemini"><span class="pill pill-gemini">Gemini</span> <a href="#gemini" class="pilcrow">&#182;</a></h3>
+    <p>Two false positives ate most of the signal. C1 claimed K3s never sees the dynamic port because <code>/etc/sysconfig/rancher-desktop</code> is not sourced — wrong: the rancher-desktop-opensuse image&#39;s <code>k3s.service.d/{environment,command-override}.conf</code> source it and use <code>$KUBERNETES_PORT</code> as <code>--https-listen-port</code>. The image lives in a sibling repo that Gemini did not have access to, but the I-just-checked-the-image-side gap was missed, and the framing escalated a &quot;I cannot see the image side&quot; gap to a Critical regression. I1 (<code>%q</code> breaking systemd parsing as the root cause of Windows BATS failure) is also wrong: the current PR&#39;s Windows BATS jobs all pass, and the only env-file values actually consumed by systemd services (<code>CONTAINER_ENGINE</code>, <code>KUBERNETES_ENABLED</code>, <code>KUBERNETES_PORT</code>) have no characters <code>%q</code> would quote, so there is no observable bug. C2 (non-SSA status update) and I2 (port-probe race) reduced to the same Important findings as the other two agents — useful corroboration but no unique insight. As expected from the repo context, Gemini also did not run <code>git blame</code>.</p>
+    <h3 id="summary">Summary <a href="#summary" class="pilcrow">&#182;</a></h3>
+    <table class="retro-table">
+      <thead><tr><th></th><th><span class="pill pill-claude">Claude</span> Opus 4.7</th><th><span class="pill pill-codex">Codex</span> GPT 5.5</th><th><span class="pill pill-gemini">Gemini</span> 3.1 Pro</th></tr></thead>
+      <tbody>
+        <tr><td>Duration</td><td>8m 48s</td><td>7m 12s</td><td>—</td></tr>
+        <tr><td>Findings</td><td>2I 4S</td><td>2I 1S</td><td>1I</td></tr>
+        <tr><td>Tool calls</td><td>41 (Grep 20, Read 12, Bash 8)</td><td>45 (shell 45)</td><td>—</td></tr>
+        <tr><td>Design observations</td><td>2</td><td>1</td><td>1</td></tr>
+        <tr><td>False positives</td><td>0</td><td>0</td><td>2</td></tr>
+        <tr><td>Unique insights</td><td>3</td><td>0</td><td>0</td></tr>
+        <tr><td>Files reviewed</td><td>4</td><td>4</td><td>4</td></tr>
+        <tr><td>Coverage misses</td><td>0</td><td>0</td><td>0</td></tr>
+        <tr><td><strong>Totals</strong></td><td><strong>2I 4S</strong></td><td><strong>2I 1S</strong></td><td><strong>1I</strong></td></tr>
+        <tr><td>Downgraded</td><td>0</td><td>0</td><td>1 (I→S)</td></tr>
+        <tr><td>Dropped</td><td>0</td><td>0</td><td>2</td></tr>
+      </tbody>
+    </table>
+    <p>Claude was the most valuable reviewer this round — every finding it raised survived consolidation, and three of the seven consolidated findings (I3, S1, S3) were unique to it. Codex was a clean, accurate second reviewer that corroborated Claude&#39;s correctness work and contributed the precise <code>EngineReconciler</code> citation for I1&#39;s fix. Gemini&#39;s contribution after dropping its two false positives is best summarised as &quot;corroborated what the other two already had&quot;; the false-positive cost (one Critical, one Important) was high relative to the unique signal added.</p>
+    <p><strong>Reconciliation</strong></p>
+    <ul>
+      <li>Gemini C1 (K3s ignores dynamically allocated port): dropped as false positive. The downstream consumer in the rancher-desktop-opensuse image already sources <code>/etc/sysconfig/rancher-desktop</code> and uses <code>$KUBERNETES_PORT</code>.</li>
+      <li>Gemini I1 (<code>%q</code> breaks systemd parsing as the root cause of Windows BATS failure): dropped as false positive. Current PR Windows BATS jobs all pass, and the systemd-consumed variables (<code>CONTAINER_ENGINE</code>, <code>KUBERNETES_ENABLED</code>, <code>KUBERNETES_PORT</code>) take no characters <code>%q</code> would quote.</li>
+      <li>Gemini C2 (non-SSA status update): downgraded from Critical to Important (I1). The error path requeues, so the failure mode is wasted churn rather than data loss.</li>
+    </ul>
+    </div>
+    <hr>
+    <h2 id="review-process-notes">Review Process Notes <a href="#review-process-notes" class="pilcrow">&#182;</a></h2>
+
+    <div class="card card-neutral">
+    <h3 id="repo-context-updates">Repo context updates <a href="#repo-context-updates" class="pilcrow">&#182;</a></h3>
+    <ul>
+      <li>Add a context entry for the rancher-desktop-opensuse sibling repo and how it consumes <code>/etc/sysconfig/rancher-desktop</code>. When the App controller emits a Lima param that flows into the env file, the consumer is a systemd drop-in in <code>rancher-desktop-opensuse/root/usr/local/lib/systemd/system/*.service.d/{environment,command-override}.conf</code> — not a script inside <code>lima-template.yaml</code>. Reviewers without that context will read the controller-side diff as &quot;the value is written but nothing reads it&quot; and raise a Critical false positive (as happened this round). Suggested wording for <code>deep-review-context.md</code>: *&quot;The rancher-desktop-opensuse image (sibling repo at ../rancher-desktop-opensuse) is the consumer of <code>/etc/sysconfig/rancher-desktop</code>. Each service that needs an env-file value carries a <code>*.service.d/environment.conf</code> drop-in with <code>EnvironmentFile=-/etc/sysconfig/rancher-desktop</code> and a <code>command-override.conf</code> that references the var (e.g., k3s uses <code>$KUBERNETES_PORT</code> for <code>--https-listen-port</code>). When reviewing changes that write to that env file, trace the consumer in the image repo, not in lima-template.yaml.&quot;*</li>
+      <li>Add a context entry for <code>pkg/service/controllers.ResolvePort</code>&#39;s contract. The helper opens a TCP listener on <code>127.0.0.1:desired</code>, closes it immediately, and returns the port. Its godoc says callers must invoke it immediately before binding. The check is also localhost-only and does not detect another process already bound on a specific external IP, so the result is best treated as advisory. Suggested wording: *&quot;<code>controllers.ResolvePort(ctx, desired)</code> is a localhost-only probe that closes the listener before returning, so the result is advisory. Flag callers that persist the result across reconciles or pass it to a binder that runs minutes later — the helper&#39;s godoc requires &quot;immediately before the port is needed&quot;. Also flag use in code paths where the eventual bind happens on a non-loopback interface, since the localhost probe does not see external-interface holders.&quot;*</li>
+    </ul>
+    </div>
+  </main>
+  <script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-go.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-diff.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+  <script>
+/* Deep Review — Prism initialization and line-number wrapping.
+ * Inlined into each generated HTML file by the beautify-review skill.
+ * Runs synchronously at the end of <body> — no event listeners.
+ *
+ * Prerequisite: a preceding <script> must set Prism.manual = true
+ * before the Prism core <script> loads.
+ */
+
+Prism.highlightAll();
+
+document.querySelectorAll('pre[data-start]').forEach(function(pre) {
+  var startLine = parseInt(pre.getAttribute('data-start'), 10) || 1;
+  var hlAttr = pre.getAttribute('data-line') || '';
+
+  /* Parse data-line into a Set of line numbers to highlight.
+   * Accepts comma-separated values: "75,76,77" or ranges: "75-84". */
+  var hlLines = new Set();
+  hlAttr.split(',').forEach(function(part) {
+    part = part.trim();
+    if (!part) return;
+    var m = part.match(/^(\d+)-(\d+)$/);
+    if (m) {
+      for (var i = parseInt(m[1], 10); i <= parseInt(m[2], 10); i++) hlLines.add(i);
+    } else {
+      hlLines.add(parseInt(part, 10));
+    }
+  });
+
+  var code = pre.querySelector('code');
+  if (!code) return;
+
+  var html = code.innerHTML;
+  var lines = html.split('\n');
+  /* Strip a trailing empty line that Prism sometimes leaves. */
+  if (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop();
+
+  var wrapped = lines.map(function(line, idx) {
+    var lineNum = startLine + idx;
+    var cls = 'code-line' + (hlLines.has(lineNum) ? ' line-hl' : '');
+    return '<span class="' + cls + '">' + line + '</span>';
+  });
+
+  /* Join with '' (empty string) — NOT '\n'.
+   * Inside <pre>, newlines are literal whitespace. Since .code-line uses
+   * display: block, joining with '\n' produces double line spacing. */
+  code.innerHTML = wrapped.join('');
+  pre.style.counterReset = 'line ' + (startLine - 1);
+});
+
+/* GitHub reference tooltips — show title and state on hover for #N links.
+ * Links must have class="gh-ref" and data-title set by the generator. */
+document.querySelectorAll('a.gh-ref[data-title]').forEach(function(link) {
+  var tip = null;
+
+  link.addEventListener('mouseenter', function() {
+    if (tip) return;
+    tip = document.createElement('div');
+    tip.className = 'gh-tooltip';
+
+    var state = link.getAttribute('data-state') || '';
+    var type = link.getAttribute('data-type') || 'issue';
+    var label = state.charAt(0).toUpperCase() + state.slice(1).toLowerCase();
+
+    var pill = document.createElement('span');
+    pill.className = 'gh-tooltip-state gh-state-' + state;
+    pill.textContent = label + (type === 'pr' ? ' PR' : '');
+
+    var title = document.createElement('span');
+    title.className = 'gh-tooltip-title';
+    title.textContent = link.getAttribute('data-title');
+
+    tip.appendChild(pill);
+    tip.appendChild(title);
+    document.body.appendChild(tip);
+
+    var rect = link.getBoundingClientRect();
+    var tw = tip.offsetWidth;
+    var th = tip.offsetHeight;
+    var left = rect.left + window.scrollX;
+    var top = rect.top + window.scrollY - th - 8;
+
+    if (left + tw > window.innerWidth - 12) left = window.innerWidth - tw - 12;
+    if (left < 4) left = 4;
+    if (top < window.scrollY + 4) top = rect.bottom + window.scrollY + 8;
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+    tip.style.opacity = '1';
+  });
+
+  link.addEventListener('mouseleave', function() {
+    if (tip) { tip.remove(); tip = null; }
+  });
+});
+
+  </script>
+</body>
+</html>
