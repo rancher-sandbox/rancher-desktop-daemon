@@ -22,8 +22,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	appv1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
@@ -362,7 +365,41 @@ func (r *KubernetesReconciler) setKubeCondition(ctx context.Context, app *appv1a
 // SetupWithManager registers the reconciler with the manager.
 func (r *KubernetesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appv1alpha1.App{}).
+		For(&appv1alpha1.App{}, builder.WithPredicates(debugWatchLogger("kubernetes-reconciler"))).
 		Named("kubernetes-reconciler").
 		Complete(r)
+}
+
+// debugWatchLogger logs every watch event delivered to the controller.
+// Investigation-only; remove once the App-watch silence on test 43 is diagnosed.
+func debugWatchLogger(name string) predicate.Predicate {
+	log := logf.Log.WithName(name + ".watch")
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			log.V(1).Info("create",
+				"name", e.Object.GetName(),
+				"generation", e.Object.GetGeneration(),
+				"resourceVersion", e.Object.GetResourceVersion(),
+			)
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			log.V(1).Info("update",
+				"name", e.ObjectNew.GetName(),
+				"oldGeneration", e.ObjectOld.GetGeneration(),
+				"newGeneration", e.ObjectNew.GetGeneration(),
+				"oldResourceVersion", e.ObjectOld.GetResourceVersion(),
+				"newResourceVersion", e.ObjectNew.GetResourceVersion(),
+			)
+			return true
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			log.V(1).Info("delete", "name", e.Object.GetName())
+			return true
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			log.V(1).Info("generic", "name", e.Object.GetName())
+			return true
+		},
+	}
 }
