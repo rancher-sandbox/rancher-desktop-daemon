@@ -63,12 +63,12 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 
 	var app appv1alpha1.App
 	if err := r.Get(ctx, client.ObjectKey{Name: appName}, &app); err != nil {
-		log.V(1).Info("reconcile: App get failed", "err", err)
+		log.Info("reconcile: App get failed", "err", err)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	running := apimeta.IsStatusConditionTrue(app.Status.Conditions, appv1alpha1.AppConditionRunning)
-	log.V(1).Info("reconcile entered",
+	log.Info("reconcile entered",
 		"k8sEnabled", app.Spec.Kubernetes.Enabled,
 		"running", running,
 		"generation", app.Generation,
@@ -99,7 +99,7 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	healthy, err := probeK3sAPI(ctx)
 	if err != nil {
 		// kubeconfig missing or unreadable — k3s has not started yet.
-		log.V(1).Info("Cannot probe k3s API server", "err", err)
+		log.Info("Cannot probe k3s API server", "err", err)
 		if condErr := r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
 			appv1alpha1.AppKubernetesReasonProbing,
@@ -110,7 +110,7 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
 	}
 	if !healthy {
-		log.V(1).Info("k3s API server not yet healthy")
+		log.Info("k3s API server not yet healthy")
 		if condErr := r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
 			appv1alpha1.AppKubernetesReasonProbing,
@@ -170,13 +170,13 @@ func probeK3sAPI(ctx context.Context) (bool, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		logf.FromContext(ctx).V(1).Info("k3s healthz request failed", "url", cfg.Host+"/healthz", "err", err)
+		logf.FromContext(ctx).Info("k3s healthz request failed", "url", cfg.Host+"/healthz", "err", err)
 		return false, nil
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		logf.FromContext(ctx).V(1).Info("k3s healthz returned non-200", "url", cfg.Host+"/healthz", "status", resp.StatusCode, "body", string(body))
+		logf.FromContext(ctx).Info("k3s healthz returned non-200", "url", cfg.Host+"/healthz", "status", resp.StatusCode, "body", string(body))
 	}
 	return resp.StatusCode == http.StatusOK, nil
 }
@@ -376,7 +376,7 @@ func debugWatchLogger(name string) predicate.Predicate {
 	log := logf.Log.WithName(name + ".watch")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.V(1).Info("create",
+			log.Info("create",
 				"name", e.Object.GetName(),
 				"generation", e.Object.GetGeneration(),
 				"resourceVersion", e.Object.GetResourceVersion(),
@@ -384,7 +384,7 @@ func debugWatchLogger(name string) predicate.Predicate {
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log.V(1).Info("update",
+			log.Info("update",
 				"name", e.ObjectNew.GetName(),
 				"oldGeneration", e.ObjectOld.GetGeneration(),
 				"newGeneration", e.ObjectNew.GetGeneration(),
@@ -394,11 +394,11 @@ func debugWatchLogger(name string) predicate.Predicate {
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.V(1).Info("delete", "name", e.Object.GetName())
+			log.Info("delete", "name", e.Object.GetName())
 			return true
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			log.V(1).Info("generic", "name", e.Object.GetName())
+			log.Info("generic", "name", e.Object.GetName())
 			return true
 		},
 	}

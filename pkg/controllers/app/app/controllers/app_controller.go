@@ -154,7 +154,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log.V(1).Info("reconcile entered",
+	log.Info("reconcile entered",
 		"specRunning", app.Spec.Running,
 		"k8sEnabled", app.Spec.Kubernetes.Enabled,
 		"generation", app.Generation,
@@ -553,7 +553,7 @@ func debugWatchLogger(name string) predicate.Predicate {
 	log := logf.Log.WithName(name + ".watch")
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			log.V(1).Info("create",
+			log.Info("create",
 				"name", e.Object.GetName(),
 				"generation", e.Object.GetGeneration(),
 				"resourceVersion", e.Object.GetResourceVersion(),
@@ -561,7 +561,7 @@ func debugWatchLogger(name string) predicate.Predicate {
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			log.V(1).Info("update",
+			log.Info("update",
 				"name", e.ObjectNew.GetName(),
 				"oldGeneration", e.ObjectOld.GetGeneration(),
 				"newGeneration", e.ObjectNew.GetGeneration(),
@@ -571,11 +571,11 @@ func debugWatchLogger(name string) predicate.Predicate {
 			return true
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.V(1).Info("delete", "name", e.Object.GetName())
+			log.Info("delete", "name", e.Object.GetName())
 			return true
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			log.V(1).Info("generic", "name", e.Object.GetName())
+			log.Info("generic", "name", e.Object.GetName())
 			return true
 		},
 	}
