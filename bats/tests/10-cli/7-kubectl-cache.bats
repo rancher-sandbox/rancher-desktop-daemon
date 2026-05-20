@@ -47,7 +47,7 @@ local_setup_file() {
     export VERSION_STATUS_FILE=${BATS_FILE_TMPDIR}/version-status
     # On MSYS, the server is a native Windows .exe that cannot read
     # MSYS-namespace paths (/tmp/..., /c/...). Convert each path arg
-    # with cygpath. Production rdd never crosses this boundary;
+    # with winpath. Production rdd never crosses this boundary;
     # MSYS_NO_PATHCONV=1 in load.bash leaves URL-like paths alone.
     "${SERVER_BIN}" \
         --root "$(winpath "${MIRROR_ROOT}")" \
@@ -71,6 +71,7 @@ local_setup_file() {
     export PORT
 
     KUBECONFIG_PATH=${BATS_FILE_TMPDIR}/kubeconfig
+    export KUBECONFIG_PATH
     cat >"${KUBECONFIG_PATH}" <<EOF
 apiVersion: v1
 kind: Config
@@ -88,14 +89,20 @@ current-context: fake
 EOF
 
     export CACHE_DIR=${BATS_FILE_TMPDIR}/cache
+}
 
-    # Env vars every test passes to rdd. winpath converts paths to Windows
-    # form on MSYS / WSL (no-op on macOS/Linux).
-    RDD_CACHE_DIR=$(winpath "${CACHE_DIR}")
-    export RDD_CACHE_DIR
-    export RDD_KUBECTL_MIRROR=http://127.0.0.1:${PORT}
-    KUBECONFIG=$(winpath "${KUBECONFIG_PATH}")
-    export KUBECONFIG
+# rdd_env runs rdd with RDD_CACHE_DIR, RDD_KUBECTL_MIRROR, and
+# KUBECONFIG set via env(1) instead of exported by bash. On Git Bash
+# for Windows, bash strips MSYS-root prefixes from exported env values
+# before exec'ing native children, landing the resolver's cache writes
+# on a different drive than the shell reads back from. env(1) sets the
+# vars in its own process, so the values reach rdd.exe verbatim.
+rdd_env() {
+    env \
+        "RDD_CACHE_DIR=$(winpath "${CACHE_DIR}")" \
+        "RDD_KUBECTL_MIRROR=http://127.0.0.1:${PORT}" \
+        "KUBECONFIG=$(winpath "${KUBECONFIG_PATH}")" \
+        rdd "$@"
 }
 
 local_teardown_file() {
@@ -131,7 +138,7 @@ write_kubectl_sha512() {
     cached=${CACHE_DIR}/kubectl/${GOOS}-${GOARCH}/kubectl-v1.99.0${EXE}
     assert_file_not_exists "${cached}"
 
-    run -0 rdd kubectl get pods
+    run -0 rdd_env kubectl get pods
 
     assert_output --partial 'fake-kubectl: get pods'
     assert_file_executable "${cached}"
@@ -146,7 +153,7 @@ write_kubectl_sha512() {
     cp "${MIRROR_BIN_DIR}/kubectl${EXE}" "${cache_subdir}/kubectl-v1.99.0${EXE}"
     chmod 0755 "${cache_subdir}/kubectl-v1.99.0${EXE}"
 
-    run -0 rdd kubectl get pods
+    run -0 rdd_env kubectl get pods
 
     assert_output --partial 'fake-kubectl: get pods'
     assert_file_contains "${LOG_FILE}" '^GET /version'
@@ -158,7 +165,7 @@ write_kubectl_sha512() {
     # The resolver's first GET (.sha512) hits a 404 and surfaces the error.
     echo v1.99.1 >"${GIT_VERSION_FILE}"
 
-    run rdd kubectl get pods
+    run rdd_env kubectl get pods
 
     assert_failure
     assert_output --partial 'resolving kubectl version'
@@ -173,7 +180,7 @@ write_kubectl_sha512() {
     echo "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" \
         >"${MIRROR_BIN_DIR}/kubectl${EXE}.sha512"
 
-    run rdd kubectl get pods
+    run rdd_env kubectl get pods
 
     assert_failure
     assert_output --partial 'resolving kubectl version'
@@ -190,7 +197,7 @@ write_kubectl_sha512() {
     # the 500. Exit code is unasserted because modern kubectl's behavior
     # on a 500 from /version varies across versions; the test verifies
     # probe-then-fall-through, not embedded kubectl's exit code.
-    run rdd kubectl version
+    run rdd_env kubectl version
 
     # Embedded kubectl runs and prints something; the resolver neither
     # downloaded nor errored.
