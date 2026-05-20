@@ -379,6 +379,31 @@ our_leaked_pids() {
     done < <(ps -a -x -o pid=,ucomm= 2>/dev/null || ps -e -o pid=,ucomm= 2>/dev/null || true)
 }
 
+# SIGQUIT the rdd service so its goroutine stacks land in rdd.stderr.log.
+# The service's cmdline does not carry the instance suffix (only env vars
+# do), so matches_our_instance cannot find it; we read the pidfile instead.
+# No-op if the pidfile is missing or the process is gone.
+sig_quit_rdd_service() {
+    local pid_file pid
+    pid_file=$("$rdd_bin" svc paths pid_file 2>/dev/null || true)
+    if [ -z "$pid_file" ] || [ ! -f "$pid_file" ]; then
+        return
+    fi
+    pid=$(cat "$pid_file" 2>/dev/null || true)
+    if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then
+        return
+    fi
+    {
+        echo
+        echo "=== SIGQUIT -> rdd service (RDD_INSTANCE=${instance}, pid=${pid}) ==="
+        echo "cmdline=$(cmdline_of "$pid")"
+    } >>"${bundle_file}" 2>&1
+    kill -QUIT "$pid" 2>/dev/null || true
+    # The dump goes to the service's stderr (captured in rdd.stderr.log).
+    # Pause so the runtime flushes before SIGTERM ends the process.
+    sleep 2
+}
+
 # SIGQUIT Go processes belonging to our RDD_INSTANCE so their goroutine
 # stacks land in the preserved stderr logs. No-op if nothing is leaked.
 sig_quit_our_go_leaks() {
@@ -432,6 +457,7 @@ while kill -0 "${cmd_pid}" 2>/dev/null; do
     if [ "$(date +%s)" -ge "${deadline}" ]; then
         echo "bats-with-timeout: RDD_INSTANCE=${instance} exceeded ${timeout_seconds}s, capturing support bundle" >&2
         capture_state "timeout"
+        sig_quit_rdd_service
         sig_quit_our_go_leaks
         echo "bats-with-timeout: sending SIGTERM to ${cmd_pid}" >&2
         kill -TERM "${cmd_pid}" 2>/dev/null || true

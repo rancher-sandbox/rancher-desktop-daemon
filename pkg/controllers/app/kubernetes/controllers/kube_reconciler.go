@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"sync"
@@ -164,7 +165,8 @@ func probeK3sAPI(ctx context.Context) (bool, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		logf.FromContext(ctx).V(1).Info("k3s healthz returned non-200", "url", cfg.Host+"/healthz", "status", resp.StatusCode)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		logf.FromContext(ctx).V(1).Info("k3s healthz returned non-200", "url", cfg.Host+"/healthz", "status", resp.StatusCode, "body", string(body))
 	}
 	return resp.StatusCode == http.StatusOK, nil
 }
