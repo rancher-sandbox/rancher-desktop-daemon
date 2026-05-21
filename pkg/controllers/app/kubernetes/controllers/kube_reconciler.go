@@ -21,10 +21,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	appv1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/predicates"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
@@ -363,7 +365,7 @@ func (r *KubernetesReconciler) setKubeCondition(ctx context.Context, app *appv1a
 // SetupWithManager registers the reconciler with the manager.
 func (r *KubernetesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appv1alpha1.App{}).
+		For(&appv1alpha1.App{}, builder.WithPredicates(predicates.WatchEventLogger("kubernetes-reconciler"))).
 		Named("kubernetes-reconciler").
 		Complete(r)
 }
