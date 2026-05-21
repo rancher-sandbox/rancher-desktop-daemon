@@ -218,12 +218,6 @@ func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) {
 			cancel()
 		}()
 
-		// Skip if KUBECONFIG is set — rewriting ~/.kube/config current-context
-		// has no effect and may clobber a user preference.
-		if os.Getenv("KUBECONFIG") != "" {
-			return
-		}
-
 		current, err := getCurrentKubeContext()
 		if err != nil {
 			log.Error(err, "Failed to read current Kubernetes context")
