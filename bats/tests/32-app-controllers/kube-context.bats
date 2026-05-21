@@ -34,22 +34,27 @@ kube_current_context() {
         return 0
     }
 
-    kubectl config current-context 2>/dev/null || echo ""
+    rdd kubectl config current-context 2>/dev/null || echo ""
 }
 
 kube_context_exists() { # <context-name>
     [[ -f "${KUBECONFIG}" ]] || return 1
-    kubectl config get-contexts -o name 2>/dev/null | grep -qx "$1"
+    rdd kubectl config get-contexts -o name 2>/dev/null | grep -qx "$1"
 }
 
 kube_cluster_exists() { # <cluster-name>
     [[ -f "${KUBECONFIG}" ]] || return 1
-    kubectl config get-clusters 2>/dev/null | tail -n +2 | grep -qx "$1"
+    rdd kubectl config get-clusters 2>/dev/null | tail -n +2 | grep -qx "$1"
 }
 
 kube_user_exists() { # <user-name>
     [[ -f "${KUBECONFIG}" ]] || return 1
-    kubectl config get-users 2>/dev/null | tail -n +2 | grep -qx "$1"
+    rdd kubectl config get-users 2>/dev/null | tail -n +2 | grep -qx "$1"
+}
+
+kube_current_context_is() { # <expected-context>
+    run rdd kubectl config current-context
+    assert_output "$1"
 }
 
 @test "KubernetesReady condition is True when k3s is running" {
@@ -86,11 +91,11 @@ kube_user_exists() { # <user-name>
     run -0 rdd svc paths k3s_config
     local instance_kubeconfig="${output}"
 
-    run -0 kubectl --kubeconfig="${instance_kubeconfig}" \
+    run -0 rdd kubectl --kubeconfig="${instance_kubeconfig}" \
         config view -o jsonpath='{.clusters[0].cluster.server}'
     local expected_server="${output}"
 
-    run -0 kubectl config view \
+    run -0 rdd kubectl config view \
         -o jsonpath="{.clusters[?(@.name==\"${context_name}\")].cluster.server}"
     assert_output "${expected_server}"
 }
@@ -99,8 +104,7 @@ kube_user_exists() { # <user-name>
     local context_name="rancher-desktop-${RDD_INSTANCE}"
     # The current-context probe runs in a goroutine after KubernetesReady is
     # set; poll until it resolves.
-    try --max 6 --delay 2 -- \
-        bash -c "kubectl config current-context 2>/dev/null | grep -qx '${context_name}'"
+    try --max 6 --delay 2 -- kube_current_context_is "${context_name}"
 
     run -0 kube_current_context
     assert_output "${context_name}"
@@ -136,16 +140,14 @@ kube_user_exists() { # <user-name>
 
 @test "current-context is set again after re-enabling kubernetes" {
     local context_name="rancher-desktop-${RDD_INSTANCE}"
-    try --max 6 --delay 2 -- \
-        bash -c "kubectl config current-context 2>/dev/null | grep -qx '${context_name}'"
+    try --max 6 --delay 2 -- kube_current_context_is "${context_name}"
 }
 
 @test "stopping VM clears current-context" {
     local context_name="rancher-desktop-${RDD_INSTANCE}"
     rdd set running=false
     # removeKubeContext fires on the NotRunning reconcile; poll until done.
-    try --max 10 --delay 1 -- \
-        bash -c "! kube_context_exists '${context_name}'"
+    try --max 10 --delay 1 --until-fail -- kube_context_exists "${context_name}"
     run -0 kube_current_context
     refute_output "${context_name}"
 }
