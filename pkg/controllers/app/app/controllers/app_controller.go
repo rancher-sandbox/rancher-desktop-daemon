@@ -30,6 +30,7 @@ import (
 	limav1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/lima/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/service/controllers"
 )
 
 // ControllerDiscovery enumerates controllers enabled across all controller
@@ -90,7 +91,7 @@ func (r *AppReconciler) engineEnabled(ctx context.Context) bool {
 	return slices.Contains(enabled, v1alpha1.EngineControllerName)
 }
 
-func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, error) {
+func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec, kubernetesPort int) (string, error) {
 	hostHome, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get host home directory: %w", err)
@@ -103,6 +104,7 @@ func applySpecToTemplate(baseTemplate string, spec v1alpha1.AppSpec) (string, er
 		fmt.Sprintf("  HOST_HOME_GUEST: %q", toLinuxPath(hostHome)),
 		fmt.Sprintf("  KUBERNETES_ENABLED: %v", spec.Kubernetes.Enabled),
 		fmt.Sprintf("  KUBERNETES_VERSION: %s", spec.Kubernetes.Version),
+		fmt.Sprintf("  KUBERNETES_PORT: %d", kubernetesPort),
 		"",
 	}, "\n"), nil
 }
@@ -225,8 +227,55 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 		return ctrl.Result{}, limaVMErr
 	}
 
+	// Resolve the host port for the k3s API and persist it. ResolvePort
+	// closes the listener immediately after probing, leaving a TOCTOU
+	// window before Lima's identity port-forward rule binds the same port
+	// (see AppStatus.KubernetesPort). If the port is stolen during that
+	// window, Lima logs a warning and kubectl gets connection refused.
+	if app.Spec.Kubernetes.Enabled && app.Status.KubernetesPort == 0 {
+		port, err := controllers.ResolvePort(ctx, 7441+instance.Index())
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to resolve Kubernetes port: %w", err)
+		}
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &v1alpha1.App{}
+			if err := r.Get(ctx, client.ObjectKey{Name: appName}, latest); err != nil {
+				return err
+			}
+			if latest.Status.KubernetesPort != 0 {
+				return nil
+			}
+			latest.Status.KubernetesPort = port
+			return r.Status().Update(ctx, latest)
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update App status: %w", err)
+		}
+		// The status update causes a requeue.
+		return ctrl.Result{}, nil
+	}
+
+	// Clear a stale port when Kubernetes is disabled so the next enable
+	// resolves a fresh port rather than reusing one that may have been
+	// claimed by another process during the intervening idle window.
+	if !app.Spec.Kubernetes.Enabled && app.Status.KubernetesPort != 0 {
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			latest := &v1alpha1.App{}
+			if err := r.Get(ctx, client.ObjectKey{Name: appName}, latest); err != nil {
+				return err
+			}
+			if latest.Status.KubernetesPort == 0 {
+				return nil
+			}
+			latest.Status.KubernetesPort = 0
+			return r.Status().Update(ctx, latest)
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to clear Kubernetes port: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	if apierrors.IsNotFound(limaVMErr) {
-		template, err := applySpecToTemplate(r.LimaTemplateData, app.Spec)
+		template, err := applySpecToTemplate(r.LimaTemplateData, app.Spec, app.Status.KubernetesPort)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to apply spec to template: %w", err)
 		}
@@ -310,7 +359,7 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 				return ctrl.Result{}, fmt.Errorf("failed to fetch LimaVM template ConfigMap: %w", err)
 			}
 		} else {
-			desired, err := applySpecToTemplate(r.LimaTemplateData, app.Spec)
+			desired, err := applySpecToTemplate(r.LimaTemplateData, app.Spec, app.Status.KubernetesPort)
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to apply spec to template: %w", err)
 			}
