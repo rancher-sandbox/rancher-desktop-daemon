@@ -95,6 +95,10 @@ const (
 	// AppKubernetesReasonProbing means the controller is still waiting for
 	// the k3s API server to respond.
 	AppKubernetesReasonProbing = "Probing"
+
+	// AppKubernetesReasonMergeFailed means the k3s API server is reachable
+	// but merging the instance kubeconfig into ~/.kube/config failed.
+	AppKubernetesReasonMergeFailed = "MergeFailed"
 )
 
 const (

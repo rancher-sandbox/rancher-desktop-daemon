@@ -45,6 +45,11 @@ const (
 type KubernetesReconciler struct {
 	client.Client
 
+	// K3sConfigPath is the path to the in-VM k3s kubeconfig mirrored by the
+	// Lima probe. Production wiring sets it from instance.K3sConfig(); tests
+	// inject a path under a temp directory.
+	K3sConfigPath string
+
 	// contextMu protects contextProbeCancel and contextProbeGen.
 	contextMu sync.Mutex
 	// contextProbeCancel cancels the in-flight current-context probe goroutine.
@@ -94,7 +99,7 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	}
 
 	// Probe the k3s API server from the instance kubeconfig.
-	healthy, err := probeK3sAPI(ctx)
+	healthy, err := r.probeK3sAPI(ctx)
 	if err != nil {
 		// kubeconfig missing or unreadable — k3s has not started yet.
 		log.V(1).Info("Cannot probe k3s API server", "err", err)
@@ -120,7 +125,16 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	}
 
 	// k3s is healthy — merge the context into ~/.kube/config.
-	r.manageKubeContext(ctx)
+	if err := r.manageKubeContext(ctx); err != nil {
+		if condErr := r.setKubeCondition(ctx, &app,
+			metav1.ConditionFalse,
+			appv1alpha1.AppKubernetesReasonMergeFailed,
+			fmt.Sprintf("Failed to publish Kubernetes context: %v", err),
+		); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
+	}
 
 	return ctrl.Result{}, r.setKubeCondition(ctx, &app,
 		metav1.ConditionTrue,
@@ -129,11 +143,12 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	)
 }
 
-// probeK3sAPI reads the instance kubeconfig and GETs /healthz on the k3s API
-// server. Returns (false, err) when the kubeconfig is unreadable, (false, nil)
-// when the server is unhealthy, and (true, nil) on success.
-func probeK3sAPI(ctx context.Context) (bool, error) {
-	kubeconfigPath := instance.K3sConfig()
+// probeK3sAPI reads the instance kubeconfig from r.K3sConfigPath and GETs
+// /healthz on the k3s API server. Returns (false, err) when the kubeconfig
+// is unreadable, (false, nil) when the server is unhealthy, and (true, nil)
+// on success.
+func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (bool, error) {
+	kubeconfigPath := r.K3sConfigPath
 	data, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
 		return false, fmt.Errorf("read instance kubeconfig: %w", err)
@@ -188,14 +203,16 @@ func probeK3sAPI(ctx context.Context) (bool, error) {
 
 // manageKubeContext merges the instance kubeconfig into ~/.kube/config and
 // launches a goroutine to set current-context if the existing one is unhealthy.
+// Returns an error if the synchronous merge fails; failures from the async
+// current-context probe are logged but not returned.
 // At most one probe runs at a time.
-func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) {
+func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) error {
 	contextName := instance.Name()
 	log := logf.FromContext(ctx).WithName("kube-context")
 
-	if err := createReplaceKubeContext(contextName, instance.K3sConfig()); err != nil {
+	if err := createReplaceKubeContext(contextName, r.K3sConfigPath); err != nil {
 		log.Error(err, "Failed to create Kubernetes context", "context", contextName)
-		return
+		return fmt.Errorf("create Kubernetes context %q: %w", contextName, err)
 	}
 
 	r.contextMu.Lock()
@@ -246,6 +263,7 @@ func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) {
 			}
 		}
 	}()
+	return nil
 }
 
 // probeCurrentKubeContext returns true if the named context's API server is
