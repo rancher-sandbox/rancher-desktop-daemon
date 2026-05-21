@@ -66,6 +66,13 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 
 	running := apimeta.IsStatusConditionTrue(app.Status.Conditions, appv1alpha1.AppConditionRunning)
 
+	log.V(1).Info("reconcile entered",
+		"kubernetesEnabled", app.Spec.Kubernetes.Enabled,
+		"running", running,
+		"generation", app.Generation,
+		"resourceVersion", app.ResourceVersion,
+	)
+
 	// When Kubernetes is disabled, stamp the condition and clean up.
 	if !app.Spec.Kubernetes.Enabled {
 		r.removeKubeContext(ctx)
@@ -243,17 +250,24 @@ func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) {
 
 // probeCurrentKubeContext returns true if the named context's API server is
 // healthy. Empty or "default" contexts are treated as unhealthy.
+//
+// Returns true on unexpected internal errors (path lookup, kubeconfig parse,
+// TLS setup) to leave the user's current-context alone; each such path logs
+// the underlying error.
 func probeCurrentKubeContext(ctx context.Context, current string) bool {
+	log := logf.FromContext(ctx).WithName("kube-context-probe").WithValues("context", current)
 	if current == "" || current == "default" {
 		return false
 	}
 	destPath, err := kubeConfigPath()
 	if err != nil {
-		return true // assume healthy if we can't read the path
+		log.Error(err, "Failed to resolve kubeconfig path")
+		return true
 	}
 	cfg, err := loadKubeConfig(destPath)
 	if err != nil {
-		return true // assume healthy on parse error
+		log.Error(err, "Failed to load kubeconfig", "path", destPath)
+		return true
 	}
 	kctx, ok := cfg.Contexts[current]
 	if !ok {
@@ -269,10 +283,12 @@ func probeCurrentKubeContext(ctx context.Context, current string) bool {
 	merged.CurrentContext = current
 	data, err := clientcmd.Write(merged)
 	if err != nil {
+		log.Error(err, "Failed to serialize kubeconfig")
 		return true
 	}
 	restCfg, err := clientcmd.RESTConfigFromKubeConfig(data)
 	if err != nil {
+		log.Error(err, "Failed to build REST config from kubeconfig")
 		return true
 	}
 
@@ -288,7 +304,8 @@ func probeCurrentKubeContext(ctx context.Context, current string) bool {
 	if len(restCfg.CertData) > 0 && len(restCfg.KeyData) > 0 {
 		cert, err := tls.X509KeyPair(restCfg.CertData, restCfg.KeyData)
 		if err != nil {
-			return true // assume healthy if we can't load the cert
+			log.Error(err, "Failed to load client cert")
+			return true
 		}
 		tlsCfg.Certificates = []tls.Certificate{cert}
 	}
@@ -301,6 +318,7 @@ func probeCurrentKubeContext(ctx context.Context, current string) bool {
 	url := clusterEntry.Server + "/healthz"
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, url, http.NoBody)
 	if err != nil {
+		log.Error(err, "Failed to build healthz request", "url", url)
 		return true
 	}
 	if restCfg.BearerToken != "" {

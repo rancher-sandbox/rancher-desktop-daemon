@@ -72,6 +72,9 @@ func newServiceConfigCommand() *cobra.Command {
 
 func ensureServiceRunning(ctx context.Context) error {
 	if !service.Exists() {
+		// Persist no extra args; the per-start klogArgs below override
+		// verbosity on every start, so baking the caller's logrus level
+		// into args.json would only mislead future inspectors of the file.
 		if err := service.Create(nil); err != nil {
 			return err
 		}
@@ -84,7 +87,9 @@ func ensureServiceRunning(ctx context.Context) error {
 		}
 		return waitForDiscoveryConfigMap(ctx)
 	}
-	return startAndWaitForReady(ctx, nil)
+	// Pass klog verbosity transiently so V(1) tracing fires when
+	// autostart launches the daemon (e.g. from `rdd set`).
+	return startAndWaitForReady(ctx, []string{"-v", logrusLevelToKlog()})
 }
 
 // startAndWaitForReady starts the service, waits for the API server and the
