@@ -28,6 +28,10 @@ function getPackageJson(appDir: string): Record<string, any> {
   return JSON.parse(packageBytes.toString('utf-8'));
 }
 
+async function getElectronBuilderConfig(appDir: string): Promise<Record<string, any>> {
+  return yaml.parse(await fs.promises.readFile(path.join(appDir, 'electron-builder.yml'), 'utf-8'));
+}
+
 /**
  * Given an unpacked application directory, return the application version.
  */
@@ -58,13 +62,17 @@ export async function buildCustomAction(): Promise<string> {
  * Given an unpacked build, produce a MSI installer.
  * @param workDir Directory in which we can write temporary work files.
  * @param appDir Directory containing extracted application zip file.
- * @param outFile Override for the file name to emit.
+ * @param outDir Directory to write the built installer.
  * @returns The path of the built installer.
  */
-export default async function buildInstaller(workDir: string, appDir: string, outFile = ''): Promise<string> {
+export default async function buildInstaller(workDir: string, appDir: string, outDir: string): Promise<string> {
   const appVersion = getAppVersion(appDir);
-
-  outFile ||= path.join(process.cwd(), 'dist', `Rancher.Desktop.Setup.${ appVersion }.msi`);
+  const electronBuilderConfig = await getElectronBuilderConfig(appDir);
+  const { productName } = electronBuilderConfig;
+  // Strip any versions, to avoid `Rancher Desktop 2 Setup 1.2.3.msi`.
+  const unversionedName = productName.replace(/\s*[\d.]+$/, '');
+  const installerName = `${ unversionedName.replace(/\s+/g, '.') }.Setup.${ appVersion }.msi`;
+  const outFile = path.join(outDir, installerName);
 
   await writeUpdateConfig(appDir);
   const fileList = await generateFileList(appDir);
@@ -88,9 +96,11 @@ export default async function buildInstaller(workDir: string, appDir: string, ou
     path.join(wixDir, 'candle.exe'),
     [
       '-arch', 'x64',
-      `-dappDir=${ appDir }`,
-      `-diconPath=${ iconPath }`, // spellcheck-ignore-line
-      `-dlicenseFile=${ path.join(appDir, 'build', 'license.rtf') }`,
+      `-d${ '' }appDir=${ appDir }`,
+      `-d${ '' }appName=${ productName }`,
+      `-d${ '' }appId=${ electronBuilderConfig.appId }`,
+      `-d${ '' }iconPath=${ iconPath }`, // spellcheck-ignore-line
+      `-d${ '' }licenseFile=${ path.join(appDir, 'build', 'license.rtf') }`,
       '-nologo',
       '-out', path.join(workDir, `${ path.basename(input, '.wxs') }.wixobj`),
       '-pedantic',
@@ -139,7 +149,7 @@ export default async function buildInstaller(workDir: string, appDir: string, ou
  */
 async function writeUpdateConfig(appDir: string) {
   const packageJson = getPackageJson(appDir);
-  const electronBuilderConfig = yaml.parse(await fs.promises.readFile(path.join(appDir, 'electron-builder.yml'), 'utf-8'));
+  const electronBuilderConfig = await getElectronBuilderConfig(appDir);
   const repoURL = new URL(packageJson.repository.url.replace(/\.git$/, ''));
 
   if (repoURL.hostname !== 'github.com') {

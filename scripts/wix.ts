@@ -25,7 +25,7 @@ async function run() {
 
   await fs.promises.copyFile(customActionFile,
     path.join(appDir, path.basename(customActionFile)));
-  await buildInstaller(distDir, appDir);
+  await buildInstaller(distDir, appDir, distDir);
 }
 
 run().catch((ex) => {

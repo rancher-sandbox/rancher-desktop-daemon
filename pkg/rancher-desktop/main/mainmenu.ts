@@ -94,7 +94,7 @@ function getHelpMenu(isMac: boolean): MenuItem {
       ]
       : []),
     {
-      label: isMac ? 'Rancher Desktop &Help' : 'Get &Help',
+      label: isMac ? `${ Electron.app.name } &Help` : 'Get &Help',
       click() {
         Help.openUrl();
       },

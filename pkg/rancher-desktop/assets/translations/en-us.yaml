@@ -174,7 +174,7 @@ suffix:
 # Components & Pages
 ##############################
 app:
-  name: Rancher Desktop
+  name: '{productName}'
   update: "There's one last step to finish updating Rancher Desktop"
 firstRun:
   kubernetesVersion:
@@ -325,7 +325,7 @@ portForwarding:
   sortableTables:
     noRows: There are no port forwarding entries to show
 general:
-  title: Welcome to Rancher Desktop by SUSE
+  title: Welcome to {productName} by SUSE
   description: Rancher Desktop provides Kubernetes and image management through the use of a desktop application.
 about:
   title: About

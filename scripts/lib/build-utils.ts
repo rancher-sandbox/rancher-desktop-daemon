@@ -214,6 +214,7 @@ export default {
         devtool:     this.isDevelopment ? 'source-map' : false,
         resolve:     {
           alias:      {
+            '@':           this.rootDir,
             '@pkg':        path.resolve(this.rootDir, 'pkg', 'rancher-desktop'),
             '@rdd-client': path.resolve(this.rootDir, 'pkg', 'rdd-client'),
           },

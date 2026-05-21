@@ -32,7 +32,7 @@ async function signArchive(archive: string): Promise<void> {
     // Detect the archive type
     for (const file of await fs.promises.readdir(archiveDir)) {
       if (file.endsWith('.exe')) {
-        artifacts = await windows.sign(workDir);
+        artifacts = await windows.sign(workDir, distDir);
         break;
       }
       if (file.endsWith('.app')) {

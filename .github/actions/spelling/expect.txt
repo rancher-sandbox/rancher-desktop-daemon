@@ -412,7 +412,6 @@ notset
 npipe
 nsenter
 nsis
-NSISUNINSTALLCOMMAND
 nullglob
 nuxt
 nxt

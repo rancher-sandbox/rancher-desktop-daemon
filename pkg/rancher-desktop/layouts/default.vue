@@ -31,6 +31,7 @@
 </template>
 
 <script>
+import packageJson from '@/package.json' with { type: 'json' };
 import ActionMenu from '@pkg/components/ActionMenu.vue';
 import Nav from '@pkg/components/Nav.vue';
 import StatusBar from '@pkg/components/StatusBar.vue';
@@ -86,7 +87,7 @@ export default {
   beforeMount() {
     // The window title isn't set correctly in E2E; as a workaround, force set
     // it here again.
-    document.title ||= 'Rancher Desktop';
+    document.title ||= this.t('app.name', { productName: packageJson.productName });
 
     this.fetch().catch(ex => console.error(ex));
 

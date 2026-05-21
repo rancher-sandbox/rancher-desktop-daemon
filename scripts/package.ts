@@ -9,6 +9,7 @@ import fs from 'fs';
 import * as path from 'path';
 
 import { flipFuses, FuseV1Options, FuseVersion } from '@electron/fuses';
+import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { executeAppBuilder, log } from 'builder-util';
 import {
   AfterPackContext, Arch, build, CliOptions, Configuration, LinuxTargetSpecificOptions,
@@ -24,27 +25,6 @@ import { spawnFile } from '@pkg/utils/childProcess';
 import { ReadWrite } from '@pkg/utils/typeUtils';
 
 class Builder {
-  async replaceInFile(srcFile: string, pattern: string | RegExp, replacement: string, dstFile?: string) {
-    dstFile = dstFile || srcFile;
-    await fs.promises.stat(srcFile);
-    const data = await fs.promises.readFile(srcFile, 'utf8');
-
-    await fs.promises.writeFile(dstFile, data.replace(pattern, replacement));
-  }
-
-  protected get electronBinary() {
-    const platformPath = {
-      darwin: [`mac-${ buildUtils.arch }`, 'Rancher Desktop.app/Contents/MacOS/Rancher Desktop'],
-      win32:  ['win-unpacked', 'Rancher Desktop.exe'],
-    }[process.platform as string];
-
-    if (!platformPath) {
-      throw new Error('Failed to find platform-specific Electron binary');
-    }
-
-    return path.join(buildUtils.distDir, ...platformPath);
-  }
-
   /**
    * Flip the Electron fuses so that the app can't be used as a node runtime.
    * @see https://www.electronjs.org/docs/latest/tutorial/fuses
@@ -163,9 +143,15 @@ class Builder {
       throw new Error(`Packaging for ${ process.platform } is not supported`);
     }
 
+    _.set(config, 'productName', buildUtils.packageMeta.productName);
+    _.set(config, 'extraMetadata.version', version);
+
     switch (electronPlatform) {
     case 'linux':
-      await this.createLinuxResources(version);
+      await this.createLinuxResources(config);
+      break;
+    case 'mac':
+      await this.createMacResources(distDir);
       break;
     case 'win':
       await this.createWindowsResources(distDir);
@@ -189,7 +175,6 @@ class Builder {
       delete section[key];
     }
 
-    _.set(config, 'extraMetadata.version', version);
     await fs.promises.writeFile(configPath, yaml.stringify(config), 'utf-8');
 
     config.afterPack = this.afterPack.bind(this);
@@ -219,20 +204,50 @@ class Builder {
 
   async buildInstaller(config: CliOptions) {
     const appDir = path.join(buildUtils.distDir, 'win-unpacked');
-    const { version } = (config.config as any).extraMetadata;
-    const installerPath = path.join(buildUtils.distDir, `Rancher.Desktop.Setup.${ version }.msi`);
 
     if (config.win && !process.argv.includes('--zip')) {
       // Only build installer if we're not asked not to.
-      await buildInstaller(buildUtils.distDir, appDir, installerPath);
+      await buildInstaller(buildUtils.distDir, appDir, buildUtils.distDir);
     }
   }
 
-  protected async createLinuxResources(finalBuildVersion: string) {
+  protected async createLinuxResources(config: Configuration) {
     const appData = 'packaging/linux/rancher-desktop.appdata.xml';
-    const release = `<release version="${ finalBuildVersion }" date="${ new Date().toISOString() }"/>`;
+    const input = await fs.promises.readFile(appData, 'utf-8');
+    const doc = new DOMParser().parseFromString(input, 'text/xml');
 
-    await this.replaceInFile(appData, /<release.*\/>/g, release, appData.replace('packaging', 'resources'));
+    for (const release of Array.from(doc.getElementsByTagName('release'))) {
+      // 0 is not a valid value for SOURCE_DATE_EPOCH; treat it as unset.
+      const epoch = Number(process.env.SOURCE_DATE_EPOCH);
+      const timestamp = new Date(epoch ? epoch * 1000 : Date.now());
+      release.setAttribute('version', config.extraMetadata.version);
+      release.setAttribute('date', timestamp.toISOString());
+    }
+    for (const name of Array.from(doc.getElementsByTagName('name'))) {
+      name.textContent = config.productName ?? name.textContent;
+    }
+
+    const output = new XMLSerializer().serializeToString(doc);
+
+    await fs.promises.writeFile(appData.replace('packaging', 'resources'), output, 'utf-8');
+  }
+
+  protected async createMacResources(workDir: string) {
+    // Update signing configuration
+    const { productName } = buildUtils.packageMeta;
+    const macSigningConfig = yaml.parse(await fs.promises.readFile('build/signing-config-mac.yaml', 'utf-8'));
+    for (const override of macSigningConfig.entitlements.overrides) {
+      for (const [i, p] of override.paths.entries() as [number, string][]) {
+        const baseName = path.basename(p);
+
+        if (/^Rancher Desktop.*\.app$/.test(baseName)) {
+          override.paths[i] = path.join(path.dirname(p), baseName.replace(/^Rancher Desktop/, productName));
+        }
+      }
+    }
+    await fs.promises.writeFile(
+      path.join(workDir, 'signing-config-mac.yaml'),
+      yaml.stringify(macSigningConfig), 'utf-8');
   }
 
   protected async createWindowsResources(workDir: string) {
@@ -257,6 +272,16 @@ class Builder {
         await buildUtils.sleep(5_000);
       }
     }
+
+    // Update signing configuration
+    const { productName } = buildUtils.packageMeta;
+    const windowsSigningConfig = yaml.parse(await fs.promises.readFile('build/signing-config-win.yaml', 'utf-8'));
+    windowsSigningConfig['.'] = windowsSigningConfig['.'].map((filename: string) => {
+      return /^Rancher Desktop.*\.exe$/.test(filename) ? `${ productName }.exe` : filename;
+    });
+    await fs.promises.writeFile(
+      path.join(workDir, 'signing-config-win.yaml'),
+      yaml.stringify(windowsSigningConfig), 'utf-8');
   }
 
   protected async executeAppBuilderAsJson(...args: Parameters<typeof executeAppBuilder>) {

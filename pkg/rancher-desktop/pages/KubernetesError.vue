@@ -8,7 +8,7 @@
         >
         <span>
           <h2 data-test="k8s-error-header">
-            {{ t('app.name') }} Error
+            {{ t('app.name', { productName }) }} Error
           </h2>
           <h5>{{ versionString }}</h5>
         </span>
@@ -61,6 +61,7 @@ import os from 'os';
 
 import { defineComponent } from 'vue';
 
+import packageJson from '@/package.json' with { type: 'json' };
 import { ipcRenderer } from '@pkg/utils/ipcRenderer';
 
 export default defineComponent({
@@ -74,6 +75,7 @@ export default defineComponent({
       lastCommandComment: '',
       lastLogLines:       [],
       appVersion:         process.env.RD_VERSION ?? '?',
+      productName:        packageJson.productName,
     };
   },
   computed: {

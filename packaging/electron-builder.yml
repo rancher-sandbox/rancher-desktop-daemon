@@ -2,7 +2,7 @@
 copyright: Copyright © 2021-2026 SUSE LLC
 productName: Rancher Desktop
 icon: ./resources/icons/logo-square-512.png
-appId: io.rancherdesktop.app
+appId: io.rancherdesktop.app2
 asar: true
 asarUnpack:
 - '**/*.node'
@@ -28,7 +28,7 @@ mac:
   target: [ dmg, zip ]
   identity: ~ # We sign in a separate step
   extraFiles:
-  - build/signing-config-mac.yaml
+  - { from: dist/signing-config-mac.yaml, to: build/signing-config-mac.yaml }
   - { from: dist/electron-builder.yaml, to: electron-builder.yml }
 win:
   target: [ zip ]
@@ -38,7 +38,7 @@ win:
   extraFiles:
   - build/wix/*
   - build/license.rtf
-  - build/signing-config-win.yaml
+  - { from: dist/signing-config-win.yaml, to: build/signing-config-win.yaml }
   - { from: dist/wix-custom-action.dll, to: wix-custom-action.dll }
   - { from: dist/electron-builder.yaml, to: electron-builder.yml }
 linux:

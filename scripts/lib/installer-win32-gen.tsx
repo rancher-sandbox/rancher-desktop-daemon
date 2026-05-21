@@ -5,6 +5,8 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
+import buildUtils from '@/scripts/lib/build-utils';
+
 /**
  * Element is a class for interpreting JSX; we only need the bare basics to
  * generate a valid XML as input to the WiX toolchain.
@@ -159,7 +161,7 @@ export default async function generateFileList(rootPath: string): Promise<string
 
   const specialComponents: Record<string, (d: directory, f: { name: string, id: string }) => Element | null> = {
     // @ts-ignore
-    'Rancher Desktop.exe': (d, f) => {
+    [`${ buildUtils.packageMeta.productName }.exe`]: (d, f) => {
       return <Component>
         <File
           Name={f.name}
@@ -170,20 +172,20 @@ export default async function generateFileList(rootPath: string): Promise<string
           <Shortcut
             Id="desktopShortcut"
             Directory="DesktopFolder"
-            Name="Rancher Desktop"
+            Name="$(var.appName)"
             WorkingDirectory="APPLICATIONFOLDER"
             Advertise="yes"
             Icon="RancherDesktopIcon.ico" />
           <Shortcut
             Id="startMenuShortcut"
             Directory="ProgramMenuFolder"
-            Name="Rancher Desktop"
+            Name="$(var.appName)"
             WorkingDirectory="APPLICATIONFOLDER"
             Advertise="yes"
             Icon="RancherDesktopIcon.ico">
             <ShortcutProperty
               Key="System.AppUserModel.ID"
-              Value="io.rancherdesktop.app" />
+              Value="$(var.appId)" />
           </Shortcut>
         </File>
       </Component>;
@@ -204,7 +206,7 @@ export default async function generateFileList(rootPath: string): Promise<string
   const jsxElement = (<Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
-        <Directory Id="APPLICATIONFOLDER" Name="Rancher Desktop">
+        <Directory Id="APPLICATIONFOLDER" Name="$(var.appName)">
           {(() => {
             function emit(d: directory) {
               return d.directories.map(subdir => <Directory Id={subdir.id} Name={path.basename(subdir.name)}>

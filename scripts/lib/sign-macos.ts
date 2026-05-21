@@ -45,7 +45,13 @@ export async function sign(workDir: string): Promise<string[]> {
   }
 
   const unpackedDir = path.join(workDir, 'unpacked');
-  const appDir = path.join(unpackedDir, 'Rancher Desktop.app');
+  const appDirName = (await fs.promises.readdir(unpackedDir, { withFileTypes: true }))
+    .find(d => d.isDirectory() && d.name.endsWith('.app'))?.name;
+
+  if (!appDirName) {
+    throw new Error(`Could not find .app bundle in ${ unpackedDir }`);
+  }
+  const appDir = path.join(unpackedDir, appDirName);
   const configPath = path.join(appDir, 'Contents/electron-builder.yml');
   const configText = await fs.promises.readFile(configPath, 'utf-8');
   const config: Configuration = yaml.parse(configText);
@@ -137,7 +143,7 @@ export async function sign(workDir: string): Promise<string[]> {
 
   log.info('Building disk image and update archive...');
   const arch = process.env.M1 ? Arch.arm64 : Arch.x64;
-  const productFileName = config.productName?.replace(/\s+/g, '.');
+  const productFileName = config.productName?.replace(/\s*\d+$/, '')?.replace(/\s+/g, '.');
   const productArch = process.env.M1 ? 'aarch64' : 'x86_64';
   const artifactName = `${ productFileName }-\${version}-mac.${ productArch }.\${ext}`;
   const formats = ['dmg', 'zip'];

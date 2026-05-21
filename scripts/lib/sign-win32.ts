@@ -48,7 +48,7 @@ interface ElectronBuilderConfiguration {
   }
 }
 
-export async function sign(workDir: string): Promise<string[]> {
+export async function sign(workDir: string, outDir: string): Promise<string[]> {
   const certFingerprint = process.env.CSC_FINGERPRINT ?? '';
   const certPassword = process.env.CSC_KEY_PASSWORD ?? '';
 
@@ -112,7 +112,7 @@ export async function sign(workDir: string): Promise<string[]> {
 
   await signFn(...filesToSign);
 
-  return [await buildWiX(workDir, unpackedDir, signFn)];
+  return [await buildWiX(workDir, unpackedDir, outDir, signFn)];
 }
 
 /**
@@ -191,9 +191,9 @@ async function * findFiles(dir: string): AsyncIterable<string> {
   }
 }
 
-async function buildWiX(workDir: string, unpackedDir: string, signFn: signFileFn): Promise<string> {
+async function buildWiX(workDir: string, unpackedDir: string, outDir: string, signFn: signFileFn): Promise<string> {
   const buildInstaller = (await import('./installer-win32')).default;
-  const installerPath = await buildInstaller(workDir, unpackedDir);
+  const installerPath = await buildInstaller(workDir, unpackedDir, outDir);
 
   await signFn(installerPath);
 

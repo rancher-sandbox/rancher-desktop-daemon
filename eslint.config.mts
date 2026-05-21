@@ -90,7 +90,10 @@ export default defineConfigWithVueTs(
     name:            'rancher-desktop-vue',
     files:           ['**/*.vue'],
     languageOptions: {
-      sourceType: 'module',
+      sourceType:    'module',
+      parserOptions: {
+        ecmaVersion: 'latest',
+      },
     },
   },
   {

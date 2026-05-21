@@ -35,6 +35,7 @@
 
 import _ from 'lodash';
 
+import packageJson from '@/package.json' with { type: 'json' };
 import NetworkStatus from '@pkg/components/NetworkStatus.vue';
 import TelemetryOptIn from '@pkg/components/TelemetryOptIn.vue';
 import UpdateStatus from '@pkg/components/UpdateStatus.vue';
@@ -61,7 +62,7 @@ export default {
     this.$store.dispatch(
       'page/setHeader',
       {
-        title:       this.t('general.title'),
+        title:       this.t('general.title', { productName: packageJson.productName }),
         description: this.t('general.description'),
         icon:        'icon icon-rancher-desktop',
       },

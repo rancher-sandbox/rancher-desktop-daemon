@@ -95,7 +95,7 @@ export class Tray {
     { type: 'separator' },
     {
       id:    'quit',
-      label: 'Quit Rancher Desktop',
+      label: `Quit ${ Electron.app.name }`,
       role:  'quit',
       type:  'normal',
     },
@@ -130,7 +130,7 @@ export class Tray {
   private constructor(settings: Settings) {
     this.settings = settings;
     this.trayMenu = new Electron.Tray(this.trayIconSet.starting);
-    this.trayMenu.setToolTip('Rancher Desktop');
+    this.trayMenu.setToolTip(Electron.app.name);
     const menuItem = this.contextMenuItems.find(item => item.id === 'container-engine');
 
     if (menuItem) {
