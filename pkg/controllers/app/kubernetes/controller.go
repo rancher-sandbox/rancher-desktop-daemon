@@ -14,6 +14,7 @@ import (
 	appv1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/kubernetes/controllers"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
 func init() {
@@ -43,7 +44,8 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	r := &controllers.KubernetesReconciler{
-		Client: mgr.GetClient(),
+		Client:        mgr.GetClient(),
+		K3sConfigPath: instance.K3sConfig(),
 	}
 	return r.SetupWithManager(mgr)
 }

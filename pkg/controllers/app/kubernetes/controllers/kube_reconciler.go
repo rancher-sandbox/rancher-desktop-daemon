@@ -21,10 +21,12 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	appv1alpha1 "github.com/rancher-sandbox/rancher-desktop-daemon/pkg/apis/app/v1alpha1"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/app/predicates"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 )
 
@@ -42,6 +44,11 @@ const (
 // rancher-desktop-{instance} context in ~/.kube/config.
 type KubernetesReconciler struct {
 	client.Client
+
+	// K3sConfigPath is the path to the in-VM k3s kubeconfig mirrored by the
+	// Lima probe. Production wiring sets it from instance.K3sConfig(); tests
+	// inject a path under a temp directory.
+	K3sConfigPath string
 
 	// contextMu protects contextProbeCancel and contextProbeGen.
 	contextMu sync.Mutex
@@ -64,6 +71,13 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 
 	running := apimeta.IsStatusConditionTrue(app.Status.Conditions, appv1alpha1.AppConditionRunning)
 
+	log.V(1).Info("reconcile entered",
+		"kubernetesEnabled", app.Spec.Kubernetes.Enabled,
+		"running", running,
+		"generation", app.Generation,
+		"resourceVersion", app.ResourceVersion,
+	)
+
 	// When Kubernetes is disabled, stamp the condition and clean up.
 	if !app.Spec.Kubernetes.Enabled {
 		r.removeKubeContext(ctx)
@@ -85,7 +99,7 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	}
 
 	// Probe the k3s API server from the instance kubeconfig.
-	healthy, err := probeK3sAPI(ctx)
+	healthy, err := r.probeK3sAPI(ctx)
 	if err != nil {
 		// kubeconfig missing or unreadable — k3s has not started yet.
 		log.V(1).Info("Cannot probe k3s API server", "err", err)
@@ -111,7 +125,16 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	}
 
 	// k3s is healthy — merge the context into ~/.kube/config.
-	r.manageKubeContext(ctx)
+	if err := r.manageKubeContext(ctx); err != nil {
+		if condErr := r.setKubeCondition(ctx, &app,
+			metav1.ConditionFalse,
+			appv1alpha1.AppKubernetesReasonMergeFailed,
+			fmt.Sprintf("Failed to publish Kubernetes context: %v", err),
+		); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
+	}
 
 	return ctrl.Result{}, r.setKubeCondition(ctx, &app,
 		metav1.ConditionTrue,
@@ -120,11 +143,12 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	)
 }
 
-// probeK3sAPI reads the instance kubeconfig and GETs /healthz on the k3s API
-// server. Returns (false, err) when the kubeconfig is unreadable, (false, nil)
-// when the server is unhealthy, and (true, nil) on success.
-func probeK3sAPI(ctx context.Context) (bool, error) {
-	kubeconfigPath := instance.K3sConfig()
+// probeK3sAPI reads the instance kubeconfig from r.K3sConfigPath and GETs
+// /healthz on the k3s API server. Returns (false, err) when the kubeconfig
+// is unreadable, (false, nil) when the server is unhealthy, and (true, nil)
+// on success.
+func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (bool, error) {
+	kubeconfigPath := r.K3sConfigPath
 	data, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
 		return false, fmt.Errorf("read instance kubeconfig: %w", err)
@@ -179,14 +203,16 @@ func probeK3sAPI(ctx context.Context) (bool, error) {
 
 // manageKubeContext merges the instance kubeconfig into ~/.kube/config and
 // launches a goroutine to set current-context if the existing one is unhealthy.
+// Returns an error if the synchronous merge fails; failures from the async
+// current-context probe are logged but not returned.
 // At most one probe runs at a time.
-func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) {
+func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) error {
 	contextName := instance.Name()
 	log := logf.FromContext(ctx).WithName("kube-context")
 
-	if err := createReplaceKubeContext(contextName, instance.K3sConfig()); err != nil {
+	if err := createReplaceKubeContext(contextName, r.K3sConfigPath); err != nil {
 		log.Error(err, "Failed to create Kubernetes context", "context", contextName)
-		return
+		return fmt.Errorf("create Kubernetes context %q: %w", contextName, err)
 	}
 
 	r.contextMu.Lock()
@@ -237,21 +263,29 @@ func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) {
 			}
 		}
 	}()
+	return nil
 }
 
 // probeCurrentKubeContext returns true if the named context's API server is
 // healthy. Empty or "default" contexts are treated as unhealthy.
+//
+// Returns true on unexpected internal errors (path lookup, kubeconfig parse,
+// TLS setup) to leave the user's current-context alone; each such path logs
+// the underlying error.
 func probeCurrentKubeContext(ctx context.Context, current string) bool {
+	log := logf.FromContext(ctx).WithName("kube-context-probe").WithValues("context", current)
 	if current == "" || current == "default" {
 		return false
 	}
 	destPath, err := kubeConfigPath()
 	if err != nil {
-		return true // assume healthy if we can't read the path
+		log.Error(err, "Failed to resolve kubeconfig path")
+		return true
 	}
 	cfg, err := loadKubeConfig(destPath)
 	if err != nil {
-		return true // assume healthy on parse error
+		log.Error(err, "Failed to load kubeconfig", "path", destPath)
+		return true
 	}
 	kctx, ok := cfg.Contexts[current]
 	if !ok {
@@ -267,10 +301,12 @@ func probeCurrentKubeContext(ctx context.Context, current string) bool {
 	merged.CurrentContext = current
 	data, err := clientcmd.Write(merged)
 	if err != nil {
+		log.Error(err, "Failed to serialize kubeconfig")
 		return true
 	}
 	restCfg, err := clientcmd.RESTConfigFromKubeConfig(data)
 	if err != nil {
+		log.Error(err, "Failed to build REST config from kubeconfig")
 		return true
 	}
 
@@ -286,7 +322,8 @@ func probeCurrentKubeContext(ctx context.Context, current string) bool {
 	if len(restCfg.CertData) > 0 && len(restCfg.KeyData) > 0 {
 		cert, err := tls.X509KeyPair(restCfg.CertData, restCfg.KeyData)
 		if err != nil {
-			return true // assume healthy if we can't load the cert
+			log.Error(err, "Failed to load client cert")
+			return true
 		}
 		tlsCfg.Certificates = []tls.Certificate{cert}
 	}
@@ -299,6 +336,7 @@ func probeCurrentKubeContext(ctx context.Context, current string) bool {
 	url := clusterEntry.Server + "/healthz"
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, url, http.NoBody)
 	if err != nil {
+		log.Error(err, "Failed to build healthz request", "url", url)
 		return true
 	}
 	if restCfg.BearerToken != "" {
@@ -363,7 +401,7 @@ func (r *KubernetesReconciler) setKubeCondition(ctx context.Context, app *appv1a
 // SetupWithManager registers the reconciler with the manager.
 func (r *KubernetesReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appv1alpha1.App{}).
+		For(&appv1alpha1.App{}, builder.WithPredicates(predicates.WatchEventLogger("kubernetes-reconciler"))).
 		Named("kubernetes-reconciler").
 		Complete(r)
 }
