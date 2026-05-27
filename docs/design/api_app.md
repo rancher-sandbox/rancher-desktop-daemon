@@ -8,7 +8,7 @@ The `App` object is part of the `app.rancherdesktop.io` API group.
 
 There can be only a single `App` object in an RDD instance. It is **cluster-scoped** and must be named `app`.
 
-Both the [rdd create](cmd_app.md#rdd-create) command and the [GUI](gui.md) app create the cluster-scoped `App` object, setting its `spec.namespace` to the configured "app-namespace" stored in the `config` ConfigMap in the `rdd-system` namespace (`rancher-desktop` by default)[^hardcoded].
+Both the [rdd start](cmd_app.md#rdd-start) command and the [GUI](gui.md) app create the cluster-scoped `App` object, setting its `spec.namespace` to the configured "app-namespace" stored in the `config` ConfigMap in the `rdd-system` namespace (`rancher-desktop` by default)[^hardcoded].
 
 [^hardcoded]: The "app-namespace" is only configurable so that it can be tested that the namespace isn't hardcoded anywhere in the controller.
 

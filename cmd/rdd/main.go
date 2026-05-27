@@ -163,6 +163,8 @@ func main() {
 		newKubectlCommand(),
 		newServiceCommand(context.Background()),
 		newSetCommand(),
+		newStartCommand(),
+		newStopCommand(),
 		newVersionCommand(),
 	)
 	if err := cli.RunNoErrOutput(cmd); err != nil {

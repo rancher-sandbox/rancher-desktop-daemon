@@ -41,20 +41,13 @@ rdd set --wait=false running=true
 
 `2` is reserved for cobra usage errors. Other rdd commands will adopt the same scheme as they grow `--wait` semantics; the codes are defined in `pkg/cli/exit`.
 
-## `rdd create`
-
-
 ## `rdd start`
 
-```bash
-rdd ctl patch app app --type=merge -p '{"spec":{"running":true}}'
-```
+Start Rancher Desktop by setting `running=true` on the App singleton, creating the App with default settings if it does not yet exist. This is shorthand for `rdd set running=true`, sharing its `--wait`, `--timeout`, and exit-code behavior.
 
 ## `rdd stop`
 
-```bash
-rdd ctl patch app app --type=merge -p '{"spec":{"running":false}}'
-```
+Stop Rancher Desktop by setting `running=false` on the App singleton. If the App does not exist, `rdd stop` returns successfully without creating it. Otherwise it behaves like `rdd set running=false`, sharing the same `--wait` and `--timeout` flags.
 
 
 ## `rdd delete`
