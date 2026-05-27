@@ -9,10 +9,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,6 +40,33 @@ const (
 
 	// kubeProbeRequeue is the wait between probes when k3s is not yet ready.
 	kubeProbeRequeue = 5 * time.Second
+
+	// kubeHealthyRequeue is the wait between probes when k3s is healthy. Longer
+	// than kubeProbeRequeue to keep steady-state log noise down; sets the
+	// worst-case latency for noticing an unannounced k3s death.
+	kubeHealthyRequeue = 15 * time.Second
+
+	// probeFailureThreshold is the number of consecutive ambiguous probe
+	// failures tolerated while Ready before flipping to Probing. Decisive
+	// failures (Unreachable, Unhealthy) bypass the threshold and flip
+	// immediately. Ambiguous = the probe could not complete within
+	// kubeProbeTimeout, which on a busy laptop is often transient load
+	// rather than k3s genuinely going down.
+	probeFailureThreshold = 3
+)
+
+// probeResult classifies a probe outcome so Reconcile can apply different
+// policies. The split exists because not every failure means the same thing:
+// ECONNREFUSED is k3s being gone, an HTTP 5xx is k3s saying "I'm not ready"
+// on purpose, and a timeout is the only genuinely ambiguous case that
+// warrants smoothing.
+type probeResult int
+
+const (
+	probeHealthy     probeResult = iota // /healthz returned 200
+	probeUnreachable                    // TCP listener gone or connection torn down mid-request
+	probeUnhealthy                      // /healthz returned non-200
+	probeAmbiguous                      // request did not complete within kubeProbeTimeout
 )
 
 // KubernetesReconciler watches the App resource and manages the
@@ -58,6 +87,26 @@ type KubernetesReconciler struct {
 	contextProbeGen int
 	// contextProbeWg lets removeKubeContext wait for any probe to finish.
 	contextProbeWg sync.WaitGroup
+
+	// probeMu protects consecutiveProbeFailures.
+	probeMu sync.Mutex
+	// consecutiveProbeFailures counts ambiguous probe failures while the
+	// KubernetesReady condition was True. Resets on any success or any
+	// decisive failure (Unreachable, Unhealthy). When the count reaches
+	// probeFailureThreshold, the reconciler flips Ready to Probing.
+	consecutiveProbeFailures int
+
+	// probeFn lets tests inject probe results without making real HTTP calls.
+	// Production wiring leaves it nil; Reconcile then calls probeK3sAPI.
+	probeFn func(ctx context.Context) (probeResult, error)
+}
+
+// probe dispatches to probeFn if injected (tests) or probeK3sAPI otherwise.
+func (r *KubernetesReconciler) probe(ctx context.Context) (probeResult, error) {
+	if r.probeFn != nil {
+		return r.probeFn(ctx)
+	}
+	return r.probeK3sAPI(ctx)
 }
 
 // Reconcile drives the KubernetesReady condition and ~/.kube/config lifecycle.
@@ -80,6 +129,7 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 
 	// When Kubernetes is disabled, stamp the condition and clean up.
 	if !app.Spec.Kubernetes.Enabled {
+		r.resetProbeFailures()
 		r.removeKubeContext(ctx)
 		return ctrl.Result{}, r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
@@ -90,6 +140,7 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 
 	// Kubernetes is enabled but the VM is not (yet) running.
 	if !running {
+		r.resetProbeFailures()
 		r.removeKubeContext(ctx)
 		return ctrl.Result{}, r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
@@ -99,10 +150,11 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 	}
 
 	// Probe the k3s API server from the instance kubeconfig.
-	healthy, err := r.probeK3sAPI(ctx)
+	result, err := r.probe(ctx)
 	if err != nil {
 		// kubeconfig missing or unreadable — k3s has not started yet.
 		log.V(1).Info("Cannot probe k3s API server", "err", err)
+		r.resetProbeFailures()
 		if condErr := r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
 			appv1alpha1.AppKubernetesReasonProbing,
@@ -112,8 +164,13 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 		}
 		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
 	}
-	if !healthy {
-		log.V(1).Info("k3s API server not yet healthy")
+
+	switch result {
+	case probeUnreachable, probeUnhealthy:
+		// Decisive failure: k3s is gone or said no. Flip immediately
+		// without smoothing so the user sees the state change promptly.
+		log.V(1).Info("k3s API server not yet healthy", "result", result)
+		r.resetProbeFailures()
 		if condErr := r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
 			appv1alpha1.AppKubernetesReasonProbing,
@@ -122,6 +179,35 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 			return ctrl.Result{}, condErr
 		}
 		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
+
+	case probeAmbiguous:
+		// Probe did not complete within kubeProbeTimeout. While Ready, treat
+		// the first probeFailureThreshold-1 ambiguous failures as transient
+		// (machine under heavy load, k3s temporarily slow) and only flip to
+		// Probing once the streak passes the threshold. During startup, the
+		// condition is not yet Ready, so report Probing immediately.
+		failures := r.incrementProbeFailures()
+		currentlyReady := apimeta.IsStatusConditionTrue(
+			app.Status.Conditions, appv1alpha1.AppConditionKubernetesReady)
+		if currentlyReady && failures < probeFailureThreshold {
+			log.V(1).Info("ambiguous probe failure tolerated",
+				"failures", failures, "threshold", probeFailureThreshold)
+			return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
+		}
+		log.V(1).Info("ambiguous probe failures crossed threshold",
+			"failures", failures, "threshold", probeFailureThreshold)
+		if condErr := r.setKubeCondition(ctx, &app,
+			metav1.ConditionFalse,
+			appv1alpha1.AppKubernetesReasonProbing,
+			"Waiting for k3s API server",
+		); condErr != nil {
+			return ctrl.Result{}, condErr
+		}
+		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
+
+	case probeHealthy:
+		r.resetProbeFailures()
+		// Fall through to manageKubeContext / setReady below.
 	}
 
 	// k3s is healthy — merge the context into ~/.kube/config.
@@ -136,27 +222,47 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 		return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
 	}
 
-	return ctrl.Result{}, r.setKubeCondition(ctx, &app,
+	// Requeue periodically so a later k3s death surfaces even if no other
+	// controller writes to App in the meantime. Without this, setKubeCondition
+	// is a no-op when Ready→Ready and there is nothing else to trigger a
+	// re-probe until the controller-runtime default resync (~10 min).
+	return ctrl.Result{RequeueAfter: kubeHealthyRequeue}, r.setKubeCondition(ctx, &app,
 		metav1.ConditionTrue,
 		appv1alpha1.AppKubernetesReasonReady,
 		"Kubernetes API server is ready",
 	)
 }
 
+// resetProbeFailures clears the ambiguous-failure streak counter.
+func (r *KubernetesReconciler) resetProbeFailures() {
+	r.probeMu.Lock()
+	r.consecutiveProbeFailures = 0
+	r.probeMu.Unlock()
+}
+
+// incrementProbeFailures bumps the ambiguous-failure streak counter and
+// returns the new value.
+func (r *KubernetesReconciler) incrementProbeFailures() int {
+	r.probeMu.Lock()
+	defer r.probeMu.Unlock()
+	r.consecutiveProbeFailures++
+	return r.consecutiveProbeFailures
+}
+
 // probeK3sAPI reads the instance kubeconfig from r.K3sConfigPath and GETs
-// /healthz on the k3s API server. Returns (false, err) when the kubeconfig
-// is unreadable, (false, nil) when the server is unhealthy, and (true, nil)
-// on success.
-func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (bool, error) {
+// /healthz on the k3s API server. Returns an error only when the kubeconfig
+// cannot be loaded; otherwise the result classifies the outcome. See the
+// probeResult type for the meaning of each value.
+func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (probeResult, error) {
 	kubeconfigPath := r.K3sConfigPath
 	data, err := os.ReadFile(kubeconfigPath)
 	if err != nil {
-		return false, fmt.Errorf("read instance kubeconfig: %w", err)
+		return probeUnreachable, fmt.Errorf("read instance kubeconfig: %w", err)
 	}
 
 	cfg, err := clientcmd.RESTConfigFromKubeConfig(data)
 	if err != nil {
-		return false, fmt.Errorf("parse instance kubeconfig: %w", err)
+		return probeUnreachable, fmt.Errorf("parse instance kubeconfig: %w", err)
 	}
 
 	// Build a TLS-aware HTTP client from the REST config.
@@ -170,7 +276,7 @@ func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (bool, error) {
 	if len(cfg.CertData) > 0 && len(cfg.KeyData) > 0 {
 		cert, err := tls.X509KeyPair(cfg.CertData, cfg.KeyData)
 		if err != nil {
-			return false, fmt.Errorf("load client cert: %w", err)
+			return probeUnreachable, fmt.Errorf("load client cert: %w", err)
 		}
 		tlsCfg.Certificates = []tls.Certificate{cert}
 	}
@@ -183,7 +289,7 @@ func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (bool, error) {
 
 	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, cfg.Host+"/healthz", http.NoBody)
 	if err != nil {
-		return false, fmt.Errorf("build healthz request: %w", err)
+		return probeUnreachable, fmt.Errorf("build healthz request: %w", err)
 	}
 	if cfg.BearerToken != "" {
 		req.Header.Set("Authorization", "Bearer "+cfg.BearerToken)
@@ -191,14 +297,31 @@ func (r *KubernetesReconciler) probeK3sAPI(ctx context.Context) (bool, error) {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		logf.FromContext(ctx).V(1).Info("k3s healthz request failed", "url", cfg.Host+"/healthz", "err", err)
-		return false, nil
+		result := classifyProbeError(err)
+		logf.FromContext(ctx).V(1).Info("k3s healthz request failed",
+			"url", cfg.Host+"/healthz", "err", err, "result", result)
+		return result, nil
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		logf.FromContext(ctx).V(1).Info("k3s healthz returned non-200", "url", cfg.Host+"/healthz", "status", resp.StatusCode)
+		logf.FromContext(ctx).V(1).Info("k3s healthz returned non-200",
+			"url", cfg.Host+"/healthz", "status", resp.StatusCode)
+		return probeUnhealthy, nil
 	}
-	return resp.StatusCode == http.StatusOK, nil
+	return probeHealthy, nil
+}
+
+// classifyProbeError maps a transport-level failure from the healthz probe
+// to a probeResult. Only timeouts count as ambiguous; everything else is
+// treated as decisively unreachable so the reconciler reports the state
+// honestly without smoothing. That bucket covers ECONNREFUSED (k3s listener
+// gone), EOF or ECONNRESET (connection closed mid-request), DNS failures,
+// and any unrecognized transport error.
+func classifyProbeError(err error) probeResult {
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, syscall.ETIMEDOUT) {
+		return probeAmbiguous
+	}
+	return probeUnreachable
 }
 
 // manageKubeContext merges the instance kubeconfig into ~/.kube/config and
