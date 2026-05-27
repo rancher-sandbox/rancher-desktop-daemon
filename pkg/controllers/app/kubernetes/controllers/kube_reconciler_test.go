@@ -8,10 +8,13 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -98,6 +101,19 @@ func newAppRunning() *appv1alpha1.App {
 	}
 }
 
+// newAppRunningKubeReady extends newAppRunning with a pre-existing
+// KubernetesReady=True condition, simulating an App that has already
+// observed a healthy k3s probe.
+func newAppRunningKubeReady() *appv1alpha1.App {
+	app := newAppRunning()
+	app.Status.Conditions = append(app.Status.Conditions, metav1.Condition{
+		Type:   appv1alpha1.AppConditionKubernetesReady,
+		Status: metav1.ConditionTrue,
+		Reason: appv1alpha1.AppKubernetesReasonReady,
+	})
+	return app
+}
+
 // newAppKubernetesDisabled builds an App with Kubernetes disabled and the
 // Running condition True, so Reconcile takes the NotApplicable branch.
 func newAppKubernetesDisabled() *appv1alpha1.App {
@@ -161,8 +177,8 @@ func Test_Reconcile_KubernetesReady_Ready(t *testing.T) {
 	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
 	result, err := r.Reconcile(context.Background(), req)
 	assert.NilError(t, err)
-	assert.Equal(t, result.RequeueAfter, time.Duration(0),
-		"Ready path should not request a requeue")
+	assert.Equal(t, result.RequeueAfter, kubeHealthyRequeue,
+		"Ready path should requeue after kubeHealthyRequeue so a later k3s death surfaces")
 
 	got := &appv1alpha1.App{}
 	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
@@ -309,7 +325,7 @@ func Test_Reconcile_KubernetesReady_Probing_ProbeError(t *testing.T) {
 func Test_Reconcile_KubernetesReady_Probing_Unhealthy(t *testing.T) {
 	dir := t.TempDir()
 	// fakeK3sServer answers /healthz with 500, so probeK3sAPI takes the
-	// (false, nil) "server reachable but unhealthy" path.
+	// probeUnhealthy "server reachable but said no" path.
 	srcPath := fakeK3sServer(t, filepath.Join(dir, "k3s.yaml"), http.StatusInternalServerError)
 	isolateKubeconfig(t, dir)
 
@@ -339,4 +355,242 @@ func Test_Reconcile_KubernetesReady_Probing_Unhealthy(t *testing.T) {
 	assert.Assert(t, cond != nil, "KubernetesReady condition missing")
 	assert.Equal(t, cond.Status, metav1.ConditionFalse)
 	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonProbing)
+}
+
+// Test_Reconcile_KubernetesReady_Unhealthy_FromReady_ImmediateFlip confirms
+// that a 5xx from k3s flips an already-Ready condition to Probing without
+// being smoothed by the ambiguous-failure counter. 5xx is k3s deliberately
+// reporting "not ready," not transient noise.
+func Test_Reconcile_KubernetesReady_Unhealthy_FromReady_ImmediateFlip(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := fakeK3sServer(t, filepath.Join(dir, "k3s.yaml"), http.StatusInternalServerError)
+	isolateKubeconfig(t, dir)
+
+	scheme := newKubeScheme(t)
+	app := newAppRunningKubeReady()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	r := &KubernetesReconciler{
+		Client:        c,
+		K3sConfigPath: srcPath,
+	}
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+	_, err := r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+
+	got := &appv1alpha1.App{}
+	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+	cond := findKubeReady(got)
+	assert.Assert(t, cond != nil, "KubernetesReady condition missing")
+	assert.Equal(t, cond.Status, metav1.ConditionFalse)
+	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonProbing)
+}
+
+// Test_Reconcile_KubernetesReady_Unreachable_ImmediateProbing confirms that a
+// connection-refused-class error flips to Probing immediately, with no
+// smoothing. Uses probeFn injection because httptest can't easily produce
+// ECONNREFUSED in a portable way.
+func Test_Reconcile_KubernetesReady_Unreachable_ImmediateProbing(t *testing.T) {
+	scheme := newKubeScheme(t)
+	app := newAppRunningKubeReady()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	r := &KubernetesReconciler{
+		Client:  c,
+		probeFn: func(context.Context) (probeResult, error) { return probeUnreachable, nil },
+	}
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+	result, err := r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+	assert.Equal(t, result.RequeueAfter, kubeProbeRequeue)
+
+	got := &appv1alpha1.App{}
+	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+	cond := findKubeReady(got)
+	assert.Assert(t, cond != nil, "KubernetesReady condition missing")
+	assert.Equal(t, cond.Status, metav1.ConditionFalse)
+	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonProbing)
+}
+
+// Test_Reconcile_KubernetesReady_Ambiguous_TolerateWhileReady confirms that
+// ambiguous probe failures below the threshold keep an already-Ready
+// condition stable instead of immediately flipping to Probing.
+func Test_Reconcile_KubernetesReady_Ambiguous_TolerateWhileReady(t *testing.T) {
+	scheme := newKubeScheme(t)
+	app := newAppRunningKubeReady()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	r := &KubernetesReconciler{
+		Client:  c,
+		probeFn: func(context.Context) (probeResult, error) { return probeAmbiguous, nil },
+	}
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+	for i := 1; i < probeFailureThreshold; i++ {
+		result, err := r.Reconcile(context.Background(), req)
+		assert.NilError(t, err)
+		assert.Equal(t, result.RequeueAfter, kubeProbeRequeue,
+			"ambiguous failure %d should requeue at kubeProbeRequeue", i)
+
+		got := &appv1alpha1.App{}
+		assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+		cond := findKubeReady(got)
+		assert.Assert(t, cond != nil, "KubernetesReady condition missing after failure %d", i)
+		assert.Equal(t, cond.Status, metav1.ConditionTrue,
+			"condition should stay True until the threshold is reached (failure %d)", i)
+	}
+}
+
+// Test_Reconcile_KubernetesReady_Ambiguous_ReachThresholdFlipsToProbing
+// confirms that a streak of ambiguous failures crossing the threshold flips
+// the condition from Ready to Probing.
+func Test_Reconcile_KubernetesReady_Ambiguous_ReachThresholdFlipsToProbing(t *testing.T) {
+	scheme := newKubeScheme(t)
+	app := newAppRunningKubeReady()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	r := &KubernetesReconciler{
+		Client:  c,
+		probeFn: func(context.Context) (probeResult, error) { return probeAmbiguous, nil },
+	}
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+	for i := 1; i <= probeFailureThreshold; i++ {
+		_, err := r.Reconcile(context.Background(), req)
+		assert.NilError(t, err)
+	}
+
+	got := &appv1alpha1.App{}
+	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+	cond := findKubeReady(got)
+	assert.Assert(t, cond != nil, "KubernetesReady condition missing")
+	assert.Equal(t, cond.Status, metav1.ConditionFalse)
+	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonProbing)
+}
+
+// Test_Reconcile_KubernetesReady_Ambiguous_HealthyResetsCounter confirms that
+// a successful probe resets the streak counter: after one healthy reconcile,
+// the next ambiguous failure starts counting from 1 again rather than
+// continuing the previous streak.
+func Test_Reconcile_KubernetesReady_Ambiguous_HealthyResetsCounter(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := fakeK3sServer(t, filepath.Join(dir, "k3s.yaml"), http.StatusOK)
+	isolateKubeconfig(t, dir)
+
+	scheme := newKubeScheme(t)
+	app := newAppRunningKubeReady()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	// Switch probeFn between Ambiguous and the real probeK3sAPI (Healthy) to
+	// simulate a brief slow patch followed by recovery.
+	step := 0
+	r := &KubernetesReconciler{
+		Client:        c,
+		K3sConfigPath: srcPath,
+	}
+	r.probeFn = func(context.Context) (probeResult, error) {
+		step++
+		switch {
+		case step < probeFailureThreshold:
+			return probeAmbiguous, nil
+		case step == probeFailureThreshold:
+			return probeHealthy, nil
+		default:
+			return probeAmbiguous, nil
+		}
+	}
+	t.Cleanup(func() { r.removeKubeContext(context.Background()) })
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+	// Run ambiguous streak just under threshold, then a healthy reconcile.
+	for range probeFailureThreshold {
+		_, err := r.Reconcile(context.Background(), req)
+		assert.NilError(t, err)
+	}
+	// Now ambiguous failures should start counting from zero again: the next
+	// probeFailureThreshold-1 reconciles should keep the condition Ready.
+	for i := 1; i < probeFailureThreshold; i++ {
+		_, err := r.Reconcile(context.Background(), req)
+		assert.NilError(t, err)
+
+		got := &appv1alpha1.App{}
+		assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+		cond := findKubeReady(got)
+		assert.Assert(t, cond != nil)
+		assert.Equal(t, cond.Status, metav1.ConditionTrue,
+			"counter should have reset on the healthy probe; ambiguous failure %d should still be tolerated", i)
+	}
+}
+
+// Test_Reconcile_KubernetesReady_Ambiguous_DuringStartupIsImmediate confirms
+// that ambiguous failures during startup (no prior Ready condition) flip to
+// Probing immediately, without waiting for the threshold. The smoothing only
+// applies to transitions away from Ready.
+func Test_Reconcile_KubernetesReady_Ambiguous_DuringStartupIsImmediate(t *testing.T) {
+	scheme := newKubeScheme(t)
+	app := newAppRunning() // no KubernetesReady condition yet
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	r := &KubernetesReconciler{
+		Client:  c,
+		probeFn: func(context.Context) (probeResult, error) { return probeAmbiguous, nil },
+	}
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+	result, err := r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+	assert.Equal(t, result.RequeueAfter, kubeProbeRequeue)
+
+	got := &appv1alpha1.App{}
+	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+	cond := findKubeReady(got)
+	assert.Assert(t, cond != nil)
+	assert.Equal(t, cond.Status, metav1.ConditionFalse)
+	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonProbing)
+}
+
+func Test_classifyProbeError(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want probeResult
+	}{
+		{"context deadline", context.DeadlineExceeded, probeAmbiguous},
+		{"wrapped deadline", fmt.Errorf("get https://x/healthz: %w", context.DeadlineExceeded), probeAmbiguous},
+		{"syscall timeout", syscall.ETIMEDOUT, probeAmbiguous},
+		{"connection refused", syscall.ECONNREFUSED, probeUnreachable},
+		{"connection reset", syscall.ECONNRESET, probeUnreachable},
+		{"plain error", errors.New("dns lookup failed"), probeUnreachable},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, classifyProbeError(tc.err), tc.want)
+		})
+	}
 }
