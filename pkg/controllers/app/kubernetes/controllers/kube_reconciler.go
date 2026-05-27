@@ -88,12 +88,12 @@ type KubernetesReconciler struct {
 	// contextProbeWg lets removeKubeContext wait for any probe to finish.
 	contextProbeWg sync.WaitGroup
 
-	// probeMu protects consecutiveProbeFailures.
-	probeMu sync.Mutex
 	// consecutiveProbeFailures counts ambiguous probe failures while the
-	// KubernetesReady condition was True. Resets on any success or any
-	// decisive failure (Unreachable, Unhealthy). When the count reaches
-	// probeFailureThreshold, the reconciler flips Ready to Probing.
+	// KubernetesReady condition was True. Resets on any success or
+	// decisive failure (Unreachable, Unhealthy). Crossing
+	// probeFailureThreshold flips Ready to Probing and resets the counter.
+	// Reconcile runs single-threaded (MaxConcurrentReconciles=1), so the
+	// counter needs no synchronization.
 	consecutiveProbeFailures int
 
 	// probeFn lets tests inject probe results without making real HTTP calls.
@@ -194,8 +194,14 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 				"failures", failures, "threshold", probeFailureThreshold)
 			return ctrl.Result{RequeueAfter: kubeProbeRequeue}, nil
 		}
-		log.V(1).Info("ambiguous probe failures crossed threshold",
-			"failures", failures, "threshold", probeFailureThreshold)
+		if currentlyReady {
+			log.V(1).Info("ambiguous probe failures crossed threshold",
+				"failures", failures, "threshold", probeFailureThreshold)
+		} else {
+			log.V(1).Info("ambiguous probe failure while not Ready",
+				"failures", failures)
+		}
+		r.resetProbeFailures()
 		if condErr := r.setKubeCondition(ctx, &app,
 			metav1.ConditionFalse,
 			appv1alpha1.AppKubernetesReasonProbing,
@@ -235,16 +241,12 @@ func (r *KubernetesReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (c
 
 // resetProbeFailures clears the ambiguous-failure streak counter.
 func (r *KubernetesReconciler) resetProbeFailures() {
-	r.probeMu.Lock()
 	r.consecutiveProbeFailures = 0
-	r.probeMu.Unlock()
 }
 
 // incrementProbeFailures bumps the ambiguous-failure streak counter and
 // returns the new value.
 func (r *KubernetesReconciler) incrementProbeFailures() int {
-	r.probeMu.Lock()
-	defer r.probeMu.Unlock()
 	r.consecutiveProbeFailures++
 	return r.consecutiveProbeFailures
 }
