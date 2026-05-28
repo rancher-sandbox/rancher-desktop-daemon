@@ -25,7 +25,10 @@ local_setup_file() {
 
     rdd svc delete
     rdd set --wait=false running=true kubernetes.enabled=true kubernetes.version="${K3S_VERSION}"
-    rdd ctl wait --for=condition=KubernetesReady app/"${APP_NAME}" --timeout=360s
+    # VM boot plus k3s startup can run several minutes on a slow CI runner, so
+    # allow up to 900s to match app.bats. The outer bats-with-timeout still caps
+    # the overall suite.
+    rdd ctl wait --for=condition=KubernetesReady app/"${APP_NAME}" --timeout=900s
 }
 
 kube_current_context() {
@@ -135,7 +138,8 @@ kube_current_context_is() { # <expected-context>
 
 @test "re-enable kubernetes to set up cleanup test" {
     rdd set --wait=false running=true kubernetes.enabled=true kubernetes.version="${K3S_VERSION}"
-    rdd ctl wait --for=condition=KubernetesReady app/"${APP_NAME}" --timeout=360s
+    # Allow 900s for VM boot plus k3s startup on a slow CI runner (see local_setup_file).
+    rdd ctl wait --for=condition=KubernetesReady app/"${APP_NAME}" --timeout=900s
 }
 
 @test "current-context is set again after re-enabling kubernetes" {
