@@ -5,6 +5,7 @@ import path from 'path';
 import Electron from 'electron';
 
 import { getIpcMainProxy } from '@pkg/main/ipcMain';
+import mainEvents from '@pkg/main/mainEvents';
 import Latch from '@pkg/utils/latch';
 import Logging from '@pkg/utils/logging';
 import paths from '@pkg/utils/paths';
@@ -27,6 +28,9 @@ export class Steve {
   #port = 0;
 
   private constructor() {
+    mainEvents.on('before-quit', () => {
+      this.stop();
+    });
     send('backend/steve-port', 0);
     ipcMainProxy.on('backend/steve-fetch-port', () => {
       send('backend/steve-port', this.port);
@@ -226,7 +230,7 @@ export class Steve {
   }
 
   /**
-   * Stops the Steve API.
+   * Stops the Steve API asynchronously.
    */
   public stop() {
     this.#port = 0;

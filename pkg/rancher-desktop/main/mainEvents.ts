@@ -96,6 +96,12 @@ interface MainEventNames {
   'shutdown-integrations'(): Promise<void>;
 
   /**
+   * Emitted when the user requests that the application quit.  This is used to
+   * trigger any necessary cleanup before the application actually quits.
+   */
+  'before-quit'(): void;
+
+  /**
    * Emitted on application quit.  Note that at this point we're committed to
    * quitting.
    */

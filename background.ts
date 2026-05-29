@@ -202,6 +202,7 @@ Electron.app.on('before-quit', (event) => {
   event.preventDefault();
 
   try {
+    mainEvents.emit('before-quit');
     console.log(`2: Child exited cleanly.`);
   } catch (ex: any) {
     console.log(`2: Child exited with code ${ ex.errCode ?? '<unknown>' }`);

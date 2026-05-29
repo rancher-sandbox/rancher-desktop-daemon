@@ -1,7 +1,6 @@
 import Electron from 'electron';
 
 import Logging from '@pkg/utils/logging';
-import { windowMapping } from '@pkg/window';
 
 const console = Logging.networking;
 
@@ -15,8 +14,8 @@ export async function verifyCertificate(
   const RESULT_USE_CHROMIUM_RESULT = -3;
   const requestInfo = `${ request.hostname } (${ request.certificate.subjectName }/${ request.certificate.fingerprint })`;
 
-  // Because `request.hostname` does not include the port, dashboard and plugin
-  // development are handled in the `certificate-error` event handler.
+  // Because `request.hostname` does not include the port, plugin development is
+  // handled in the `certificate-error` event handler.
 
   switch (request.verificationResult) {
   case 'net::ERR_CERT_AUTHORITY_INVALID':
@@ -61,10 +60,6 @@ export function handleCertificateError(
   // Plugins development URLs
   if (process.env.NODE_ENV === 'development' && process.env.RD_ENV_PLUGINS_DEV) {
     allowedHostPorts.push('localhost:8888');
-  }
-  // Dashboard URLs
-  if ('dashboard' in windowMapping) {
-    allowedHostPorts.push('127.0.0.1:9443', '127.0.0.1:6120');
   }
 
   for (const hostPort of allowedHostPorts) {
