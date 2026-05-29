@@ -37,10 +37,10 @@ load '../../helpers/load'
 @test 'start instance' {
     run -0 rdd svc start
     run -0 extract_msg
-    assert_output <<EOT
-successfully started "rancher-desktop-${RDD_INSTANCE}" control plane
-waiting for "rancher-desktop-${RDD_INSTANCE}" control plane to be ready
-EOT
+    # The phase lines between these bookends (waiting for API server, etc.)
+    # depend on poll timing, so assert only the stable start and ready lines.
+    assert_line "starting \"rancher-desktop-${RDD_INSTANCE}\" control plane"
+    assert_line "\"rancher-desktop-${RDD_INSTANCE}\" control plane is ready"
 }
 
 @test 'verify instance has been started' {

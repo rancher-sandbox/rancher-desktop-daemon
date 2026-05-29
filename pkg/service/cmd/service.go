@@ -289,15 +289,42 @@ func Start(ctx context.Context, args []string) error {
 	return cmd.Start()
 }
 
-// checkReadiness performs a single readiness check.
-func checkReadiness(ctx context.Context) error {
+// startupPhase identifies the control-plane startup stage the readiness
+// check is waiting on, so callers can report progress as the phase advances.
+type startupPhase int
+
+const (
+	phaseAPIServer startupPhase = iota
+	phaseControllers
+	phaseCRDs
+)
+
+// String returns the user-facing progress message for the phase.
+func (p startupPhase) String() string {
+	switch p {
+	case phaseAPIServer:
+		return "waiting for API server"
+	case phaseControllers:
+		return "waiting for controllers to register"
+	case phaseCRDs:
+		return "waiting for CRDs to be established"
+	default:
+		return ""
+	}
+}
+
+// checkReadiness performs a single readiness check, reporting via onPhase the
+// phase it ends up waiting on.
+func checkReadiness(ctx context.Context, onPhase func(startupPhase)) error {
 	config, err := GetKubeRestConfig()
 	if err != nil {
+		onPhase(phaseAPIServer)
 		klog.V(2).Infof("Waiting for kubeconfig to be available: %v", err)
 		return err
 	}
 
 	if err := checkSupportedVersion(config); err != nil {
+		onPhase(phaseAPIServer)
 		klog.V(2).Infof("%v", err)
 		return err
 	}
@@ -305,6 +332,7 @@ func checkReadiness(ctx context.Context) error {
 	// Wait for the controller manager to register with the actual running controllers
 	runtimeControllers, err := getRuntimeControllersFromCluster(ctx, config)
 	if err != nil {
+		onPhase(phaseControllers)
 		klog.V(2).Infof("getRuntimeControllersFromCluster: %v", err)
 		return err
 	}
@@ -312,10 +340,12 @@ func checkReadiness(ctx context.Context) error {
 	if runtimeControllers == nil {
 		// Discovery ConfigMap doesn't exist yet; the serve subprocess hasn't
 		// finished initializing. Keep polling.
+		onPhase(phaseControllers)
 		klog.V(2).Info("Discovery configmap not found yet - waiting for control plane initialization")
 		return errors.New("waiting for controller manager registration")
 	}
 
+	onPhase(phaseCRDs)
 	if len(runtimeControllers) == 0 {
 		// ConfigMap exists but no controllers are registered.
 		klog.V(2).Info("No controllers registered - checking API server readiness")
@@ -355,8 +385,20 @@ func checkReadiness(ctx context.Context) error {
 
 // Wait until the control plane is ready or the context is cancelled.
 func Wait(ctx context.Context) error {
-	if err := checkReadiness(ctx); err == nil {
+	// Fast path: stay silent when the control plane is already ready.
+	if err := checkReadiness(ctx, func(startupPhase) {}); err == nil {
 		return nil
+	}
+
+	// Log each startup phase once, as it becomes the phase we wait on.
+	// Phases only advance, so a transient regression does not re-log an
+	// earlier phase.
+	lastPhase := startupPhase(-1)
+	reportPhase := func(p startupPhase) {
+		if p > lastPhase {
+			lastPhase = p
+			logrus.Info(p.String())
+		}
 	}
 
 	ticker := time.NewTicker(500 * time.Millisecond)
@@ -367,7 +409,7 @@ func Wait(ctx context.Context) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			err := checkReadiness(ctx)
+			err := checkReadiness(ctx, reportPhase)
 			if err == nil {
 				return nil
 			} else if errors.As(err, &errorServerVersionUnsupported{}) {
