@@ -496,8 +496,9 @@ func (r *LimaVMReconciler) waitForShutdown(ctx context.Context) error {
 }
 
 // shutdownAllHostagents terminates all running hostagents during graceful shutdown.
-// It sends a graceful shutdown signal to each hostagent, waits for exit, and falls
-// back to process termination after a timeout.
+// It signals each hostagent, waits for it to exit (or time out), then reclaims any
+// resources left behind — always, because a force-killed hostagent skips its own
+// teardown (the usual case on Windows).
 func (r *LimaVMReconciler) shutdownAllHostagents() {
 	r.instanceStatesMu.RLock()
 	states := maps.Clone(r.instanceStates)
@@ -520,35 +521,41 @@ func (r *LimaVMReconciler) shutdownAllHostagents() {
 	// TODO: Wait on all hostagents in parallel instead of sequentially; with the
 	// current loop, the total wait is N × gracefulShutdownTimeout in the worst case.
 	for name, state := range states {
-		graceful := true
+		// Give the hostagent a chance to exit on its own after the signal above.
 		select {
 		case <-state.procExited:
 		case <-time.After(gracefulShutdownTimeout):
-			graceful = false
 		}
-		if !graceful {
-			// Manager context is cancelled; use a fresh context for cleanup.
-			// Inspect before killing so PIDs are still valid (not yet recycled
-			// to unrelated processes). stopInstanceForcibly kills the process
-			// tree and cleans up PID/socket/tmp files in one pass.
-			logger := ctrl.Log.WithName("shutdownAllHostagents")
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			inst, err := store.Inspect(cleanupCtx, name)
-			if err == nil && inst != nil {
-				stopInstanceForcibly(cleanupCtx, logger, inst)
-			}
-			cancel()
-			// Wait briefly for the process to exit after forced kill.
-			// Without a timeout, cmd.Wait can block indefinitely if a
-			// child process survives KillTree and holds an inherited pipe.
-			waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
-			select {
-			case <-state.procExited:
-			case <-waitCtx.Done():
-				logger.Info("Timed out waiting for hostagent to exit after forced kill", "instance", name)
-			}
-			waitCancel()
+
+		// Always reclaim the instance's resources, even when procExited closed
+		// promptly. On Windows the hostagent is force-killed by exec.CommandContext
+		// when the manager context is cancelled: procExited then closes right away,
+		// so the exit *looks* graceful, but the hostagent never ran its own teardown
+		// and left its PID file and WSL2 distro behind — which the next `rdd svc
+		// start` mistakes for an orphan. Use a fresh context because the manager
+		// context is already cancelled, and Inspect before killing so PIDs are still
+		// valid (not yet recycled). stopInstanceForcibly removes the PID/socket/tmp
+		// files and terminates the distro; it is a no-op when the hostagent already
+		// cleaned up after itself.
+		logger := ctrl.Log.WithName("shutdownAllHostagents")
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		if inst, err := store.Inspect(cleanupCtx, name); err == nil && inst != nil {
+			stopInstanceForcibly(cleanupCtx, logger, inst)
 		}
+		cancel()
+
+		// Wait briefly for the process to exit after a forced kill. Without a
+		// timeout, cmd.Wait can block indefinitely if a child process survives
+		// KillTree and holds an inherited pipe. Returns at once when the process
+		// already exited.
+		waitCtx, waitCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		select {
+		case <-state.procExited:
+		case <-waitCtx.Done():
+			logger.Info("Timed out waiting for hostagent to exit after forced kill", "instance", name)
+		}
+		waitCancel()
+
 		state.cancel()
 		r.instanceStatesMu.Lock()
 		delete(r.instanceStates, name)

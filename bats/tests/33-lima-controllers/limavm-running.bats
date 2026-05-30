@@ -63,6 +63,15 @@ lima_instance_running() {
     assert_file_exists "${RDD_LIMA_HOME}/${name}/ha.pid"
 }
 
+# True while the instance's WSL2 distro is still running. wsl.exe prints UTF-16,
+# so strip NUL bytes before matching; WSL_UTF8 makes newer builds emit UTF-8.
+lima_distro_running() {
+    local name=$1
+    local running
+    running=$(MSYS_NO_PATHCONV=1 WSL_UTF8=1 wsl.exe --list --running 2>/dev/null | tr -d '\0')
+    [[ "${running}" == *"lima-${name}"* ]]
+}
+
 get_restart_count() {
     local name=$1
     rdd ctl get limavm "${name}" --namespace "${NAMESPACE}" \
@@ -331,6 +340,21 @@ EOF
     assert_process_alive "${ha_pid}"
 
     rdd svc stop
+
+    # Graceful shutdown must reclaim the hostagent's PID file even when the
+    # hostagent was force-killed rather than self-stopping (the usual case on
+    # Windows, where exec.CommandContext terminates it when the manager context
+    # is cancelled). A leftover PID file makes the next "rdd svc start" mistake
+    # it for an orphan. This assertion is cross-platform: it fails on Windows
+    # before the shutdownAllHostagents cleanup fix.
+    try --max 30 --delay 1 --until-fail -- lima_instance_running "${VM_NAME}"
+
+    # On Windows the hostagent runs inside a WSL2 distro that a force-kill leaves
+    # running — the keepAlive process (nohup sleep) outlives the hostagent — so
+    # graceful shutdown must terminate the distro explicitly.
+    if is_msys; then
+        try --max 30 --delay 1 --until-fail -- lima_distro_running "${VM_NAME}"
+    fi
 
     # On Windows, child process handles (wsl.exe) keep the hostagent PID visible
     # in the process table long after termination. The next test ("restart service
