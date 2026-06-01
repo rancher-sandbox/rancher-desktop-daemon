@@ -137,7 +137,10 @@ func Exists() bool {
 // PIDNotFound indicates no running service process was found.
 const PIDNotFound = 0
 
-// PID returns the process ID of the running service, or PIDNotFound if it is not running.
+// PID returns the process ID of the running service, or PIDNotFound if it is
+// not running. On Windows it walks the candidate process's PEB to read its
+// command line (see process.IsOurProcess), so callers that poll it in a tight
+// loop pay a cross-process read each call.
 func PID() int {
 	pidStr, err := os.ReadFile(instance.PIDFile())
 	if err != nil {
@@ -145,15 +148,39 @@ func PID() int {
 	}
 	pid, err := strconv.Atoi(string(pidStr))
 	if err == nil {
-		var process *os.Process
-		process, err = os.FindProcess(pid)
+		var proc *os.Process
+		proc, err = os.FindProcess(pid)
 		if err == nil {
 			// on non-Windows, FindProcess may return without the process being
 			// alive; on Windows, the result encapsulates a valid handle.
 			if runtime.GOOS != "windows" {
-				err = process.Signal(syscall.Signal(0))
+				err = proc.Signal(syscall.Signal(0))
 			}
-			_ = process.Release()
+			_ = proc.Release()
+		}
+		// On Windows, FindProcess succeeds for any live PID, including one the
+		// OS recycled after a crash left our PID file behind. Confirm the PID
+		// still runs our control plane, so a recycled PID reads as not-running.
+		// IsOurProcess is a no-op (true) on other platforms.
+		//
+		// Match the "serve" token alone, not "service serve": the daemon can be
+		// launched through the "svc" alias as `rdd svc serve`, whose command line
+		// holds "svc serve". No other rdd subcommand name contains "serve", and
+		// the image-path match already rejects unrelated rdd processes.
+		//
+		// "serve" carries no instance name, so this confirms the PID runs a
+		// control plane, not specifically this instance's. A PID recycled to a
+		// *different* instance's control plane would pass. That needs concurrent
+		// instances (dev/test only); a lone instance never recycles a PID into
+		// another control plane.
+		//
+		// IsOurProcess returns false for any state it cannot confirm — a denied
+		// OpenProcess or a short PEB read on a live control plane included. Such a
+		// false negative reads as not-running and removes the PID file below; we
+		// accept that as the cost of the guard, which needs only the low query
+		// rights a same-user process always grants.
+		if err == nil && !process.IsOurProcess(pid, "serve") {
+			err = fmt.Errorf("pid %d is not our control plane", pid)
 		}
 	}
 	if err != nil {

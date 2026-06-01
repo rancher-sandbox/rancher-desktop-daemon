@@ -90,3 +90,35 @@ func TestIsOurProcessRejectsForeignExecutable(t *testing.T) {
 	assert.Assert(t, !IsOurProcess(pid, "ping"),
 		"a command-line substring match must not override an executable mismatch")
 }
+
+// TestSamePathMatchesShortAndLongForms confirms samePath treats an 8.3 short
+// path and its long form as the same executable. A user can launch rdd through
+// either form, so the identity check must recognize a live control plane no
+// matter which form named the process being checked.
+func TestSamePathMatchesShortAndLongForms(t *testing.T) {
+	// A directory name with no natural 8.3 form makes Windows synthesize a
+	// distinct short name where 8.3 generation is enabled on the volume.
+	longDir := filepath.Join(t.TempDir(), "LongDirectoryNameBeyond8dot3")
+	assert.NilError(t, os.Mkdir(longDir, 0o755))
+	longFile := filepath.Join(longDir, "control-plane-binary.exe")
+	assert.NilError(t, os.WriteFile(longFile, []byte("stub"), 0o644))
+
+	short := shortPathName(t, longFile)
+	if strings.EqualFold(filepath.Clean(short), filepath.Clean(longFile)) {
+		t.Skip("8.3 short-name generation is disabled on this volume")
+	}
+	assert.Assert(t, samePath(short, longFile),
+		"short form %q and long form %q must resolve to the same executable", short, longFile)
+}
+
+// shortPathName returns the 8.3 short form of p via GetShortPathName.
+func shortPathName(t *testing.T, p string) string {
+	t.Helper()
+	p16, err := windows.UTF16PtrFromString(p)
+	assert.NilError(t, err)
+	buf := make([]uint16, 1024)
+	n, err := windows.GetShortPathName(p16, &buf[0], uint32(len(buf)))
+	assert.NilError(t, err)
+	assert.Assert(t, n < uint32(len(buf)), "short-path buffer too small")
+	return windows.UTF16ToString(buf[:n])
+}
