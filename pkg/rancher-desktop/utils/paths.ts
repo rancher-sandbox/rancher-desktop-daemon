@@ -139,13 +139,17 @@ function getPlatformSpecificPaths(rdd: RDDPaths, platform: supportedPlatforms): 
  * Paths which do not depend on the platform.
  */
 const platformAgnosticPaths: PlatformAgnosticPaths = {
-  // Use a getter here so we can override `NODE_ENV` and `process.resourcesPath` in tests.
   get resources() {
-    if (process.env.NODE_ENV === 'production') {
-      return process.resourcesPath;
+    if (electron.app?.isPackaged) {
+      if (process.resourcesPath) {
+        return path.join(process.resourcesPath, 'resources');
+      }
+      return undefined as any;
     }
-    // When under test, we do not have `process.resourcesPath`; use a fallback.
-    return process.resourcesPath ?? path.join(process.cwd(), 'resources');
+    // In `yarn dev`, `process.resourcesPath` is
+    // `.../Electron.app/Contents/Resources` (and other similar paths on other
+    // platforms); we need to use the project directory instead.
+    return path.join(process.cwd(), 'resources');
   },
 };
 

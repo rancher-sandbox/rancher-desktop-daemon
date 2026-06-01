@@ -47,7 +47,7 @@
     <div class="nav-button-container">
       <!-- TODO: https://github.com/rancher-sandbox/rancher-desktop-app/issues/27 -->
       <dashboard-button
-        v-if="(() => false)()"
+        v-if="app?.spec?.kubernetes?.enabled"
         data-testid="dashboard-button"
         class="nav-button"
         @open-dashboard="openDashboard"
@@ -76,6 +76,7 @@ import NavItem from './NavItem.vue';
 import DashboardButton from '@pkg/components/DashboardOpen.vue';
 import PreferencesButton from '@pkg/components/Preferences/ButtonOpen.vue';
 import router from '@pkg/entry/router';
+import { mapTypedGetters } from '@pkg/entry/store';
 import type { ExtensionState } from '@pkg/store/extensions';
 import { hexEncode } from '@pkg/utils/string-encode';
 
@@ -134,6 +135,7 @@ export default defineComponent({
     };
   },
   computed: {
+    ...mapTypedGetters('rdd', ['app']),
     extensionsWithUI(): ExtensionWithUI[] {
       function hasUI(ext: ExtensionState): ext is ExtensionWithUI {
         return !!ext.metadata.ui?.['dashboard-tab']?.title;

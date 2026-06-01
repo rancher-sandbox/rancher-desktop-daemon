@@ -143,11 +143,10 @@ import { defined } from '@pkg/utils/typeUtils';
 import { IoRancherdesktopContainersV1alpha1Container as Container } from '@rdd-client';
 
 interface Action {
-  label:       string;
-  action?:     string;
-  enabled:     boolean;
-  bulkable:    boolean;
-  bulkAction?: string;
+  label:    string;
+  action:   string;
+  enabled:  boolean;
+  bulkable: boolean;
 }
 
 type RowItem = Container & {
@@ -156,13 +155,13 @@ type RowItem = Container & {
   imageName:         string | undefined;
   portsSortKey:      number[];
   availableActions?: Action[];
-  startContainer:    (this: Container, containers?: Container[]) => void;
-  stopContainer:     (this: Container, containers?: Container[]) => void;
-  pauseContainer:    (this: Container, containers?: Container[]) => void;
-  unpauseContainer:  (this: Container, containers?: Container[]) => void;
-  restartContainer:  (this: Container, containers?: Container[]) => void;
-  deleteContainer:   (this: Container, containers?: Container[]) => void;
-  viewInfo:          (this: Container, containers?: Container[]) => void;
+  startContainer:    (this: Container) => void;
+  stopContainer:     (this: Container) => void;
+  pauseContainer:    (this: Container) => void;
+  unpauseContainer:  (this: Container) => void;
+  restartContainer:  (this: Container) => void;
+  deleteContainer:   (this: Container) => void;
+  viewInfo:          (this: Container) => void;
   portList:          (readonly [number, number])[];
 };
 
@@ -249,97 +248,16 @@ export default defineComponent({
               }
               return 'Standalone Containers';
             })(),
-            availableActions: [
-              {
-                label:      'Info',
-                action:     'viewInfo',
-                enabled:    true,
-                bulkable:   false,
-              },
-              {
-                label:      'Start',
-                action:     'startContainer',
-                enabled:    this.isStopped(container),
-                bulkable:   true,
-                bulkAction: 'startContainer',
-              },
-              {
-                label:      'Stop',
-                action:     'stopContainer',
-                enabled:    this.isRunning(container) || this.isPaused(container),
-                bulkable:   true,
-                bulkAction: 'stopContainer',
-              },
-              {
-                label:      'Pause',
-                action:     'pauseContainer',
-                enabled:    this.isRunning(container),
-                bulkable:   true,
-                bulkAction: 'pauseContainer',
-              },
-              {
-                label:      'Unpause',
-                action:     'unpauseContainer',
-                enabled:    this.isPaused(container),
-                bulkable:   true,
-                bulkAction: 'unpauseContainer',
-              },
-              {
-                label:      'Restart',
-                action:     'restartContainer',
-                enabled:    this.isRunning(container),
-                bulkable:   true,
-                bulkAction: 'restartContainer',
-              },
-              {
-                label:      this.t('images.manager.table.action.delete'),
-                action:     'deleteContainer',
-                enabled:    this.isStopped(container),
-                bulkable:   true,
-                bulkAction: 'deleteContainer',
-              },
-            ],
-            startContainer: (args?: Container[]) => {
-              const containers = Array.isArray(args) ? args : [container];
-
-              return Promise.all(containers.map(container =>
-                this.containerRequestAction({ container, state: 'start' })));
-            },
-            stopContainer: (args?: Container[]) => {
-              const containers = Array.isArray(args) ? args : [container];
-
-              return Promise.all(containers.map(container =>
-                this.containerRequestAction({ container, state: 'stop' })));
-            },
-            pauseContainer: (args?: Container[]) => {
-              const containers = Array.isArray(args) ? args : [container];
-
-              return Promise.all(containers.map(container =>
-                this.containerRequestAction({ container, state: 'pause' })));
-            },
-            unpauseContainer: (args?: Container[]) => {
-              const containers = Array.isArray(args) ? args : [container];
-
-              return Promise.all(containers.map(container =>
-                this.containerRequestAction({ container, state: 'unpause' })));
-            },
-            restartContainer: (args?: Container[]) => {
-              const containers = Array.isArray(args) ? args : [container];
-
-              return Promise.all(containers.map(container =>
-                this.containerRequestAction({ container, state: 'restart' })));
-            },
-            deleteContainer: (args?: Container[]) => {
-              const containers = Array.isArray(args) ? args : [container];
-
-              return Promise.all(containers.map(container =>
-                this.containerDelete({ container })));
-            },
-            viewInfo: () => {
-              this.viewInfo(container);
-            },
+            availableActions: this.getContainerActions(container),
+            startContainer:   () => this.containerRequestAction({ container, state: 'start' }),
+            stopContainer:    () => this.containerRequestAction({ container, state: 'stop' }),
+            pauseContainer:   () => this.containerRequestAction({ container, state: 'pause' }),
+            unpauseContainer: () => this.containerRequestAction({ container, state: 'unpause' }),
+            restartContainer: () => this.containerRequestAction({ container, state: 'restart' }),
+            deleteContainer:  () => this.containerDelete({ container }),
+            viewInfo:         () => this.viewInfo(container),
             portList,
-            portsSortKey: portList.map(([hostPort]) => hostPort).sort((a, b) => a - b),
+            portsSortKey:     portList.map(([hostPort]) => hostPort).sort((a, b) => a - b),
           };
         });
     },
@@ -372,6 +290,52 @@ export default defineComponent({
     onChangeNamespace(event: Event) {
       const { value } = event.target as HTMLSelectElement;
       this.setCurrentNamespace({ namespace: value });
+    },
+    getContainerActions(container: Container) {
+      return [
+        {
+          label:      'Info',
+          action:     'viewInfo',
+          enabled:    true,
+          bulkable:   false,
+        },
+        {
+          label:      'Start',
+          action:     'startContainer',
+          enabled:    this.isStopped(container),
+          bulkable:   true,
+        },
+        {
+          label:      'Stop',
+          action:     'stopContainer',
+          enabled:    this.isRunning(container) || this.isPaused(container),
+          bulkable:   true,
+        },
+        {
+          label:      'Pause',
+          action:     'pauseContainer',
+          enabled:    this.isRunning(container),
+          bulkable:   true,
+        },
+        {
+          label:      'Unpause',
+          action:     'unpauseContainer',
+          enabled:    this.isPaused(container),
+          bulkable:   true,
+        },
+        {
+          label:      'Restart',
+          action:     'restartContainer',
+          enabled:    this.isRunning(container),
+          bulkable:   true,
+        },
+        {
+          label:      this.t('images.manager.table.action.delete'),
+          action:     'deleteContainer',
+          enabled:    this.isStopped(container),
+          bulkable:   true,
+        },
+      ];
     },
     clearDropDownPosition(event: Event) {
       const target = event.target as HTMLElement;

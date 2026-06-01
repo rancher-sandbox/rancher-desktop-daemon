@@ -45,16 +45,21 @@ const defaultOverrides = {
       }),
     },
     screen:          {},
-    shell:           {},
+    shell:           {
+      openExternal: jest.fn(),
+    },
     WebContentsView: {},
   },
 };
 
 type defaultOutputType = typeof defaultOverrides;
-type defaultInputType = { [key in keyof defaultOutputType]: undefined };
 type explicitModuleType = Record<string, any>;
-type mockModuleParamType = Record<string, explicitModuleType> | Partial<defaultInputType>;
-type mockModuleReturnType<T extends mockModuleParamType> = {
+type mockModuleParamType<T> = {
+  [K in keyof T]: K extends keyof defaultOutputType
+    ? explicitModuleType | undefined
+    : explicitModuleType;
+};
+type mockModuleReturnType<T> = {
   [key in keyof T]:
   key extends keyof defaultOutputType
     ? T[key] extends undefined
@@ -71,9 +76,9 @@ type mockModuleReturnType<T extends mockModuleParamType> = {
  * @returns The input, to facilitate working with the mocks.  When the value is
  * `undefined`, it is the default override instead.
  */
-export default function mockModules<T extends mockModuleParamType>(modules: T): mockModuleReturnType<T> {
+export default function mockModules<T extends mockModuleParamType<T>>(modules: T): mockModuleReturnType<T> {
   const results: mockModuleReturnType<T> = {} as any;
-  for (let [name, exports] of Object.entries(modules)) {
+  for (let [name, exports] of Object.entries<explicitModuleType | undefined>(modules)) {
     if (exports === undefined && name in defaultOverrides) {
       exports = defaultOverrides[name as keyof typeof defaultOverrides];
     }

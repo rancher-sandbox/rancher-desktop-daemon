@@ -31,6 +31,10 @@ type logLevel = 'debug' | 'info';
 
 let LOG_LEVEL: logLevel = 'info';
 
+if (process.env.RD_DEBUG_ENABLED) {
+  LOG_LEVEL = 'debug';
+}
+
 export function setLogLevel(level: logLevel): void {
   LOG_LEVEL = level;
 }

@@ -99,7 +99,7 @@ describe('getPaths', () => {
   const expected: Paths = {
     ...rddPaths,
     rdd:       'rdd',
-    resources: 'resources',
+    resources: path.join(process.cwd(), 'resources'),
     cache:     path.join(rddPaths.dir, 'cache'),
   };
   beforeEach(() => {
@@ -153,7 +153,7 @@ describe('getPaths', () => {
     });
   });
   it('should return undefined if resources is missing in production', () => {
-    jest.replaceProperty(process.env, 'NODE_ENV', 'production');
+    jest.replaceProperty(modules.electron.app, 'isPackaged', true);
     jest.replaceProperty(process, 'resourcesPath', undefined as any);
     modules.child_process.spawnSync.mockReturnValue({
       stdout: '{}',

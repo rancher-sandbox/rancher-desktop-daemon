@@ -20,7 +20,7 @@ export default defineComponent({
     ...mapGetters('preferences', ['getPreferences']),
     ...mapTypedGetters('rdd', ['app']),
     kubernetesVersion(): string {
-      return this.getPreferences.kubernetes.version;
+      return this.app?.spec?.kubernetes?.version || 'unknown';
     },
     kubernetesEnabled(): boolean {
       return !!this.app?.spec?.kubernetes?.enabled;

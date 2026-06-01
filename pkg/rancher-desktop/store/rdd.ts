@@ -3,6 +3,7 @@ import { Plugin } from 'vuex';
 import type { RootState } from '@pkg/entry/store';
 import { defineResource, resourceMutations, resourceState, resourceWatchActions } from '@pkg/store/rddConnection';
 import { ActionTree, GetterTree, MutationsType } from '@pkg/store/ts-helpers';
+import ipcRenderer from '@pkg/utils/ipcRenderer';
 import * as RDDClient from '@rdd-client';
 
 type RDDState = ReturnType<typeof state>;
@@ -41,8 +42,9 @@ export const getters = {
   },
   status(state, getters) {
     return function(type: string) {
-      const conditions: any[] | undefined = getters.app?.status?.conditions;
-      return conditions?.find((condition: any) => condition.type === type)?.status === 'True';
+      const app: RDDClient.IoRancherdesktopAppV1alpha1App | undefined = getters.app;
+      const conditions = app?.status?.conditions;
+      return conditions?.find((condition) => condition.type === type)?.status === 'True';
     };
   },
   settled(state, getters) {
@@ -153,6 +155,26 @@ export const plugins: Plugin<RootState>[] = [
           store.commit('rdd-connection/SET_NAMESPACE', newNamespace);
         }
       },
+    );
+  },
+  // When the app state changes, tell the backend about it.
+  function(store) {
+    store.watch(
+      (_state, getters) => getters['rdd/app'],
+      (app: RDDClient.IoRancherdesktopAppV1alpha1App | undefined) => {
+        const conditions = app?.status?.conditions ?? [];
+        const data = Object.fromEntries(conditions.map(condition => {
+          const { type, status, reason } = condition;
+          const mappedStatus = {
+            True:    true,
+            False:   false,
+            Unknown: undefined,
+          }[status];
+          return [type, [mappedStatus, reason] as const] as const;
+        }));
+        ipcRenderer.send('backend/app-status-changed', data);
+      },
+      { immediate: true },
     );
   },
 ];

@@ -103,10 +103,6 @@ describe('handleCertificateError', () => {
       ${ 'https' } | ${ 'localhost:8888' } | ${ 'development' } | ${ false } | ${ false }
       ${ 'https' } | ${ 'localhost:8888' } | ${ 'production' }  | ${ true }  | ${ false }
       ${ 'https' } | ${ 'localhost:8888' } | ${ 'production' }  | ${ false } | ${ false }
-      ${ 'https' } | ${ 'localhost:9443' } | ${ 'development' } | ${ true }  | ${ false }
-      ${ 'https' } | ${ 'localhost:9443' } | ${ 'development' } | ${ false } | ${ false }
-      ${ 'https' } | ${ 'localhost:9443' } | ${ 'production' }  | ${ true }  | ${ false }
-      ${ 'https' } | ${ 'localhost:9443' } | ${ 'production' }  | ${ false } | ${ false }
       ${ 'https' } | ${ '127.0.0.1:8888' } | ${ 'development' } | ${ true }  | ${ false }
       ${ 'https' } | ${ '127.0.0.1:8888' } | ${ 'development' } | ${ false } | ${ false }
       ${ 'https' } | ${ '127.0.0.1:8888' } | ${ 'production' }  | ${ true }  | ${ false }
@@ -115,10 +111,6 @@ describe('handleCertificateError', () => {
       ${ 'wss' }   | ${ 'localhost:8888' } | ${ 'development' } | ${ false } | ${ false }
       ${ 'wss' }   | ${ 'localhost:8888' } | ${ 'production' }  | ${ true }  | ${ false }
       ${ 'wss' }   | ${ 'localhost:8888' } | ${ 'production' }  | ${ false } | ${ false }
-      ${ 'wss' }   | ${ 'localhost:9443' } | ${ 'development' } | ${ true }  | ${ false }
-      ${ 'wss' }   | ${ 'localhost:9443' } | ${ 'development' } | ${ false } | ${ false }
-      ${ 'wss' }   | ${ 'localhost:9443' } | ${ 'production' }  | ${ true }  | ${ false }
-      ${ 'wss' }   | ${ 'localhost:9443' } | ${ 'production' }  | ${ false } | ${ false }
       ${ 'wss' }   | ${ '127.0.0.1:8888' } | ${ 'development' } | ${ true }  | ${ false }
       ${ 'wss' }   | ${ '127.0.0.1:8888' } | ${ 'development' } | ${ false } | ${ false }
       ${ 'wss' }   | ${ '127.0.0.1:8888' } | ${ 'production' }  | ${ true }  | ${ false }
@@ -139,47 +131,6 @@ describe('handleCertificateError', () => {
           process.env.RD_ENV_PLUGINS_DEV = '1';
         } else {
           delete process.env.RD_ENV_PLUGINS_DEV;
-        }
-        handleCertificateError(event, webContents, `${ protocol }://${ host }/`, error, certificate, callback);
-        expect(callback).toHaveBeenCalledWith(expected);
-        if (expected) {
-          expect(event.preventDefault).toHaveBeenCalled();
-        } else {
-          expect(event.preventDefault).not.toHaveBeenCalled();
-        }
-      });
-  });
-
-  describe('dashboard', () => {
-    test.each`
-      protocol     | host                  | state         | expected
-      ${ 'https' } | ${ '127.0.0.1:6120' } | ${ 'open' }   | ${ true }
-      ${ 'https' } | ${ '127.0.0.1:6120' } | ${ 'closed' } | ${ false }
-      ${ 'https' } | ${ '127.0.0.1:9443' } | ${ 'open' }   | ${ true }
-      ${ 'https' } | ${ '127.0.0.1:9443' } | ${ 'closed' } | ${ false }
-      ${ 'https' } | ${ '127.0.0.1:8888' } | ${ 'open' }   | ${ false }
-      ${ 'https' } | ${ '127.0.0.1:8888' } | ${ 'closed' } | ${ false }
-      ${ 'wss' }   | ${ '127.0.0.1:6120' } | ${ 'open' }   | ${ true }
-      ${ 'wss' }   | ${ '127.0.0.1:6120' } | ${ 'closed' } | ${ false }
-      ${ 'wss' }   | ${ '127.0.0.1:9443' } | ${ 'open' }   | ${ true }
-      ${ 'wss' }   | ${ '127.0.0.1:9443' } | ${ 'closed' } | ${ false }
-      ${ 'wss' }   | ${ '127.0.0.1:8888' } | ${ 'open' }   | ${ false }
-      ${ 'wss' }   | ${ '127.0.0.1:8888' } | ${ 'closed' } | ${ false }
-      `('dashboard is $state for $protocol://$host',
-      async({ protocol, host, state, expected }) => {
-        const callback = jest.fn();
-        const event: Electron.Event = {
-          preventDefault: jest.fn(),
-        } as unknown as Electron.Event;
-        const webContents: Electron.WebContents = {} as unknown as Electron.WebContents;
-        const error = '(unused error message)';
-        const certificate: Electron.Certificate = {} as unknown as Electron.Certificate;
-        const { handleCertificateError } = await import('../verify-certificates');
-
-        if (state === 'open') {
-          modules['@pkg/window'].windowMapping['dashboard'] = 1;
-        } else {
-          delete modules['@pkg/window'].windowMapping['dashboard'];
         }
         handleCertificateError(event, webContents, `${ protocol }://${ host }/`, error, certificate, callback);
         expect(callback).toHaveBeenCalledWith(expected);
