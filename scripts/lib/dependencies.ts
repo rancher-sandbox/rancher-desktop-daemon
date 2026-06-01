@@ -28,6 +28,8 @@ export interface DownloadContext {
   internalDir:        string;
   // dockerPluginsDir is for docker CLI plugins.
   dockerPluginsDir:   string;
+  // hostDir is a directory for things that are not shipped.
+  hostDir:            string;
 }
 
 export interface AlpineLimaISOVersion {

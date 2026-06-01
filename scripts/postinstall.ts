@@ -178,10 +178,10 @@ async function runScripts(): Promise<void> {
   await downloadDependencies(dependencies);
 }
 
-async function buildDownloadContextFor(rawPlatform: DependencyPlatform, manifest: DependencyManifest): Promise<DownloadContext> {
+function buildDownloadContextFor(rawPlatform: DependencyPlatform, manifest: DependencyManifest): Promise<DownloadContext> {
   const platform = rawPlatform === 'wsl' ? 'linux' : rawPlatform;
   const resourcesDir = path.join(process.cwd(), 'resources');
-  const downloadContext: DownloadContext = {
+  return Promise.resolve({
     dependencies:       manifest,
     dependencyPlatform: rawPlatform,
     platform,
@@ -189,15 +189,10 @@ async function buildDownloadContextFor(rawPlatform: DependencyPlatform, manifest
     isM1:               !!process.env.M1,
     resourcesDir,
     binDir:             path.join(resourcesDir, platform, 'bin'),
-    internalDir:        path.join(resourcesDir, platform, 'internal'),
+    internalDir:        path.join(resourcesDir, 'internal'),
     dockerPluginsDir:   path.join(resourcesDir, platform, 'docker-cli-plugins'),
-  };
-
-  const dirsToCreate = ['binDir', 'internalDir', 'dockerPluginsDir'] as const;
-
-  await Promise.all(dirsToCreate.map(d => fs.promises.mkdir(downloadContext[d], { recursive: true })));
-
-  return downloadContext;
+    hostDir:            path.join(resourcesDir, 'host'),
+  });
 }
 
 // The main purpose of this setTimeout is to keep the script waiting until the main async function finishes
