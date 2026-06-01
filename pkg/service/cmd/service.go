@@ -144,15 +144,28 @@ func PID() int {
 	}
 	pid, err := strconv.Atoi(string(pidStr))
 	if err == nil {
-		var process *os.Process
-		process, err = os.FindProcess(pid)
+		var proc *os.Process
+		proc, err = os.FindProcess(pid)
 		if err == nil {
 			// on non-Windows, FindProcess may return without the process being
 			// alive; on Windows, the result encapsulates a valid handle.
 			if runtime.GOOS != "windows" {
-				err = process.Signal(syscall.Signal(0))
+				err = proc.Signal(syscall.Signal(0))
 			}
-			_ = process.Release()
+			_ = proc.Release()
+		}
+		// On Windows, FindProcess succeeds for any live PID, including one the
+		// OS recycled after a crash left our PID file behind. Confirm the PID
+		// still runs our "service serve" process, so a recycled PID reads as
+		// not-running. IsOurProcess is a no-op (true) on other platforms.
+		//
+		// "service serve" carries no instance name, so this confirms the PID
+		// runs a control plane, not specifically this instance's. A PID recycled
+		// to a *different* instance's control plane would pass. That needs
+		// concurrent instances (dev/test only); a lone instance never recycles a
+		// PID into another "service serve".
+		if err == nil && !process.IsOurProcess(pid, "service", "serve") {
+			err = fmt.Errorf("pid %d is not our control plane", pid)
 		}
 	}
 	if err != nil {

@@ -73,7 +73,7 @@ func IsOurProcess(pid int, cmdlineSubstrings ...string) bool {
 	defer func() { _ = windows.CloseHandle(handle) }()
 
 	image, err := processImagePath(handle)
-	if err != nil || !strings.EqualFold(filepath.Clean(image), filepath.Clean(self)) {
+	if err != nil || !samePath(image, self) {
 		return false
 	}
 	cmdline, err := processCommandLine(handle)
@@ -86,6 +86,49 @@ func IsOurProcess(pid int, cmdlineSubstrings ...string) bool {
 		}
 	}
 	return true
+}
+
+// samePath reports whether image and self name the same on-disk executable.
+// It resolves each to its long (non-8.3) form first, so a process launched
+// through a short path such as C:\PROGRA~1\... still matches the same binary
+// named by its long path. The two rdd processes compared need not have been
+// launched the same way.
+func samePath(image, self string) bool {
+	return strings.EqualFold(longPath(image), longPath(self))
+}
+
+// longPath returns p in its long, non-8.3 form. If the long form cannot be
+// resolved (for example the file no longer exists), it falls back to
+// filepath.Clean(p) so a transient resolution failure degrades to a lexical
+// comparison rather than a guaranteed mismatch — for the service PID a false
+// "not ours" would orphan a live control plane.
+func longPath(p string) string {
+	if resolved, err := resolveLongPath(p); err == nil {
+		return filepath.Clean(resolved)
+	}
+	return filepath.Clean(p)
+}
+
+// resolveLongPath expands any 8.3 short components of p via GetLongPathName,
+// growing the buffer up to the Windows extended-path ceiling the way
+// processImagePath does.
+func resolveLongPath(p string) (string, error) {
+	p16, err := windows.UTF16PtrFromString(p)
+	if err != nil {
+		return "", err
+	}
+	for bufSize := uint32(1024); bufSize <= 32768; bufSize *= 2 {
+		buf := make([]uint16, bufSize)
+		n, err := windows.GetLongPathName(p16, &buf[0], bufSize)
+		if err != nil {
+			return "", err
+		}
+		if n < bufSize {
+			return windows.UTF16ToString(buf[:n]), nil
+		}
+		// n >= bufSize: the buffer was too small and n is the required size; grow.
+	}
+	return "", windows.ERROR_INSUFFICIENT_BUFFER
 }
 
 // processImagePath returns the full path to the executable backing the process.
