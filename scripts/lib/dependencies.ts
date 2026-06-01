@@ -50,31 +50,17 @@ export interface MobyOpenAPISpecVersion {
 export type Version = string | AlpineLimaISOVersion | MobyOpenAPISpecVersion;
 
 export interface DependencyVersions {
-  lima:                            string;
-  qemu:                            string;
-  socketVMNet:                     string;
-  alpineLimaISO:                   AlpineLimaISOVersion;
-  WSLDistro:                       string;
-  kuberlr:                         string;
-  helm:                            string;
+  'check-spelling':                string;
   dockerCLI:                       string;
   dockerBuildx:                    string;
   dockerCompose:                   string;
-  electron:                        string;
-  'golangci-lint':                 string;
-  trivy:                           string;
-  steve:                           string;
   dockerProvidedCredentialHelpers: string;
   ECRCredentialHelper:             string;
-  mobyOpenAPISpec:                 MobyOpenAPISpecVersion;
+  electron:                        string;
+  'golangci-lint':                 string;
+  helm:                            string;
+  steve:                           string;
   wix:                             string;
-  moproxy:                         string;
-  spinShim:                        string;
-  certManager:                     string;
-  spinOperator:                    string;
-  spinCLI:                         string;
-  spinKubePlugin:                  string;
-  'check-spelling':                string;
 }
 
 export const DEP_VERSIONS_PATH = 'pkg/rancher-desktop/assets/dependencies.yaml';
