@@ -18,15 +18,6 @@ electron:
     electron-v42.1.0-linux-arm64.zip: sha256:1e700f7f3daef794cc45235e51c1172664aed49a4e7737b8896ddc398bff4d7d
     electron-v42.1.0-win32-x64.zip: sha256:0b03582d0a68dce8473fcc090114dabef7eaafd52b6d8cd2c85b000358c6af31
     electron-v42.1.0-win32-arm64.zip: sha256:78a6bc7d1648383d72a79c95748e6bbc0faae412f11f29b987ee9deda605535e
-helm:
-  version: 4.2.0
-  checksums:
-    helm-v4.2.0-linux-amd64.tar.gz: sha256:97dbeb971be4ac4b27e3839976d9564c0fb35c6f3b1da89dd1e292d236af4096
-    helm-v4.2.0-linux-arm64.tar.gz: sha256:1f8de130dfbd04de64978e7b852a7a547be1404956a366608276d2520b678670
-    helm-v4.2.0-darwin-amd64.tar.gz: sha256:1376ea697140e4db316736e760d5a47d12afc1524dce704476ef06fd7fdeddc6
-    helm-v4.2.0-darwin-arm64.tar.gz: sha256:f13f959015447b6bc309f9fd506509926543988a39035c088b52522ec95e2acb
-    helm-v4.2.0-windows-amd64.tar.gz: sha256:34bf9659f8f04f3841a60131183b8e2acc44e260db4c93b889ff09718cacca6f
-    helm-v4.2.0-windows-arm64.tar.gz: sha256:41b8c33f7bb5ed094412b50702e70014633383e2cc32efd60239afbfe9fdbc19
 dockerCLI:
   version: 29.5.2
   checksums:
@@ -56,17 +47,6 @@ dockerCompose:
     docker-compose-darwin-aarch64: sha256:4cad7fc67dd089a598a15598ad38d04e6f23bf299846d26b2c572f1f96a7c49f
     docker-compose-windows-x86_64.exe: sha256:e1a8faff28c7433635201a2222171b727f33ecdb0ed367e54d162d00432f39aa
     docker-compose-windows-aarch64.exe: sha256:11992bc5de81d7df994bdf58a4eead433f1c287c15965056a3b372ae38888aaf
-golangci-lint:
-  version: 2.12.2
-  checksums: {}
-steve:
-  version: 0.1.0-beta9.2
-  checksums:
-    steve-darwin-amd64.tar.gz: sha256:0886c0bf0823f1c0893d7d05fd3a34b4bea4a7999c8d66a7241549cadecea676
-    steve-darwin-arm64.tar.gz: sha256:901f858c27f96481fad3f3fcc734080a1861838005963a9913a68dbefc2792b9
-    steve-linux-amd64.tar.gz: sha256:31d68b0c92b688984dc0db270c17b87164c07626c0b69f92f0b2f7f31017d3de
-    steve-linux-arm64.tar.gz: sha256:f976de1c9c63a1732c0e7f0365c228747e669a62ad9a4fa7ae98dc2277919970
-    steve-windows-amd64.tar.gz: sha256:a70a9bfecb43abd94350eb8919a5d86425632393c2d04f15b8bafcdf158da39d
 dockerProvidedCredentialHelpers:
   version: 0.9.7
   checksums:
@@ -87,6 +67,26 @@ ECRCredentialHelper:
     darwin-arm64/docker-credential-ecr-login: sha256:aa9e902a4dd80aa34ac0f753f6ab4723050b9d9846b07237ea56c5f814b9f457
     windows-amd64/docker-credential-ecr-login.exe: sha256:1545d0c797ad7d539f0b85ef6c8702193a93764d537b01f93b55cefae994c9e1
     windows-arm64/docker-credential-ecr-login.exe: sha256:42bbcac22405c1a98ae211555918dc37f8e0e9c458a93f4026cf102aa1011256
+golangci-lint:
+  version: 2.12.2
+  checksums: {}
+helm:
+  version: 4.2.0
+  checksums:
+    helm-v4.2.0-linux-amd64.tar.gz: sha256:97dbeb971be4ac4b27e3839976d9564c0fb35c6f3b1da89dd1e292d236af4096
+    helm-v4.2.0-linux-arm64.tar.gz: sha256:1f8de130dfbd04de64978e7b852a7a547be1404956a366608276d2520b678670
+    helm-v4.2.0-darwin-amd64.tar.gz: sha256:1376ea697140e4db316736e760d5a47d12afc1524dce704476ef06fd7fdeddc6
+    helm-v4.2.0-darwin-arm64.tar.gz: sha256:f13f959015447b6bc309f9fd506509926543988a39035c088b52522ec95e2acb
+    helm-v4.2.0-windows-amd64.tar.gz: sha256:34bf9659f8f04f3841a60131183b8e2acc44e260db4c93b889ff09718cacca6f
+    helm-v4.2.0-windows-arm64.tar.gz: sha256:41b8c33f7bb5ed094412b50702e70014633383e2cc32efd60239afbfe9fdbc19
+steve:
+  version: 0.1.0-beta9.2
+  checksums:
+    steve-darwin-amd64.tar.gz: sha256:0886c0bf0823f1c0893d7d05fd3a34b4bea4a7999c8d66a7241549cadecea676
+    steve-darwin-arm64.tar.gz: sha256:901f858c27f96481fad3f3fcc734080a1861838005963a9913a68dbefc2792b9
+    steve-linux-amd64.tar.gz: sha256:31d68b0c92b688984dc0db270c17b87164c07626c0b69f92f0b2f7f31017d3de
+    steve-linux-arm64.tar.gz: sha256:f976de1c9c63a1732c0e7f0365c228747e669a62ad9a4fa7ae98dc2277919970
+    steve-windows-amd64.tar.gz: sha256:a70a9bfecb43abd94350eb8919a5d86425632393c2d04f15b8bafcdf158da39d
 wix:
   version: v3.14.1
   checksums:

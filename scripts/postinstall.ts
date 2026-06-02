@@ -1,11 +1,7 @@
-import childProcess from 'child_process';
-import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
 import { Electron } from '@/scripts/dependencies/electron';
-import * as goUtils from '@/scripts/dependencies/go-source';
-import { SudoPrompt } from '@/scripts/dependencies/sudo-prompt';
 import * as tools from '@/scripts/dependencies/tools';
 import { Wix } from '@/scripts/dependencies/wix';
 import {
@@ -30,15 +26,19 @@ const InstallTimeout = 10 * 60 * 1_000; // Ten minutes.
 // Dependencies that should be installed into places that users touch
 // (so users' WSL distros and hosts as of the time of writing).
 const userTouchedDependencies: Dependency[] = [
+  new tools.Helm(),
+  new tools.DockerCLI(),
+  new tools.DockerBuildx(),
+  new tools.DockerCompose(),
+  new tools.DockerProvidedCredHelpers(),
+  new tools.ECRCredHelper(),
 ];
 
 // Dependencies that are specific to unix hosts.
 const unixDependencies: Dependency[] = [];
 
 // Dependencies that are specific to macOS hosts.
-const macOSDependencies = [
-  new SudoPrompt(),
-];
+const macOSDependencies: Dependency[] = [];
 
 // Dependencies that are specific to windows hosts.
 const windowsDependencies = [
