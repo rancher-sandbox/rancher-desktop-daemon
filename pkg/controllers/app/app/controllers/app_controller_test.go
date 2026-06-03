@@ -347,7 +347,11 @@ func Test_computeSettledCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := computeSettledCondition(tt.app, tt.engineEnabled, tt.kubernetesEnabled, !tt.templateOutOfDate)
+			got := computeSettledCondition(tt.app, settledInputs{
+				engineEnabled:     tt.engineEnabled,
+				kubernetesEnabled: tt.kubernetesEnabled,
+				templateUpToDate:  !tt.templateOutOfDate,
+			})
 			assert.Equal(t, got.Type, v1alpha1.AppConditionSettled)
 			assert.Equal(t, got.Status, tt.wantStatus)
 			assert.Equal(t, got.Reason, tt.wantReason)
