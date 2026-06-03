@@ -481,8 +481,8 @@ func (r *AppReconciler) Reconcile(ctx context.Context, _ ctrl.Request) (ctrl.Res
 // settledInputs holds the per-reconcile flags that gate Settled. The call
 // site sets each field by name, so a caller cannot transpose them.
 type settledInputs struct {
-	// engineEnabled is false when no controller in this process writes
-	// ContainerEngineReady; in that case the engine condition is ignored.
+	// engineEnabled is false when no controller writes ContainerEngineReady;
+	// in that case the engine condition is ignored.
 	engineEnabled bool
 	// kubernetesEnabled is false when no controller writes KubernetesReady;
 	// it also gates on spec.kubernetes.enabled so a stopped cluster does not
