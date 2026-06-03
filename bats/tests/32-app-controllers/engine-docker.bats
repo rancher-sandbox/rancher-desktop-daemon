@@ -772,6 +772,14 @@ docker_context_dir() {
     echo "${DOCKER_CONFIG}/contexts/meta/${hash}"
 }
 
+# assert_docker_context checks config.json's currentContext against the
+# expected value; suitable for polling with try.
+assert_docker_context() { # <expected-context>
+    run -0 cat "${DOCKER_CONFIG}/config.json"
+    run -0 jq_output '.currentContext'
+    assert_output "$1"
+}
+
 @test "moby engine creates Docker context for the instance" {
     # Restart with moby (the containerd test above may have left the engine in
     # containerd mode).
@@ -785,16 +793,19 @@ docker_context_dir() {
 
     assert_file_exists "${meta_file}"
 
-    run -0 jq -r '.Name' "${meta_file}"
+    run -0 cat "${meta_file}"
+    meta=${output}
+
+    run -0 jq_raw '.Name' "${meta}"
     assert_output "${context_name}"
 
     if is_windows; then
-        run -0 jq -r '.Endpoints.docker.Host' "${meta_file}"
+        run -0 jq_raw '.Endpoints.docker.Host' "${meta}"
         assert_output "npipe:////./pipe/docker_engine"
     else
         run -0 rdd service paths docker_socket
         socket_path=${output}
-        run -0 jq -r '.Endpoints.docker.Host' "${meta_file}"
+        run -0 jq_raw '.Endpoints.docker.Host' "${meta}"
         assert_output "unix://${socket_path}"
     fi
 }
@@ -824,11 +835,9 @@ EOF
     rdd ctl wait --for=condition=ContainerEngineReady app/app --timeout=30s
 
     # The probe goroutine runs asynchronously; give it a moment.
-    try --max 6 --delay 1 -- \
-        bash -c "jq -r '.currentContext' '${DOCKER_CONFIG}/config.json' | grep -qx '${context_name}'"
+    try --max 6 --delay 1 -- assert_docker_context "${context_name}"
 
-    run -0 jq -r '.currentContext' "${DOCKER_CONFIG}/config.json"
-    assert_output "${context_name}"
+    assert_docker_context "${context_name}"
 }
 
 @test "stopping moby engine removes Docker context and clears currentContext" {
@@ -844,6 +853,7 @@ EOF
     assert_dir_not_exists "${context_dir}"
 
     # currentContext should either be gone or point to something else.
-    run jq -r '.currentContext // empty' "${DOCKER_CONFIG}/config.json"
+    run -0 cat "${DOCKER_CONFIG}/config.json"
+    run -0 jq_output '.currentContext // empty'
     refute_output "${context_name}"
 }

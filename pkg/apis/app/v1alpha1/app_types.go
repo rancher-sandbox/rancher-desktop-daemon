@@ -81,6 +81,11 @@ const (
 
 	// AppSettledReasonKubernetesStale means the Kubernetes controller has not yet observed the current generation.
 	AppSettledReasonKubernetesStale = "KubernetesStale"
+
+	// AppSettledReasonApplyingTemplate means the LimaVM has not yet restarted
+	// into the current template, so a spec change that rewrote the template is
+	// not yet in effect.
+	AppSettledReasonApplyingTemplate = "ApplyingTemplate"
 )
 
 // Reasons for the KubernetesReady condition.

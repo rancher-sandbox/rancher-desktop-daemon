@@ -71,6 +71,7 @@ func Test_computeSettledCondition(t *testing.T) {
 		app               *v1alpha1.App
 		engineEnabled     bool
 		kubernetesEnabled bool
+		templateOutOfDate bool
 		wantStatus        metav1.ConditionStatus
 		wantReason        string
 		wantMessage       string
@@ -325,13 +326,32 @@ func Test_computeSettledCondition(t *testing.T) {
 			wantReason:        v1alpha1.AppSettledReasonSettled,
 			wantMessage:       settledMessageSettled,
 		},
+		{
+			// Even with every feeding condition ready at the current
+			// generation, a template the LimaVM has not yet applied holds
+			// Settled false — this is the premature-settle guard.
+			name: "stale template holds Settled false despite ready conditions",
+			app: makeApp(2, true,
+				running("Started", "Lima instance is running", metav1.ConditionTrue, 2),
+				engine(v1alpha1.EngineReasonConnected, "Container engine synced", metav1.ConditionTrue, 2),
+			),
+			engineEnabled:     true,
+			templateOutOfDate: true,
+			wantStatus:        metav1.ConditionFalse,
+			wantReason:        v1alpha1.AppSettledReasonApplyingTemplate,
+			wantMessage:       settledMessageApplyingTemplate,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := computeSettledCondition(tt.app, tt.engineEnabled, tt.kubernetesEnabled)
+			got := computeSettledCondition(tt.app, settledInputs{
+				engineEnabled:     tt.engineEnabled,
+				kubernetesEnabled: tt.kubernetesEnabled,
+				templateUpToDate:  !tt.templateOutOfDate,
+			})
 			assert.Equal(t, got.Type, v1alpha1.AppConditionSettled)
 			assert.Equal(t, got.Status, tt.wantStatus)
 			assert.Equal(t, got.Reason, tt.wantReason)

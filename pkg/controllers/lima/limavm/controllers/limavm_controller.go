@@ -367,6 +367,12 @@ func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // The next reconcile re-enters this method (stale observed version), finds the
 // on-disk template identical, and records the version then.
 //
+// The same deferral covers a change arriving mid-restart: its template
+// differs from the on-disk copy, so the method rewrites the copy and keeps
+// deferring the version update. observedTemplateResourceVersion catches up
+// only once the running instance matches the latest ConfigMap, so a burst
+// of changes settles on the last one.
+//
 // All paths return an empty result so the caller falls through to
 // handleRunningState.
 func (r *LimaVMReconciler) handleTemplateUpdate(ctx context.Context, limaVM *v1alpha1.LimaVM, templateConfigMap *corev1.ConfigMap) (ctrl.Result, error) {

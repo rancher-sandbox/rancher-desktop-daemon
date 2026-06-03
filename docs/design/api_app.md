@@ -125,11 +125,19 @@ status:
   | `Settled`              | `False`   | `EngineStale`    | Engine controller has not yet observed the current generation     |
   | `Settled`              | `False`   | `WaitingForKubernetes` | Kubernetes controller has not yet written `KubernetesReady`  |
   | `Settled`              | `False`   | `KubernetesStale` | Kubernetes controller has not yet observed the current generation |
+  | `Settled`              | `False`   | `ApplyingTemplate` | A spec change rewrote the template; the LimaVM has not yet restarted into it |
   | `Settled`              | `False`   | *(forwarded)*    | Forwarded from the blocking `Running`, `ContainerEngineReady`, or `KubernetesReady` reason |
 
   `Running=True` means the Lima guest has finished booting and SSH is reachable. It says nothing about the container engine socket; consumers that depend on the engine (container/image/volume mirrors, `docker` against the forwarded socket) must also check `ContainerEngineReady`, which flips to `True` only after the engine controller has connected to the socket and completed its initial full sync.
 
-  The `Created` and `Running` conditions are mirrored from LimaVM, so their `lastTransitionTime` reflects the LimaVM transition rather than the copy — the timestamp is meaningful for staleness checks. The engine reconciler stamps `ContainerEngineReady.observedGeneration` with the App's `metadata.generation` at the time it writes the condition; if the App's generation advances between the reconciler's read and write, the stamp reflects the write-time generation rather than the observed one. The App reconciler computes `Settled` from the mirrored `Running`, the engine-written `ContainerEngineReady`, and the Kubernetes-written `KubernetesReady` (the last only when `spec.kubernetes.enabled` is true), and stamps its own `observedGeneration` with the `metadata.generation` observed when it computed the condition, not the generation at write time. The retry-on-conflict loop re-reads on 409, so a successful write always carries the current generation. `rdd set` waits for `Settled.status=True` with `observedGeneration >= post-patch metadata.generation`, so stale snapshots cannot prematurely satisfy the wait.
+  Anything waiting for the control plane to be ready should wait for `Settled=True`. Reaching it requires the following, in the order they become true:
+
+  - The LimaVM must be up to date with the current template ConfigMap; otherwise `Settled` is `False`/`ApplyingTemplate`. LimaVM defers `status.observedTemplateResourceVersion` until the restart completes, and the App reconciler gates `Settled` on that field matching the template ConfigMap's `resourceVersion`.
+  - The LimaVM must be running, reported by the mirrored `Running` condition. `Created` and `Running` are both mirrored from LimaVM, including their `lastTransitionTime`, so the timestamps track the LimaVM transition.
+  - `ContainerEngineReady` must be `True`. The engine reconciler stamps its `observedGeneration` with the App's `metadata.generation` as it writes the condition, keeping the condition current with the App.
+  - `KubernetesReady` must be `True` when `spec.kubernetes.enabled` is set. The Kubernetes reconciler stamps its `observedGeneration` the same way.
+
+  `Settled` carries its own `observedGeneration`: the App's generation observed when the reconciler computed the condition. `rdd set` therefore waits for `Settled=True` with `observedGeneration` at least the post-patch `metadata.generation`, so it settles on its own change rather than a stale snapshot from an earlier generation.
 
 Deleting the `App` resource triggers the finalizer to stop and delete the owned LimaVM (and wait for the LimaVM controller to complete its own cleanup before removing the App finalizer).
 

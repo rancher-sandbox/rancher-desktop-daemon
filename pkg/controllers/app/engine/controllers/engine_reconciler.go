@@ -450,6 +450,28 @@ func (r *EngineReconciler) setEngineCondition(ctx context.Context, app *appv1alp
 			}
 			return err
 		}
+		// The caller decided status and reason from its earlier App read,
+		// but this re-Get stamps ObservedGeneration. So the condition can
+		// advertise a generation the engine has not reconciled: its status
+		// reflects the earlier read while ObservedGeneration jumps to the
+		// latest. Settled and rdd set treat engineCond.ObservedGeneration
+		// >= app.Generation as "the engine has caught up", so on its own
+		// this stamp could let Settled report True before the engine
+		// reconciles the newer spec — a premature settle.
+		//
+		// That gap is safe today because another gate holds Settled until
+		// the engine actually reconciles the new generation. Changing
+		// containerEngine.name rewrites the Lima template, so Settled waits
+		// at ApplyingTemplate while the VM restarts and the engine
+		// re-derives ContainerEngineReady. Setting running=false hits the
+		// stop path, which waits for the engine's Stopped reason — written
+		// only after cleanup — so a stale Connected cannot settle it.
+		//
+		// A future spec field that changes engine behavior without one of
+		// those gates would break this. It must force ContainerEngineReady
+		// to be re-derived at the new generation — e.g. cycle the watcher
+		// so the next Connected follows a real sync, or gate Settled on the
+		// field — rather than rely on this stamp alone.
 		changed := meta.SetStatusCondition(&latest.Status.Conditions, metav1.Condition{
 			Type:               appv1alpha1.AppConditionContainerEngineReady,
 			Status:             status,

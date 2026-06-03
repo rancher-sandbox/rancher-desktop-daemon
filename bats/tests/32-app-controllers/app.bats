@@ -91,15 +91,15 @@ local_setup_file() {
 
 @test "verify LimaVM has owner reference pointing to App" {
     run -0 rdd ctl get limavm "${VM_NAME}" --namespace "${RDD_NAMESPACE}" -o json
-    local json="${output}"
+    json="${output}"
 
-    run -0 jq -r '.metadata.ownerReferences[0].kind' <<<"${json}"
+    run -0 jq_raw '.metadata.ownerReferences[0].kind' "${json}"
     assert_output "App"
 
-    run -0 jq -r '.metadata.ownerReferences[0].name' <<<"${json}"
+    run -0 jq_raw '.metadata.ownerReferences[0].name' "${json}"
     assert_output "${APP_NAME}"
 
-    run -0 jq -r '.metadata.ownerReferences[0].controller' <<<"${json}"
+    run -0 jq_raw '.metadata.ownerReferences[0].controller' "${json}"
     assert_output "true"
 }
 
@@ -143,19 +143,19 @@ local_setup_file() {
 
 @test "verify App status mirrors LimaVM Created condition" {
     run -0 rdd ctl get app "${APP_NAME}" -o json
-    local json="${output}"
+    json="${output}"
 
-    run -0 jq -r '.status | has("conditions")' <<<"${json}"
+    run -0 jq_raw '.status | has("conditions")' "${json}"
     assert_output "true"
 
-    run -0 jq -r '.status.conditions[] | select(.type == "Created") | .status' <<<"${json}"
+    run -0 jq_raw '.status.conditions[] | select(.type == "Created") | .status' "${json}"
     assert_output "True"
 }
 
 @test "verify App conditions preserve LimaVM LastTransitionTime" {
     run -0 rdd ctl get limavm "${VM_NAME}" --namespace "${RDD_NAMESPACE}" -o json
     run -0 jq_output '.status.conditions[] | select(.type == "Created") | .lastTransitionTime'
-    local limavm_ts="${output}"
+    limavm_ts="${output}"
 
     run -0 rdd ctl get app "${APP_NAME}" -o json
     run -0 jq_output '.status.conditions[] | select(.type == "Created") | .lastTransitionTime'
@@ -186,7 +186,7 @@ local_setup_file() {
 @test "verify App Running condition preserves LimaVM LastTransitionTime" {
     run -0 rdd ctl get limavm "${VM_NAME}" --namespace "${RDD_NAMESPACE}" -o json
     run -0 jq_output '.status.conditions[] | select(.type == "Running") | .lastTransitionTime'
-    local limavm_ts="${output}"
+    limavm_ts="${output}"
 
     run -0 rdd ctl get app "${APP_NAME}" -o json
     run -0 jq_output '.status.conditions[] | select(.type == "Running") | .lastTransitionTime'
@@ -196,7 +196,7 @@ local_setup_file() {
 @test "verify App Running condition observedGeneration reflects App generation" {
     run -0 rdd ctl get app "${APP_NAME}" -o json
     run -0 jq_output '.metadata.generation'
-    local app_gen="${output}"
+    app_gen="${output}"
 
     run -0 rdd ctl get app "${APP_NAME}" -o json
     run -0 jq_output '.status.conditions[] | select(.type == "Running") | .observedGeneration'
@@ -217,13 +217,31 @@ local_setup_file() {
     assert_line "inactive"
 }
 
-@test "switch container engine to containerd without stopping VM" {
+@test "switch container engine to containerd restarts the VM" {
+    # rdd set blocks until the App settles, so snapshot two LimaVM fields before
+    # and after to prove the switch rebooted the VM. We check both because they
+    # cover different failure modes: lastTransitionTime advances only when Running
+    # flips, proving a reboot; observedTemplateResourceVersion advances only after
+    # the VM applies the new template, guarding against a premature Settled.
+    run -0 rdd ctl get limavm "${VM_NAME}" --namespace "${RDD_NAMESPACE}" -o json
+    before="${output}"
+    run -0 jq_raw '.status.conditions[] | select(.type == "Running") | .status' "${before}"
+    assert_output "True"
+    run -0 jq_raw '.status.conditions[] | select(.type == "Running") | .lastTransitionTime' "${before}"
+    before_transition="${output}"
+    run -0 jq_raw '.status.observedTemplateResourceVersion' "${before}"
+    before_template="${output}"
+
     rdd set containerEngine.name=containerd
-    # The reconciler detects the template change, stops the VM, and restarts it.
-    rdd ctl wait --for=condition=Running=False \
-        limavm/"${VM_NAME}" --namespace "${RDD_NAMESPACE}" --timeout=2m
-    rdd ctl wait --for=condition=Running \
-        limavm/"${VM_NAME}" --namespace "${RDD_NAMESPACE}" --timeout=7m
+
+    run -0 rdd ctl get limavm "${VM_NAME}" --namespace "${RDD_NAMESPACE}" -o json
+    after="${output}"
+    run -0 jq_raw '.status.conditions[] | select(.type == "Running") | .status' "${after}"
+    assert_output "True"
+    run -0 jq_raw '.status.conditions[] | select(.type == "Running") | .lastTransitionTime' "${after}"
+    refute_output "${before_transition}"
+    run -0 jq_raw '.status.observedTemplateResourceVersion' "${after}"
+    refute_output "${before_template}"
 }
 
 @test "wait for containerd to be ready with containerd engine" {

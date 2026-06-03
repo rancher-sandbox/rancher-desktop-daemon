@@ -42,17 +42,20 @@ kube_current_context() {
 
 kube_context_exists() { # <context-name>
     [[ -f "${KUBECONFIG}" ]] || return 1
-    rdd kubectl config get-contexts -o name 2>/dev/null | grep -qx "$1"
+    run -0 rdd kubectl config get-contexts -o name
+    grep --quiet --line-regexp "$1" <<<"${output}"
 }
 
 kube_cluster_exists() { # <cluster-name>
     [[ -f "${KUBECONFIG}" ]] || return 1
-    rdd kubectl config get-clusters 2>/dev/null | tail -n +2 | grep -qx "$1"
+    run -0 rdd kubectl config get-clusters
+    grep --quiet --line-regexp "$1" <<<"${output}"
 }
 
 kube_user_exists() { # <user-name>
     [[ -f "${KUBECONFIG}" ]] || return 1
-    rdd kubectl config get-users 2>/dev/null | tail -n +2 | grep -qx "$1"
+    run -0 rdd kubectl config get-users
+    grep --quiet --line-regexp "$1" <<<"${output}"
 }
 
 kube_current_context_is() { # <expected-context>
