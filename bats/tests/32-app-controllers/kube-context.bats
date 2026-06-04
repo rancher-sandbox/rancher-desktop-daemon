@@ -14,8 +14,6 @@ VM_NAME="rd"
 K3S_VERSION="1.32.0"
 
 local_setup_file() {
-    skip_on_windows "Kubernetes context tests require Lima"
-
     # Isolate ~/.kube/config so tests never touch the developer's real kubeconfig.
     # Set KUBECONFIG before starting the service so the controller process inherits
     # it; service.Start uses exec.Command without an explicit Env, so it inherits
