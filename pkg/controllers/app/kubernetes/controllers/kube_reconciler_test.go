@@ -166,8 +166,9 @@ func Test_Reconcile_KubernetesReady_Ready(t *testing.T) {
 		Build()
 
 	r := &KubernetesReconciler{
-		Client:        c,
-		K3sConfigPath: srcPath,
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: filepath.Join(dir, "kube.config"),
 	}
 	// removeKubeContext cancels the in-flight current-context probe and waits
 	// for the goroutine started by manageKubeContext to finish, so it cannot
@@ -187,6 +188,50 @@ func Test_Reconcile_KubernetesReady_Ready(t *testing.T) {
 	assert.Assert(t, cond != nil, "KubernetesReady condition missing")
 	assert.Equal(t, cond.Status, metav1.ConditionTrue)
 	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonReady)
+}
+
+func Test_Reconcile_InstanceKubeConfig_WrittenOnReady_RemovedOnDisable(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := fakeK3sServer(t, filepath.Join(dir, "k3s.yaml"), http.StatusOK)
+	isolateKubeconfig(t, dir)
+
+	scheme := newKubeScheme(t)
+	app := newAppRunning()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	instanceKubeConfig := filepath.Join(dir, "kube.config")
+	r := &KubernetesReconciler{
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: instanceKubeConfig,
+	}
+	// The healthy reconcile starts a current-context probe goroutine; ensure it
+	// finishes before the test returns even if an assertion below fails.
+	t.Cleanup(func() { r.removeKubeContext(context.Background()) })
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+
+	// A healthy reconcile publishes the standalone kubeconfig that rdd run reads.
+	_, err := r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+	_, err = os.Stat(instanceKubeConfig)
+	assert.NilError(t, err, "instance kubeconfig should exist after a healthy reconcile")
+
+	// Disabling Kubernetes removes it again, leaving nothing for rdd run to find.
+	got := &appv1alpha1.App{}
+	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+	got.Spec.Kubernetes.Enabled = false
+	assert.NilError(t, c.Update(context.Background(), got))
+
+	_, err = r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+	_, err = os.Stat(instanceKubeConfig)
+	assert.Assert(t, os.IsNotExist(err),
+		"instance kubeconfig should be removed when Kubernetes is disabled")
 }
 
 func Test_Reconcile_KubernetesReady_MergeFailed(t *testing.T) {
@@ -209,8 +254,9 @@ func Test_Reconcile_KubernetesReady_MergeFailed(t *testing.T) {
 		Build()
 
 	r := &KubernetesReconciler{
-		Client:        c,
-		K3sConfigPath: srcPath,
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: filepath.Join(dir, "kube.config"),
 	}
 
 	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
@@ -303,8 +349,9 @@ func Test_Reconcile_KubernetesReady_Probing_ProbeError(t *testing.T) {
 	// Point K3sConfigPath at a file that does not exist so probeK3sAPI
 	// returns the (false, err) "kubeconfig unreadable" path.
 	r := &KubernetesReconciler{
-		Client:        c,
-		K3sConfigPath: filepath.Join(dir, "missing-k3s.yaml"),
+		Client:                 c,
+		K3sConfigPath:          filepath.Join(dir, "missing-k3s.yaml"),
+		InstanceKubeConfigPath: filepath.Join(dir, "kube.config"),
 	}
 
 	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
@@ -338,8 +385,9 @@ func Test_Reconcile_KubernetesReady_Probing_Unhealthy(t *testing.T) {
 		Build()
 
 	r := &KubernetesReconciler{
-		Client:        c,
-		K3sConfigPath: srcPath,
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: filepath.Join(dir, "kube.config"),
 	}
 
 	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
@@ -375,8 +423,9 @@ func Test_Reconcile_KubernetesReady_Unhealthy_FromReady_ImmediateFlip(t *testing
 		Build()
 
 	r := &KubernetesReconciler{
-		Client:        c,
-		K3sConfigPath: srcPath,
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: filepath.Join(dir, "kube.config"),
 	}
 
 	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
@@ -507,8 +556,9 @@ func Test_Reconcile_KubernetesReady_Ambiguous_HealthyResetsCounter(t *testing.T)
 	// simulate a brief slow patch followed by recovery.
 	step := 0
 	r := &KubernetesReconciler{
-		Client:        c,
-		K3sConfigPath: srcPath,
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: filepath.Join(dir, "kube.config"),
 	}
 	r.probeFn = func(context.Context) (probeResult, error) {
 		step++

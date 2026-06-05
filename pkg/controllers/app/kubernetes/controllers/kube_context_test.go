@@ -210,3 +210,39 @@ func TestGetCurrentKubeContext(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, current, "rancher-desktop-2")
 }
+
+func TestWriteInstanceKubeConfig(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := makeSrcKubeconfig(t, dir)
+	destPath := filepath.Join(dir, "kube.config")
+
+	assert.NilError(t, writeInstanceKubeConfig("rancher-desktop-2", srcPath, destPath))
+
+	cfg := loadDest(t, destPath)
+	// Standalone file holds only the instance context, set as current.
+	assert.Equal(t, cfg.CurrentContext, "rancher-desktop-2")
+	assert.Equal(t, len(cfg.Contexts), 1)
+
+	cluster, ok := cfg.Clusters["rancher-desktop-2"]
+	assert.Assert(t, ok, "cluster rancher-desktop-2 not found")
+	assert.Equal(t, cluster.Server, "https://127.0.0.1:6443")
+
+	user, ok := cfg.AuthInfos["rancher-desktop-2"]
+	assert.Assert(t, ok, "user rancher-desktop-2 not found")
+	assert.Equal(t, user.Token, "fake-token")
+}
+
+func TestRemoveInstanceKubeConfig(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := makeSrcKubeconfig(t, dir)
+	destPath := filepath.Join(dir, "kube.config")
+
+	assert.NilError(t, writeInstanceKubeConfig("rancher-desktop-2", srcPath, destPath))
+	assert.NilError(t, removeInstanceKubeConfig(destPath))
+
+	_, err := os.Stat(destPath)
+	assert.Assert(t, os.IsNotExist(err), "instance kubeconfig should be removed")
+
+	// Removing an absent file is a no-op.
+	assert.NilError(t, removeInstanceKubeConfig(destPath))
+}

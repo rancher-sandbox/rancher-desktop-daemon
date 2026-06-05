@@ -12,6 +12,7 @@ load '../../helpers/load'
 APP_NAME="app"
 VM_NAME="rd"
 K3S_VERSION="1.32.0"
+CONTEXT_NAME="rancher-desktop-${RDD_INSTANCE}"
 
 local_setup_file() {
     # Isolate ~/.kube/config so tests never touch the developer's real kubeconfig.
@@ -23,8 +24,13 @@ local_setup_file() {
     # from the drive root (C:\tmp\...) rather than MSYS2's /tmp which maps to a
     # different location. cygpath -m produces a mixed-format path (C:/msys64/...)
     # that both native Windows processes and MSYS2 agree on.
-    if is_windows; then
+    if is_msys; then
         run -0 cygpath -m "${BATS_FILE_TMPDIR}/kube/config"
+        KUBECONFIG="${output}"
+    elif is_windows; then
+        # Under WSL2 rdd is also a native binary; wslpath -m produces the
+        # Windows-format path it expects.
+        run -0 wslpath -m "${BATS_FILE_TMPDIR}/kube/config"
         KUBECONFIG="${output}"
     else
         KUBECONFIG="${BATS_FILE_TMPDIR}/kube/config"
@@ -85,44 +91,68 @@ kube_current_context_is() { # <expected-context>
 }
 
 @test "kubernetes controller creates context entry in user kubeconfig" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    run -0 kube_context_exists "${context_name}"
+    kube_context_exists "${CONTEXT_NAME}"
 }
 
 @test "kubernetes controller creates cluster entry in user kubeconfig" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    run -0 kube_cluster_exists "${context_name}"
+    kube_cluster_exists "${CONTEXT_NAME}"
 }
 
 @test "kubernetes controller creates user entry in user kubeconfig" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    run -0 kube_user_exists "${context_name}"
+    kube_user_exists "${CONTEXT_NAME}"
 }
 
 @test "context entry points to the instance k3s API server" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-
     # Read the server URL from the instance kubeconfig (written by k3s).
     run -0 rdd svc paths k3s_config
-    local instance_kubeconfig="${output}"
+    instance_kubeconfig="${output}"
 
     run -0 rdd kubectl --kubeconfig="${instance_kubeconfig}" \
         config view -o jsonpath='{.clusters[0].cluster.server}'
-    local expected_server="${output}"
+    expected_server="${output}"
 
     run -0 rdd kubectl config view \
-        -o jsonpath="{.clusters[?(@.name==\"${context_name}\")].cluster.server}"
+        -o jsonpath="{.clusters[?(@.name==\"${CONTEXT_NAME}\")].cluster.server}"
     assert_output "${expected_server}"
 }
 
+@test "rdd run targets the instance Kubernetes context" {
+    # rdd run points KUBECONFIG at a throwaway file whose current context
+    # is the instance, so a client talks to this cluster regardless of the
+    # user's selected context. config current-context reads the file
+    # without contacting the cluster. The user's kubeconfig is untouched.
+    run_e -0 rdd run rdd kubectl config current-context
+    assert_output "${CONTEXT_NAME}"
+}
+
+@test "rdd run prepends the instance bin directory to PATH" {
+    # The instance bin directory leads PATH so tools bundled with the
+    # instance shadow any global ones for the duration of the command.
+    run -0 rdd svc paths short_dir
+    bin_dir="${output}/bin"
+    if is_msys; then
+        # printenv is an MSYS program: its runtime rewrites the inherited
+        # PATH into POSIX form, so convert rdd's native path to match.
+        run -0 cygpath -u "${bin_dir}"
+        bin_dir="${output}"
+    elif is_windows; then
+        # Under WSL2 rdd emits a Windows path; convert it to the POSIX form
+        # printenv reports.
+        run -0 wslpath -u "${bin_dir}"
+        bin_dir="${output}"
+    fi
+
+    run_e -0 rdd run printenv PATH
+    assert_equal "${output%%:*}" "${bin_dir}"
+}
+
 @test "kubernetes controller sets current-context when no healthy context exists" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
     # The current-context probe runs in a goroutine after KubernetesReady is
     # set; poll until it resolves.
-    try --max 6 --delay 2 -- kube_current_context_is "${context_name}"
+    try --max 6 --delay 2 -- kube_current_context_is "${CONTEXT_NAME}"
 
     run -0 kube_current_context
-    assert_output "${context_name}"
+    assert_output "${CONTEXT_NAME}"
 }
 
 @test "KubernetesReady=NotApplicable when kubernetes is disabled" {
@@ -133,19 +163,17 @@ kube_current_context_is() { # <expected-context>
 }
 
 @test "kubernetes controller removes context entries when kubernetes is disabled" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
     # removeKubeContext runs synchronously in Reconcile; the context should be
     # gone by the time KubernetesReady=NotApplicable is stamped (which rdd set
     # above already waited for via Settled).
-    run -1 kube_context_exists "${context_name}"
-    run -1 kube_cluster_exists "${context_name}"
-    run -1 kube_user_exists "${context_name}"
+    run -1 kube_context_exists "${CONTEXT_NAME}"
+    run -1 kube_cluster_exists "${CONTEXT_NAME}"
+    run -1 kube_user_exists "${CONTEXT_NAME}"
 }
 
 @test "current-context is cleared when kubernetes is disabled" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
     run -0 kube_current_context
-    refute_output "${context_name}"
+    refute_output "${CONTEXT_NAME}"
 }
 
 @test "re-enable kubernetes to set up cleanup test" {
@@ -155,22 +183,19 @@ kube_current_context_is() { # <expected-context>
 }
 
 @test "current-context is set again after re-enabling kubernetes" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    try --max 6 --delay 2 -- kube_current_context_is "${context_name}"
+    try --max 6 --delay 2 -- kube_current_context_is "${CONTEXT_NAME}"
 }
 
 @test "stopping VM clears current-context" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
     rdd set running=false
     # removeKubeContext fires on the NotRunning reconcile; poll until done.
-    try --max 10 --delay 1 --until-fail -- kube_context_exists "${context_name}"
+    try --max 10 --delay 1 --until-fail -- kube_context_exists "${CONTEXT_NAME}"
     run -0 kube_current_context
-    refute_output "${context_name}"
+    refute_output "${CONTEXT_NAME}"
 }
 
 @test "stopping VM removes context from user kubeconfig" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    run -1 kube_context_exists "${context_name}"
-    run -1 kube_cluster_exists "${context_name}"
-    run -1 kube_user_exists "${context_name}"
+    run -1 kube_context_exists "${CONTEXT_NAME}"
+    run -1 kube_cluster_exists "${CONTEXT_NAME}"
+    run -1 kube_user_exists "${CONTEXT_NAME}"
 }

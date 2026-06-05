@@ -94,6 +94,12 @@ type KubernetesReconciler struct {
 	// inject a path under a temp directory.
 	K3sConfigPath string
 
+	// InstanceKubeConfigPath is where the standalone instance kubeconfig (only
+	// the rancher-desktop-{instance} context) is published for rdd run to
+	// consume. Production wiring sets it from instance.KubeConfig(); tests
+	// inject a path under a temp directory.
+	InstanceKubeConfigPath string
+
 	// contextMu protects contextProbeCancel and contextProbeGen.
 	contextMu sync.Mutex
 	// contextProbeCancel cancels the in-flight current-context probe goroutine.
@@ -355,6 +361,11 @@ func (r *KubernetesReconciler) manageKubeContext(ctx context.Context) error {
 		return fmt.Errorf("create Kubernetes context %q: %w", contextName, err)
 	}
 
+	if err := writeInstanceKubeConfig(contextName, r.K3sConfigPath, r.InstanceKubeConfigPath); err != nil {
+		log.Error(err, "Failed to write instance kubeconfig", "context", contextName)
+		return fmt.Errorf("write instance kubeconfig for %q: %w", contextName, err)
+	}
+
 	r.contextMu.Lock()
 	if r.contextProbeCancel != nil {
 		r.contextProbeCancel()
@@ -510,6 +521,9 @@ func (r *KubernetesReconciler) removeKubeContext(ctx context.Context) {
 	}
 	if err := deleteKubeContext(contextName); err != nil {
 		log.Error(err, "Failed to delete Kubernetes context", "context", contextName)
+	}
+	if err := removeInstanceKubeConfig(r.InstanceKubeConfigPath); err != nil {
+		log.Error(err, "Failed to remove instance kubeconfig", "context", contextName)
 	}
 }
 

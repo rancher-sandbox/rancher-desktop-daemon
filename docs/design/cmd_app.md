@@ -72,17 +72,21 @@ rdd lima shell rd "$@"
 
 ## `rdd run`
 
-Set up `PATH` to start with `~/.rd$RDD_INSTANCE` and set the docker and kube contexts to `rancher-desktop` before running the command.
+`rdd run COMMAND [ARGS...]` runs a command against this Rancher Desktop instance without changing your selected contexts.
 
-Since there are no environment variables for the contexts, it will have to set `DOCKER_HOST` and `KUBECONFIG` instead.
+`rdd run` prepends `~/.rd2/bin` to `PATH`, sets the Docker context to `rancher-desktop-2`, and points `KUBECONFIG` at `~/.rd2/kube.config`, whose current context is `rancher-desktop-2`. It clears `DOCKER_HOST` so the Docker context takes effect. `rdd run` itself leaves your selected Docker context and the current context in `~/.kube/config` unchanged. Starting the App still merges the `rancher-desktop-2` entry into `~/.kube/config` and creates its Docker context; as a normal startup does, it switches your current context only when the existing one is missing or not working (see [api_app.md](api_app.md)).
 
-For example `rdd run docker images` will effectively execute:
+Rancher Desktop starts first if it is not already running. When the App does not exist yet and the command is `kubectl` or `helm`, `rdd run` also enables Kubernetes so the command has a cluster to talk to; the App defaulter then picks the default version. `rdd run` only starts an existing App; it never reconfigures one.
+
+For example, `rdd run docker run --rm hello-world` effectively executes:
 
 ```bash
+rdd start
 export PATH="$HOME/.rd2/bin:$PATH"
-export DOCKER_HOST="unix://$HOME/.rd2/docker.sock"
-export KUBECONFIG="$HOME/.rd2/kube.config"
-docker images
+unset DOCKER_HOST
+export DOCKER_CONTEXT=rancher-desktop-2
+export KUBECONFIG="$HOME/.rd2/kube.config"  # current context is rancher-desktop-2
+docker run --rm hello-world
 ```
 
 ## `rdd shell-profile`

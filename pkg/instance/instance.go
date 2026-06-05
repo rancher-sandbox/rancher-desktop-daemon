@@ -128,6 +128,14 @@ var LimaHome = sync.OnceValue(func() string {
 	return filepath.Join(ShortDir(), "lima")
 })
 
+// KubeConfig returns the path to the instance's standalone kubeconfig
+// (e.g., ~/.rd2/kube.config). It holds only the rancher-desktop-{instance}
+// context and is published alongside the ~/.kube/config merge, so rdd run
+// can point KUBECONFIG at the instance without copying credentials itself.
+var KubeConfig = sync.OnceValue(func() string {
+	return filepath.Join(ShortDir(), "kube.config")
+})
+
 // DockerSocket returns the path to the Docker socket for this instance
 // (e.g., ~/.rd2/docker.sock). This is the host-side socket that Lima
 // port-forwards from the guest's /var/run/docker.sock.

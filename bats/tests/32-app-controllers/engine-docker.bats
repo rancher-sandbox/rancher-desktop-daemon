@@ -9,6 +9,8 @@ load '../../helpers/load'
 # resources, and that deletions and action annotations on Container
 # resources are forwarded to Docker.
 
+CONTEXT_NAME="rancher-desktop-${RDD_INSTANCE}"
+
 local_setup_file() {
     # Isolate all Docker config reads and writes from the developer's real
     # ~/.docker directory. Set DOCKER_CONFIG before starting the service so
@@ -291,7 +293,7 @@ do_websocket() { # endpoint
         skip "curl does not support WebSocket"
     fi
 
-    local command='true'
+    command='true'
     for ((i = 0; i < 10; i++)); do
         command="${command}; echo line number ${i}"
     done
@@ -607,7 +609,7 @@ EOF
     # Record the pre-restart StartedAt so we can verify the container
     # was actually restarted rather than left untouched.
     run -0 docker inspect test-restart --format '{{.State.StartedAt}}'
-    local before=${output}
+    before=${output}
 
     request_action "${cid}" restart
     assert_last_action "${cid}" restart Succeeded
@@ -787,9 +789,7 @@ assert_docker_context() { # <expected-context>
     rdd ctl wait --for=condition=ContainerEngineReady \
         app/app --timeout=30s
 
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    local meta_file
-    meta_file="$(docker_context_dir "${context_name}")/meta.json"
+    meta_file="$(docker_context_dir "${CONTEXT_NAME}")/meta.json"
 
     assert_file_exists "${meta_file}"
 
@@ -797,7 +797,7 @@ assert_docker_context() { # <expected-context>
     meta=${output}
 
     run -0 jq_raw '.Name' "${meta}"
-    assert_output "${context_name}"
+    assert_output "${CONTEXT_NAME}"
 
     if is_windows; then
         run -0 jq_raw '.Endpoints.docker.Host' "${meta}"
@@ -810,9 +810,25 @@ assert_docker_context() { # <expected-context>
     fi
 }
 
-@test "moby engine sets currentContext when no healthy context exists" {
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
+@test "rdd run targets the instance Docker context" {
+    # rdd run sets DOCKER_CONTEXT to the instance and clears DOCKER_HOST
+    # for the child. The suite exports DOCKER_HOST, and docker reports the
+    # "default" context whenever DOCKER_HOST is set, so a named result also
+    # proves the variable was cleared. The caller's currentContext in
+    # config.json is left unchanged.
+    run_e -0 rdd run docker context show
+    assert_output "${CONTEXT_NAME}"
+}
 
+@test "rdd run propagates the child exit status without a spurious error line" {
+    # A non-zero child exit returns a cliexit.Error carrying only a code; main
+    # must not log it as a bare level=error line. run -7 asserts the status and
+    # merges stderr into the output so refute_line can catch the spurious line.
+    run -7 rdd run sh -c 'exit 7'
+    refute_line --partial "level=error"
+}
+
+@test "moby engine sets currentContext when no healthy context exists" {
     # Seed a named context pointing at an unreachable socket and make it
     # current. This forces the reconciler into the probeNamedDockerContext
     # branch with a guaranteed-failing endpoint, independent of whether the
@@ -835,17 +851,16 @@ EOF
     rdd ctl wait --for=condition=ContainerEngineReady app/app --timeout=30s
 
     # The probe goroutine runs asynchronously; give it a moment.
-    try --max 6 --delay 1 -- assert_docker_context "${context_name}"
+    try --max 6 --delay 1 -- assert_docker_context "${CONTEXT_NAME}"
 
-    assert_docker_context "${context_name}"
+    assert_docker_context "${CONTEXT_NAME}"
 }
 
 @test "stopping moby engine removes Docker context and clears currentContext" {
     rdd set running=false
 
-    local context_name="rancher-desktop-${RDD_INSTANCE}"
-    run_e -0 docker_context_dir "${context_name}"
-    local context_dir="${output}"
+    run_e -0 docker_context_dir "${CONTEXT_NAME}"
+    context_dir="${output}"
 
     # removeDockerContext runs asynchronously after the reconciler processes
     # the Running=False transition; poll until the directory is gone.
@@ -855,5 +870,5 @@ EOF
     # currentContext should either be gone or point to something else.
     run -0 cat "${DOCKER_CONFIG}/config.json"
     run -0 jq_output '.currentContext // empty'
-    refute_output "${context_name}"
+    refute_output "${CONTEXT_NAME}"
 }

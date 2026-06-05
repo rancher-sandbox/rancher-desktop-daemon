@@ -40,7 +40,7 @@ When the `App` is starting it creates the Docker context and sets up the kubecon
 
 It will only change the current context if it does not exist, or is not working at the time the app is starting.
 
-The kube config is also written to `~/.rd2/kube.config` (mostly for the [`rdd run`](cmd_app.md#rdd-run) command).
+A standalone kube config holding only the `rancher-desktop-2` context is also written to `~/.rd2/kube.config`, which the [`rdd run`](cmd_app.md#rdd-run) command points `KUBECONFIG` at.
 
 Consider using `cliPluginsExtraDirs` in `~/.docker/config.json` instead of installing into `~/.docker/cli-plugins` and have a diagnostic if the plugins exist in `~/.docker/cli-plugins`? The mechanism should be compatible with whatever we do on Windows.
 

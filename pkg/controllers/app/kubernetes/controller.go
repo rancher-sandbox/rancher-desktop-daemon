@@ -44,8 +44,9 @@ func (c *controller) RegisterWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 	r := &controllers.KubernetesReconciler{
-		Client:        mgr.GetClient(),
-		K3sConfigPath: instance.K3sConfig(),
+		Client:                 mgr.GetClient(),
+		K3sConfigPath:          instance.K3sConfig(),
+		InstanceKubeConfigPath: instance.KubeConfig(),
 	}
 	return r.SetupWithManager(mgr)
 }

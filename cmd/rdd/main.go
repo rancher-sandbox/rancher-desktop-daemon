@@ -161,6 +161,7 @@ func main() {
 	cmd.AddCommand(
 		hostagent.NewCommand(),
 		newKubectlCommand(),
+		newRunCommand(),
 		newServiceCommand(context.Background()),
 		newSetCommand(),
 		newStartCommand(),
@@ -171,7 +172,11 @@ func main() {
 		// *cliexit.Error lets a subcommand opt into a specific exit code; everything else gets exit 1.
 		var exitErr *cliexit.Error
 		if errors.As(err, &exitErr) {
-			logrus.Error(err)
+			// A propagated child-exit code carries no message (nil Err); logging it
+			// would emit a bare level=error line, so log only when there is one.
+			if exitErr.Err != nil {
+				logrus.Error(err)
+			}
 			os.Exit(exitErr.Code)
 		}
 		logrus.Fatal(err)
