@@ -190,6 +190,50 @@ func Test_Reconcile_KubernetesReady_Ready(t *testing.T) {
 	assert.Equal(t, cond.Reason, appv1alpha1.AppKubernetesReasonReady)
 }
 
+func Test_Reconcile_InstanceKubeConfig_WrittenOnReady_RemovedOnDisable(t *testing.T) {
+	dir := t.TempDir()
+	srcPath := fakeK3sServer(t, filepath.Join(dir, "k3s.yaml"), http.StatusOK)
+	isolateKubeconfig(t, dir)
+
+	scheme := newKubeScheme(t)
+	app := newAppRunning()
+	c := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(app).
+		WithStatusSubresource(app).
+		Build()
+
+	instanceKubeConfig := filepath.Join(dir, "kube.config")
+	r := &KubernetesReconciler{
+		Client:                 c,
+		K3sConfigPath:          srcPath,
+		InstanceKubeConfigPath: instanceKubeConfig,
+	}
+	// The healthy reconcile starts a current-context probe goroutine; ensure it
+	// finishes before the test returns even if an assertion below fails.
+	t.Cleanup(func() { r.removeKubeContext(context.Background()) })
+
+	req := ctrl.Request{NamespacedName: client.ObjectKey{Name: appName}}
+
+	// A healthy reconcile publishes the standalone kubeconfig that rdd run reads.
+	_, err := r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+	_, err = os.Stat(instanceKubeConfig)
+	assert.NilError(t, err, "instance kubeconfig should exist after a healthy reconcile")
+
+	// Disabling Kubernetes removes it again, leaving nothing for rdd run to find.
+	got := &appv1alpha1.App{}
+	assert.NilError(t, c.Get(context.Background(), client.ObjectKey{Name: appName}, got))
+	got.Spec.Kubernetes.Enabled = false
+	assert.NilError(t, c.Update(context.Background(), got))
+
+	_, err = r.Reconcile(context.Background(), req)
+	assert.NilError(t, err)
+	_, err = os.Stat(instanceKubeConfig)
+	assert.Assert(t, os.IsNotExist(err),
+		"instance kubeconfig should be removed when Kubernetes is disabled")
+}
+
 func Test_Reconcile_KubernetesReady_MergeFailed(t *testing.T) {
 	dir := t.TempDir()
 	srcPath := fakeK3sServer(t, filepath.Join(dir, "k3s.yaml"), http.StatusOK)

@@ -35,14 +35,15 @@ func newRunCommand() *cobra.Command {
 			your selected contexts: it prepends ~/.rd<instance>/bin to
 			PATH, sets the Docker context to rancher-desktop-<instance>,
 			and points KUBECONFIG at ~/.rd<instance>/kube.config, whose
-			current context is rancher-desktop-<instance>. Your selected
-			Docker context and the current context in ~/.kube/config stay
-			as they are.
+			current context is rancher-desktop-<instance>. rdd run itself
+			leaves your selected Docker context and the current context in
+			~/.kube/config unchanged.
 
 			Rancher Desktop starts first if it is not already running. A
 			normal startup merges the rancher-desktop-<instance> entry
-			into ~/.kube/config and creates its Docker context, but leaves
-			both selections unchanged. When the App does not exist yet and
+			into ~/.kube/config and creates its Docker context; it switches
+			your current Docker or kube context only when the existing one
+			is missing or not working. When the App does not exist yet and
 			the command is kubectl or helm, rdd run enables Kubernetes so
 			the command has a cluster to talk to. An existing App is only
 			started, never reconfigured.
@@ -66,7 +67,7 @@ func runAction(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	}
 	// Drop a leading "--" separator, e.g. `rdd run -- docker ps`.
-	if len(args) > 0 && args[0] == "--" {
+	if args[0] == "--" {
 		args = args[1:]
 	}
 	if len(args) == 0 {
@@ -121,8 +122,18 @@ func isKubeCommand(name string) bool {
 // and clears DOCKER_HOST so the Docker context takes effect.
 func setupRunEnv() error {
 	binDir := filepath.Join(instance.ShortDir(), "bin")
+	// Append the existing PATH only when it is set; concatenating an empty
+	// value would leave a trailing separator, which POSIX reads as the
+	// current directory.
+	path := binDir
+	if existing := os.Getenv("PATH"); existing != "" {
+		path += string(os.PathListSeparator) + existing
+	}
 	vars := []struct{ key, value string }{
-		{"PATH", binDir + string(os.PathListSeparator) + os.Getenv("PATH")},
+		{"PATH", path},
+		// DOCKER_CONTEXT resolves against the child's DOCKER_CONFIG. The daemon
+		// wrote this context under its own DOCKER_CONFIG, frozen at startup, so
+		// the two must match for the lookup to succeed.
 		{"DOCKER_CONTEXT", instance.Name()},
 		{"KUBECONFIG", instance.KubeConfig()},
 	}
@@ -155,6 +166,9 @@ func execCommand(ctx context.Context, args []string) error {
 	err := command.Run()
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
+		// A signal-killed child has no exit code: ExitCode() returns -1, which
+		// os.Exit maps to 255 rather than the shell's 128+signal. Wiring up
+		// signal handling (see above) would let us propagate 128+signal.
 		return &cliexit.Error{Code: exitErr.ExitCode()}
 	}
 	if err != nil {

@@ -24,8 +24,13 @@ local_setup_file() {
     # from the drive root (C:\tmp\...) rather than MSYS2's /tmp which maps to a
     # different location. cygpath -m produces a mixed-format path (C:/msys64/...)
     # that both native Windows processes and MSYS2 agree on.
-    if is_windows; then
+    if is_msys; then
         run -0 cygpath -m "${BATS_FILE_TMPDIR}/kube/config"
+        KUBECONFIG="${output}"
+    elif is_windows; then
+        # Under WSL2 rdd is also a native binary; wslpath -m produces the
+        # Windows-format path it expects.
+        run -0 wslpath -m "${BATS_FILE_TMPDIR}/kube/config"
         KUBECONFIG="${output}"
     else
         KUBECONFIG="${BATS_FILE_TMPDIR}/kube/config"
@@ -125,10 +130,15 @@ kube_current_context_is() { # <expected-context>
     # instance shadow any global ones for the duration of the command.
     run -0 rdd svc paths short_dir
     bin_dir="${output}/bin"
-    if is_windows; then
+    if is_msys; then
         # printenv is an MSYS program: its runtime rewrites the inherited
         # PATH into POSIX form, so convert rdd's native path to match.
         run -0 cygpath -u "${bin_dir}"
+        bin_dir="${output}"
+    elif is_windows; then
+        # Under WSL2 rdd emits a Windows path; convert it to the POSIX form
+        # printenv reports.
+        run -0 wslpath -u "${bin_dir}"
         bin_dir="${output}"
     fi
 
