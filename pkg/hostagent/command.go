@@ -167,7 +167,7 @@ func (w *syncWriter) Write(p []byte) (int, error) {
 
 func initHostagentLogrus(stderr io.Writer) {
 	logrus.SetOutput(stderr)
-	// JSON logs are parsed in pkg/hostagent/events.Watcher()
+	// JSON logs are parsed in pkg/hostagent/events.Watch()
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 	// HostAgent logging is one level more verbose than the start command itself
 	if logrus.GetLevel() == logrus.DebugLevel {

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: SUSE LLC
 // SPDX-FileCopyrightText: The Rancher Desktop Authors
 package tail
@@ -6,10 +6,12 @@ package tail
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,7 +19,7 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestFile(t *testing.T) {
+func TestStream(t *testing.T) {
 	const expected = "This is the last line of text"
 
 	testCases := []struct {
@@ -115,7 +117,7 @@ func TestFile(t *testing.T) {
 			assert.NilError(t, tc.prepare(f))
 			wg, tailCtx := errgroup.WithContext(tailCtx)
 			wg.Go(func() error {
-				return File(tailCtx, w, n, tc.follow)
+				return Stream(tailCtx, w, n, tc.follow)
 			})
 			waitForStuck()
 			assert.NilError(t, tc.finish(f))
@@ -128,4 +130,47 @@ func TestFile(t *testing.T) {
 			assert.Equal(t, expected, lastLine)
 		})
 	}
+}
+
+// failingWriter returns err after failAfter successful writes. Used
+// to exercise Stream's mid-stream writer-error path.
+type failingWriter struct {
+	mu        sync.Mutex
+	calls     int
+	failAfter int
+	err       error
+}
+
+func (w *failingWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.calls++
+	if w.calls > w.failAfter {
+		return 0, w.err
+	}
+	return len(p), nil
+}
+
+// TestStreamReturnsWriterError covers stream.go's writer-error path.
+// When the destination writer fails mid-stream, Stream captures the
+// error, kills the tomb, drains Lines so tailFileSync exits cleanly,
+// and returns the writer's error.
+func TestStreamReturnsWriterError(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "output.log")
+	f, err := os.Create(path)
+	assert.NilError(t, err)
+	for i := range 100 {
+		_, err := fmt.Fprintf(f, "line %d\n", i)
+		assert.NilError(t, err)
+	}
+	assert.NilError(t, f.Close())
+
+	w := &failingWriter{failAfter: 1, err: io.ErrClosedPipe}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+
+	err = Stream(ctx, w, path, false)
+	assert.Assert(t, errors.Is(err, io.ErrClosedPipe), "expected ErrClosedPipe, got %v", err)
 }

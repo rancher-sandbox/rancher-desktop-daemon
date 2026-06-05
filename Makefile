@@ -183,7 +183,7 @@ spelling: scripts/check-spelling.sh .github/actions/spelling/expect/golang-gener
 LTAG_EXCLUDES := \
 	.github/actions/spelling/check-spelling \
 	bats/lib \
-	pkg/util/nxadmtail \
+	pkg/util/tail \
 	$(GUESTAGENT_BINARY) \
 	${NULL}
 ltag:
