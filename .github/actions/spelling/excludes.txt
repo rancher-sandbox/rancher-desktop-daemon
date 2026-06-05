@@ -97,10 +97,7 @@
 ^pkg/rancher-desktop/utils/processOutputInterpreters/__tests__/assets/trivy-image-postgres
 ignore$
 /translations/(?!en)
-^\Qpkg/rancher-desktop/router.js\E$
-^\Qsrc/go/nerdctl-stub/nerdctl_commands_generated.go\E$
 ^\Q.golangci.yaml\E$
-^\Qsrc/go/networking/.golangci.yml\E$
 # Generated file
 ^\Qpkg/rancher-desktop/assets/extension-data.yaml\E$
 ^pkg/rdd-client/gen/

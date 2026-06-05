@@ -141,29 +141,6 @@
       />
     </Component>
 
-    <!-- Add FirewallException element -->
-    <Component Id="AdminInstallFirewall" Directory="APPLICATIONFOLDER" Guid="DC2F0D13-709C-4E73-9D35-2AB5FABD989F" KeyPath="yes">
-      <Condition>
-      <![CDATA[MSIINSTALLPERUSER <> 1]]>
-      </Condition>
-      <fire:FirewallException
-        Id="HostSwitchFirewallPrivateException"
-        Name="$(var.appName) Networking Private Exception"
-        Description="$(var.appName) host-switch.exe profile exception for private networks"
-        Program="[APPLICATIONFOLDER]resources\win32\internal\host-switch.exe"
-        Profile="private"
-        Scope="any"
-        Protocol="tcp" />
-      <fire:FirewallException
-        Id="HostSwitchFirewallDomainException"
-        Name="$(var.appName) Networking Domain Exception"
-        Description="$(var.appName) host-switch.exe profile exception for domain networks"
-        Program="[APPLICATIONFOLDER]resources\win32\internal\host-switch.exe"
-        Profile="domain"
-        Scope="any"
-        Protocol="tcp" />
-    </Component>
-
     <!-- If required, run the app after install (for updates) -->
     <Property Id="RDRUNAFTERINSTALL" Secure="yes" />
     <CustomAction
@@ -185,7 +162,6 @@
       <ComponentRef Id="PathUser" />
       <ComponentRef Id="PathSystem" />
       <ComponentRef Id="AdminInstallRegistry" />
-      <ComponentRef Id="AdminInstallFirewall" />
     </Feature>
   </Product>
   {{ &fileList }}
