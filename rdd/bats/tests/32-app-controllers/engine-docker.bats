@@ -245,6 +245,32 @@ assert_single_mirror() { # <image-id> <expected-tag>
     docker rm --force test-exposed test-published
 }
 
+# --- Host connectivity ---
+
+@test "published container port is reachable from the host" {
+    # Run nginx with a published port and reach it from the host. The
+    # container listens on 0.0.0.0 inside the VM; the Lima template forwards
+    # each guest 0.0.0.0 port to the host, so localhost:<port> reaches the
+    # containerized application.
+    #
+    # Pull nginx up front (quietly), mirroring the Kubernetes NodePort test;
+    # docker run would otherwise pull it inline.
+    docker pull --quiet nginx
+    host_port=18080
+    run_e -0 docker run --detach --name test-connect --publish "${host_port}:80" nginx
+    cid=${output}
+
+    rdd ctl wait --for=jsonpath='{.status.status}'=running \
+        --namespace="${RDD_NAMESPACE}" container/"${cid}" --timeout=30s
+
+    # The port forward is established asynchronously once the container
+    # starts listening, so poll until nginx answers.
+    try --max 30 --delay 2 -- \
+        assert_http_body "http://localhost:${host_port}" --partial "Welcome to nginx"
+
+    docker rm --force test-connect
+}
+
 # --- Container logs ---
 
 @test "docker logs for container with tty" {
