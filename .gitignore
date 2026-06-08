@@ -1,7 +1,4 @@
 *.exe
-/bats/bats.tar.gz
-/bats/bin/
-/bats/logs/
 /coverage/
 /dist/
 /e2e/reports/

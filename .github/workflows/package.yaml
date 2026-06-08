@@ -58,16 +58,6 @@ jobs:
     - uses: ./.github/actions/yarn-install
     - run: yarn build
     - run: yarn package
-    - name: Build bats.tar.gz
-      if: matrix.platform == 'linux'
-      run: make -C bats bats.tar.gz
-    - name: Upload bats.tar.gz
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      if: matrix.platform == 'linux'
-      with:
-        name: bats.tar.gz
-        path: bats/bats.tar.gz
-        if-no-files-found: error
     - name: Upload mac disk image
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: matrix.platform == 'mac'

@@ -12,7 +12,6 @@ set -o xtrace
 : "${PR:=}"                   # PR number to fetch from (overrides BRANCH)
 : "${ID:=}"                   # If set, use the specific Action run.
 : "${WORKFLOW:=package.yaml}" # Name of workflow that must have succeeded
-: "${BATS_DIR:=${TMPDIR:-/tmp}/bats}" # Directory to extract BATS tests to.
 : "${INSTALL_MODE:=zip}"      # One of `skip`, `zip`, or `installer`
 : "${ZIP_NAME:=}"             # If set, output the zip file name to this file.
 
@@ -234,26 +233,8 @@ install_application() {
     esac
 }
 
-download_bats() {
-    # Download the BATS archive; it's automatically extracted one level, i.e.
-    # the wrapper zip file.
-    rm -f "$TMPDIR/bats.tar.gz"
-    gh run download --repo "$OWNER/$REPO" "$ID" --dir "$TMPDIR" --name bats.tar.gz
-
-    # Unpack bats into $BATS_DIR
-    rm -rf "$BATS_DIR"
-    mkdir -p "$BATS_DIR"
-    # Windows tar doesn't like $BATS_DIR when it's a Windows-style path.
-    # So instead of using tar -C, enter that directory first.
-    (
-        cd "$BATS_DIR"
-        tar xfz "$TMPDIR/bats.tar.gz"
-    )
-}
-
 determine_run_id
 
 if [[ "$INSTALL_MODE" != "skip" ]]; then
     install_application
 fi
-download_bats
