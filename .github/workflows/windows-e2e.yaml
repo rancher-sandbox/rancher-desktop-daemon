@@ -1,0 +1,36 @@
+name: e2e tests on Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+    - 'dependabot/**'
+  pull_request: {}
+
+defaults:
+  run:
+    shell: powershell
+jobs:
+  check-paths:
+    uses: ./.github/workflows/paths-ignore.yaml
+  e2e-tests:
+    needs: check-paths
+    if: needs.check-paths.outputs.should-run == 'true'
+    timeout-minutes: 90
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-environment
+      - uses: ./.github/actions/yarn-install
+      - name: Run e2e Tests
+        run: yarn test:e2e
+        env:
+          RD_DEBUG_ENABLED: '1'
+      - name: Upload failure reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: e2etest-artifacts
+          path: ./e2e/reports/*

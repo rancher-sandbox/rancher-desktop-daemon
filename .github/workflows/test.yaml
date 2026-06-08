@@ -1,0 +1,42 @@
+name: Test
+
+on:
+  push: {}
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: ./.github/actions/yarn-install
+    - run: yarn build
+    - run: yarn lint:nofix
+    - name: Install shfmt
+      run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
+    - run: yarn test
+  lint:
+    strategy:
+      matrix:
+        # We run the Linux lint in the `test` flow, no need to repeat it.
+        runs-on: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+    - if: runner.os == 'Windows'
+      name: Configure git to use Unix line endings
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
+    - uses: ./.github/actions/yarn-install
+    - run: yarn license-check
+    - run: ./scripts/go-license-check.sh
+      shell: bash
+    - run: yarn lint:nofix

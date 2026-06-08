@@ -1,0 +1,55 @@
+name: e2e tests on Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches-ignore:
+    - 'dependabot/**'
+  pull_request: {}
+
+jobs:
+  check-paths:
+    uses: ./.github/workflows/paths-ignore.yaml
+  e2e-tests:
+    needs: check-paths
+    if: needs.check-paths.outputs.should-run == 'true'
+    timeout-minutes: 150
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/yarn-install
+      - name: Disable admin-access before start up
+        run: |
+          mkdir -p $HOME/.config/rancher-desktop
+          cat <<EOF > $HOME/.config/rancher-desktop/settings.json
+            {
+              "version": 5,
+              "application": {
+                "adminAccess": false
+              }
+            }
+          EOF
+      - name: Enable kvm access
+        run: sudo chmod a+rwx /dev/kvm
+      - name: Run e2e Tests
+        continue-on-error: false
+        run: >-
+          xvfb-run --auto-servernum --server-args='-screen 0 1280x960x24'
+          yarn test:e2e
+        env:
+          RD_DEBUG_ENABLED: '1'
+          CI: true
+        timeout-minutes: 150
+      - name: Upload failure reports
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: failure-reports.zip
+          path: ./e2e/reports/*
+      - name: Clean up test environment
+        run: |
+          rm -f $HOME/.config/rancher-desktop.defaults.json
+          rm -f $HOME/.config/rancher-desktop.locked.json
+        if: always()
