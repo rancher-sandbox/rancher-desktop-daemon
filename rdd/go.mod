@@ -25,7 +25,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
-	go.etcd.io/etcd/api/v3 v3.6.10
+	go.etcd.io/etcd/api/v3 v3.6.12
 	golang.org/x/mod v0.36.0
 	golang.org/x/sync v0.20.0
 	golang.org/x/sys v0.46.0
