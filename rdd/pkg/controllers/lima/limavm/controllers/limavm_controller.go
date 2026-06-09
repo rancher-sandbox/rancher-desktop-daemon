@@ -10,12 +10,15 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/lima-vm/lima/v2/pkg/fileutils"
 	limainstance "github.com/lima-vm/lima/v2/pkg/instance"
+	"github.com/lima-vm/lima/v2/pkg/limatype"
 	"github.com/lima-vm/lima/v2/pkg/limatype/filenames"
 	"github.com/lima-vm/lima/v2/pkg/store"
 
@@ -38,6 +41,7 @@ import (
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/controllers/base"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/instance"
 	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/util/process"
+	"github.com/rancher-sandbox/rancher-desktop-daemon/pkg/xz"
 )
 
 const (
@@ -337,6 +341,20 @@ func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, err
 	}
 
+	// When no system xz is on PATH, decompress the image in-process; Prepare
+	// then finds the ready image and skips its own xz shell-out.
+	if err := ensureImageDecompressed(ctx, inst); err != nil {
+		logger.Error(err, "Failed to decompress instance image")
+		if delErr := limainstance.Delete(ctx, inst, true); delErr != nil {
+			logger.Error(delErr, "Failed to clean up instance after decompression failure")
+		}
+		r.setCondition(ctx, &limaVM, ConditionCreated, metav1.ConditionFalse, ReasonCreateFailed, err.Error())
+		if statusErr := r.Status().Update(ctx, &limaVM); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after image decompression failure")
+		}
+		return ctrl.Result{}, err
+	}
+
 	// Prepare the instance: download images and create disks.
 	// The guestAgent path is a placeholder during Prepare (only stored for later);
 	// limactl start will look up the real path when called.
@@ -376,6 +394,85 @@ func (r *LimaVMReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Return and let the next reconcile handle running state (one mutation per reconcile)
 	return ctrl.Result{}, nil
+}
+
+// ensureImageDecompressed pre-produces the decompressed distro image with the
+// in-process xz decoder when no system xz is on PATH, so provisioning works on a
+// host without xz (base macOS, a clean Windows). When xz is present rdd leaves
+// the image alone and Lima uses xz, whose threaded decode is faster.
+//
+// Lima reads the image under two names: the vz/qemu path (Prepare) reads
+// <inst.Dir>/image, while the WSL2 driver (EnsureFs) reads <inst.Dir>/basedisk.
+// rdd writes image and, for WSL2, hardlinks basedisk to it, so Lima finds each
+// ready and skips its own download-and-decompress.
+func ensureImageDecompressed(ctx context.Context, inst *limatype.Instance) error {
+	imagePath := filepath.Join(inst.Dir, filenames.Image)
+	diskPath := filepath.Join(inst.Dir, filenames.Disk)
+	if _, err := os.Stat(diskPath); err == nil {
+		return nil
+	}
+	if _, err := exec.LookPath("xz"); err == nil {
+		return nil
+	}
+
+	if _, err := os.Stat(imagePath); err != nil {
+		if err := decompressImage(ctx, inst, imagePath); err != nil {
+			return err
+		}
+	}
+	return linkWSL2BaseDisk(inst, imagePath)
+}
+
+// decompressImage downloads the arch-matching xz image through Lima's verified
+// downloader and decompresses it to imagePath. It returns nil without writing
+// imagePath when no xz image matches the host arch, leaving Prepare to handle
+// that case with its own decompressor.
+func decompressImage(ctx context.Context, inst *limatype.Instance, imagePath string) error {
+	logger := log.FromContext(ctx)
+	arch := *inst.Config.Arch
+	for _, img := range inst.Config.Images {
+		if img.File.Arch != arch {
+			continue
+		}
+		// rdd's templates point at .xz images. A location without an .xz
+		// suffix falls through to Prepare, which runs its own decompressor.
+		if !strings.HasSuffix(img.File.Location, ".xz") {
+			return nil
+		}
+		cached, err := fileutils.DownloadFile(ctx, "", img.File, false, "the image", arch)
+		if err != nil {
+			return fmt.Errorf("caching image for in-process decompression: %w", err)
+		}
+		logger.Info("Decompressing image with in-process xz decoder (no system xz found)",
+			"location", img.File.Location)
+		// rdd's templates list one .xz image per arch; this skips Prepare's
+		// mirror fallback and kernel/initrd sidecars, which no current template
+		// needs.
+		return xz.DecompressFile(ctx, cached, imagePath)
+	}
+	// No image matched this arch; let Prepare surface its usual error.
+	return nil
+}
+
+// linkWSL2BaseDisk hardlinks <inst.Dir>/basedisk to imagePath for WSL2
+// instances, so the WSL2 driver's EnsureFs reuses the decompressed image
+// instead of shelling out to xz. It is a no-op for other VM types, when the
+// image was left for Prepare, or when basedisk already exists.
+func linkWSL2BaseDisk(inst *limatype.Instance, imagePath string) error {
+	if inst.VMType != limatype.WSL2 {
+		return nil
+	}
+	if _, err := os.Stat(imagePath); err != nil {
+		return nil
+	}
+	baseDiskPath := filepath.Join(inst.Dir, filenames.BaseDiskLegacy)
+	if _, err := os.Stat(baseDiskPath); err == nil {
+		return nil
+	}
+	if err := os.Link(imagePath, baseDiskPath); err != nil {
+		return fmt.Errorf("linking basedisk for WSL2: %w", err)
+	}
+	return nil
 }
 
 // handleTemplateUpdate detects and applies changes to the template ConfigMap.
