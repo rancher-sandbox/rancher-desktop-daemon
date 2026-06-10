@@ -1,6 +1,10 @@
 name: Yarn Install
 description: >-
   This is a composite action that does everything needed to do `yarn install`.
+inputs:
+  GOARCH:
+    description: Target architecture
+    default: amd64
 
 runs:
   using: composite
@@ -37,9 +41,13 @@ runs:
     shell: bash
     run: make build-rdd
     working-directory: rdd
+    env:
+      GOARCH: ${{ inputs.GOARCH }}
 
   - run: yarn install --immutable
     shell: bash
+    env:
+      GOARCH: ${{ inputs.GOARCH }}
 
   - name: Fix electron sandbox
     if: runner.os == 'Linux'
