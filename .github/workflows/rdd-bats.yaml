@@ -133,7 +133,7 @@ jobs:
         # Set up git configuration
         git config --global --replace-all core.autocrlf false # spellchecker:ignore
         git config --global --replace-all core.eol lf # spellchecker:ignore
-        git config --global --replace-all core.longpath true #spellchecker:ignore
+        git config --global --replace-all core.longpaths true # spellchecker:ignore
 
     - name: "Windows: write MSYS2 wrapper script"
       if: runner.os == 'Windows'
