@@ -40,7 +40,7 @@ jobs:
         include:
         - platform: mac
           arch: x86_64
-          runs-on: macos-15-intel
+          runs-on: macos-latest
         - platform: mac
           arch: aarch64
           runs-on: macos-latest
@@ -50,12 +50,21 @@ jobs:
           runs-on: ubuntu-22.04
     runs-on: ${{ matrix.runs-on }}
     steps:
+    - name: Set GOARCH
+      run: |
+        case '${{ matrix.arch }}' in
+          'aarch64') echo "GOARCH=arm64" >> "${GITHUB_ENV}" ;;
+          'x86_64')  echo "GOARCH=amd64" >> "${GITHUB_ENV}" ;;
+          *)         echo "GOARCH=amd64" >> "${GITHUB_ENV}" ;;
+        esac
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         persist-credentials: false
         # Needed to run `git describe` to get full version info
         fetch-depth: 0
     - uses: ./.github/actions/yarn-install
+      with:
+        GOARCH: ${{ env.GOARCH }}
     - run: yarn build
     - run: yarn package
     - name: Upload mac disk image
