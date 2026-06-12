@@ -65,6 +65,9 @@ var Dir = sync.OnceValue(func() string {
 // Logs are stored separately from instance data so they can be preserved
 // independently (e.g., when deleting an instance but keeping logs for debugging).
 var LogDir = sync.OnceValue(func() string {
+	if override := os.Getenv("RDD_LOG_DIR"); override != "" {
+		return override
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		panic(fmt.Errorf("could not get home directory: %w", err))

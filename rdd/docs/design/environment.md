@@ -11,6 +11,7 @@ These variables control RDD behavior. Set them before running `rdd` commands.
 | `RDD_INSTANCE` | Instance identifier. Determines which control plane and directories to use. Also settable via `rdd --instance`. | `2` |
 | `RDD_DEVELOPER_MODE` | Enables developer mode: exposes hidden CLI flags, detects source tree for local builds. | unset |
 | `RDD_KEEP_LOGS` | Preserves logs for post-mortem debugging. See [Log Preservation](#log-preservation) for details. | unset |
+| `RDD_LOG_DIR` | Override the logging directory; usually used for tests. | unset |
 | `RDD_LOG_LEVEL` | Sets the log level (`fatal`, `error`, `warn`, `info`, `debug`, `trace`). Overridden by `--log-level` flag. When unset, defaults to `debug` in developer mode, `warn` otherwise. | unset |
 | `RDD_LOG_TITLE` | When set, writes this string as the first line of each new log file. Useful for identifying log files from specific test runs or sessions. | unset |
 
@@ -26,7 +27,7 @@ These variables configure the BATS test framework. They have no effect on `rdd` 
 
 ## Path Variables
 
-`rdd svc paths --output=shell` exports these variables. They reflect the paths RDD uses for the current instance; setting them has no effect on RDD's behavior.
+`rdd svc paths --output=shell` exports these variables. They reflect the paths RDD uses for the current instance; setting them has no effect on RDD's behavior, other than `RDD_LOG_DIR` as listed above.
 
 ```shell
 source <(rdd svc paths --output=shell)
