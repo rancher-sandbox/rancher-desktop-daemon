@@ -120,6 +120,7 @@ func newVersionCommand() *cobra.Command {
 }
 
 func main() {
+	os.Args = multiCallArgs(os.Args)
 	parseInstanceFlag()
 
 	cmd := &cobra.Command{
