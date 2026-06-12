@@ -81,7 +81,7 @@ jobs:
       env:
         EXEC_COMMAND: ${{ env.EXEC_COMMAND }}
         RD_ENV_SCREENSHOT_SLEEP: 5000
-        RD_LOGS_DIR: logs
+        RDD_LOG_DIR: logs
     - name: Upload screenshots
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:

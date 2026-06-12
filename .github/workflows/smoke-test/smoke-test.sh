@@ -181,8 +181,8 @@ install_win32() {
     local archiveName=$1
 
     win32_verify "$archiveName"
-    mkdir -p "$(cygpath --unix "${RD_LOGS_DIR}")"
-    msiexec.exe '/lv*x' "${RD_LOGS_DIR}\\install.log" \
+    mkdir -p "$(cygpath --unix "${RDD_LOG_DIR}")"
+    msiexec.exe '/lv*x' "${RDD_LOG_DIR}\\install.log" \
         /i "$(cygpath --windows "$archiveName")" /passive ALLUSERS=1
     # msiexec returns immediately and runs in the background; wait for that
     # process to exit before continuing.

@@ -370,7 +370,7 @@ export async function startRancherDesktop(testInfo: TestInfo, options: startRanc
     env: {
       ...process.env,
       ...options?.env ?? {},
-      RD_LOGS_DIR: logsDir,
+      RDD_LOG_DIR: logsDir,
       ...options?.mock ?? true ? { RD_MOCK_BACKEND: '1' } : {},
     },
   };
