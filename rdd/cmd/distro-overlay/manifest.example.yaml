@@ -1,0 +1,64 @@
+# Example distro-overlay manifest.
+#
+# distro-overlay merges these entries into a pristine openSUSE distro at build
+# time. The same manifest drives both distro forms: the WSL tarball and the Lima
+# ext4 image. Apply it with:
+#
+#   distro-overlay --manifest manifest.yaml --source ./files <distro>
+#
+# `<distro>` is an uncompressed tarball or raw image; the format is detected from
+# its signature. Source files come from the --source directory (default: the
+# directory holding this manifest).
+
+# A single ordered list. Every entry has a `path`; the rest is optional.
+entries:
+  # --- A regular file (the default type) -------------------------------------
+  - # path: absolute destination inside the distro. Required, on every entry.
+    path: /usr/local/bin/rancher-desktop-guest-agent
+    # source: the file contents, a path relative to the --source directory.
+    source: bin/rancher-desktop-guest-agent
+    # mode: an OCTAL STRING (quote it). Quoting avoids YAML's number-base
+    # ambiguity, where 0644 and 0o644 parse differently. Defaults to 0644 for
+    # files and 0755 for directories.
+    mode: "0755"
+    # uid/gid default to 0 (root). They are NUMERIC ONLY: the build host's user
+    # names do not map to the distro, and root is almost always what we want.
+    # By default a file keeps its source file's timestamp (which usually comes
+    # from a git checkout); add `mtime` to override it with an ISO 8601 date-time
+    # ("2026-01-02T15:04:05Z") or date ("2026-01-02").
+
+  # --- A file owned by a non-root account ------------------------------------
+  - path: /etc/some-service/config
+    source: configs/some-service.conf
+    mode: "0640"
+    uid: 472   # e.g. a service account that exists in the distro
+    gid: 472
+
+  # --- A directory -----------------------------------------------------------
+  # You only need an explicit `dir` entry to give a directory non-default
+  # ownership or permissions, or to create an empty directory. Parent
+  # directories of files and symlinks are created automatically as root:root
+  # 0755, so most directories need no entry at all. Explicit `dir` entries are
+  # applied before files, so their permissions are not overwritten by the
+  # implicit parent creation that a file underneath them would trigger.
+  - path: /var/lib/rancher-desktop
+    type: dir
+    mode: "0700"
+
+  # --- A symlink -------------------------------------------------------------
+  - path: /usr/local/bin/rdctl
+    type: symlink
+    # target is stored verbatim; it may be absolute or relative.
+    target: /usr/local/bin/rancher-desktop-guest-agent
+
+# Notes:
+#   * Overwrites win. If `path` already exists in the distro, the overlay entry
+#     replaces it; the original is dropped, not duplicated.
+#   * Only file, dir, and symlink are supported. Sockets, fifos, device nodes,
+#     and hard links are runtime artifacts, not shippable assets, and are
+#     rejected.
+#   * Files keep their source timestamp; directories and symlinks use the build
+#     time. Any entry's `mtime` overrides this.
+#   * The ext4 image writes into free space the distro reserves at build time
+#     (kiwi `<size additive>`); an overlay larger than that reserve fails rather
+#     than growing the filesystem. Raise the reserve and rebuild the distro.
