@@ -24,6 +24,16 @@ curl() {
     command "curl${EXE}" "$@"
 }
 
+# Fetch a URL and run assert_output against the response body, forwarding any
+# assert_output flags. Pair it with try() to poll an endpoint that comes up
+# asynchronously.
+assert_http_body() { # <url> [assert_output args...]
+    local url=$1
+    shift
+    run -0 curl --silent --show-error --fail --connect-timeout 5 --max-time 10 "${url}"
+    assert_output "$@"
+}
+
 # Check if curl supports WebSockets; some tests may require it.
 curl_has_websocket_support() {
     if ! command -v "curl${EXE}" >/dev/null 2>&1; then

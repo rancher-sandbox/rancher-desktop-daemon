@@ -10,7 +10,6 @@ load '../../helpers/load'
 # KubernetesReady condition on the App resource.
 
 APP_NAME="app"
-VM_NAME="rd"
 K3S_VERSION="1.32.0"
 CONTEXT_NAME="rancher-desktop-${RDD_INSTANCE}"
 
@@ -153,6 +152,37 @@ kube_current_context_is() { # <expected-context>
 
     run -0 kube_current_context
     assert_output "${CONTEXT_NAME}"
+}
+
+# --- Host connectivity ---
+
+@test "NodePort service is reachable from the host" {
+    # Deploy nginx behind a NodePort service and reach it from the host. k3s
+    # opens the NodePort on the node's 0.0.0.0; the Lima template forwards
+    # that port to the host, so localhost:<nodePort> reaches the application.
+
+    # Warm the image cache so the cold nginx pull stays off the rollout's clock
+    # on a slow CI runner. With the default moby backend k3s pulls through
+    # cri-dockerd from dockerd, so warm it with rdd run, which points docker at
+    # the VM's engine.
+    rdd run docker pull --quiet nginx
+
+    rdd kubectl --context "${CONTEXT_NAME}" create deployment test-connect --image=nginx
+    rdd kubectl --context "${CONTEXT_NAME}" expose deployment test-connect \
+        --name=test-connect --port=80 --type=NodePort
+    rdd kubectl --context "${CONTEXT_NAME}" rollout status deployment/test-connect --timeout=240s
+
+    run -0 rdd kubectl --context "${CONTEXT_NAME}" get service test-connect \
+        -o jsonpath='{.spec.ports[0].nodePort}'
+    node_port=${output}
+
+    # The pod must become an endpoint, kube-proxy must program the NodePort,
+    # and Lima must forward it to the host; poll until nginx answers.
+    try --max 40 --delay 3 -- \
+        assert_http_body "http://localhost:${node_port}" --partial "Welcome to nginx"
+
+    rdd kubectl --context "${CONTEXT_NAME}" delete service test-connect
+    rdd kubectl --context "${CONTEXT_NAME}" delete deployment test-connect
 }
 
 @test "KubernetesReady=NotApplicable when kubernetes is disabled" {
